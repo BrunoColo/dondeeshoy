@@ -9,9 +9,9 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Fase actual** | Fase 1 — Scrapers MVP (en progreso) |
+| **Fase actual** | Fase 3 — Frontend MVP (completado) |
 | **Inicio del proyecto** | 8 de febrero de 2026 |
-| **Último update** | 16 de febrero de 2026 (Fase 2 avanzado en marcha) |
+| **Último update** | 16 de febrero de 2026 (Fase 3 frontend completado) |
 | **MVP estimado** | 15-21 días de desarrollo |
 | **Gasto mensual actual** | $0 |
 
@@ -90,20 +90,20 @@
 
 | # | Tarea | Estado | Fecha | Notas |
 |---|-------|--------|-------|-------|
-| 3.1 | Root layout: fonts, theme, CSS neón, providers | ⬜ | | Space Grotesk + Inter |
-| 3.2 | `globals.css` — custom utilities neón/glow/glass | ⬜ | | |
-| 3.3 | Bottom navigation component | ⬜ | | 2 tabs: Hoy / Próximos |
-| 3.4 | Header sticky | ⬜ | | Logo + ciudad |
-| 3.5 | Event card component (glassmorphism) | ⬜ | | El componente más importante |
-| 3.6 | Time badge ("AHORA", "En 2h") | ⬜ | | Con pulse animation |
-| 3.7 | Event type badge (colores neón) | ⬜ | | Fiesta=violeta, etc. |
-| 3.8 | Home page (server component) | ⬜ | | "Hoy en tu ciudad" |
-| 3.9 | Event detail page `/evento/[slug]` | ⬜ | | Info completa + link tickets |
-| 3.10 | Página "Próximos" | ⬜ | | Mañana, finde, semana |
-| 3.11 | Skeleton loaders neón | ⬜ | | Shimmer effect |
-| 3.12 | Empty states con diseño | ⬜ | | "No hay eventos hoy" |
-| 3.13 | Page transitions con Motion | ⬜ | | Fade-up + blur |
-| 3.14 | Responsive: testar en móvil real | ⬜ | | |
+| 3.1 | Root layout: fonts, theme, CSS neón, providers | ✅ | 16/2/2026 | Outfit + DM Sans + DM Mono (innovación vs plan original) |
+| 3.2 | `globals.css` — custom utilities neón/glow/glass | ✅ | 16/2/2026 | Noise texture, ambient gradients, glassmorphism, shimmer, badges |
+| 3.3 | Bottom navigation component | ✅ | 16/2/2026 | 2 tabs: Hoy / Próximos con glass + active glow |
+| 3.4 | Header sticky | ✅ | 16/2/2026 | Logo + ciudad con glass + scroll-aware |
+| 3.5 | Event card component (glassmorphism) | ✅ | 16/2/2026 | Cards con imagen hero overlay + sin imagen fallback |
+| 3.6 | Time badge ("AHORA", "En 2h") | ✅ | 16/2/2026 | Badge live-pulse, soon (amber), later |
+| 3.7 | Event type badge (colores neón) | ✅ | 16/2/2026 | 7 tipos con colores únicos |
+| 3.8 | Home page (server component) | ✅ | 16/2/2026 | SSR con Drizzle, ISR 1h, Suspense + skeleton |
+| 3.9 | Event detail page `/evento/[slug]` | ✅ | 16/2/2026 | Hero image, info cards, CTA fijo, metadata dinámica |
+| 3.10 | Página "Próximos" | ✅ | 16/2/2026 | Grouped by day, 14 días ahead, ISR 1h |
+| 3.11 | Skeleton loaders neón | ✅ | 16/2/2026 | Shimmer con gradiente violeta sutil |
+| 3.12 | Empty states con diseño | ✅ | 16/2/2026 | 3 variantes: today, upcoming, search |
+| 3.13 | Page transitions con Motion | ✅ | 16/2/2026 | CSS fade-up + blur (card-enter staggered) |
+| 3.14 | Responsive: testar en móvil real | 🟡 | | Build compila OK, falta test en dispositivo |
 
 ---
 
@@ -111,7 +111,7 @@
 
 | # | Tarea | Estado | Fecha | Notas |
 |---|-------|--------|-------|-------|
-| 4.1 | SEO: metadata dinámicas por página | ⬜ | | |
+| 4.1 | SEO: metadata dinámicas por página | ✅ | 16/2/2026 | Metadata en layout, evento detail y próximos |
 | 4.2 | OG Image para shares | ⬜ | | |
 | 4.3 | Structured data (JSON-LD) para eventos | ⬜ | | |
 | 4.4 | ISR: revalidate en home y listados | ⬜ | | |
