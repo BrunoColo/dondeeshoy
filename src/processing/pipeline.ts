@@ -1,0 +1,211 @@
+import { and, eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
+
+import { classifyEvent } from "./classifier";
+import { findDuplicateEventId } from "./deduplicator";
+import { geocodeVenue } from "./geocoder";
+import { calculateConfidenceScore, normalizeRawEvent } from "./normalizer";
+
+export interface PipelineResult {
+  pending: number;
+  processed: number;
+  created: number;
+  merged: number;
+  errors: number;
+}
+
+export async function runProcessingPipeline(batchSize = 50): Promise<PipelineResult> {
+  const pendingRawEvents = await withTransientRetry("pending-raw-events", async () =>
+    db
+      .select()
+      .from(rawEvents)
+      .where(eq(rawEvents.processed, false))
+      .limit(batchSize),
+  );
+
+  const result: PipelineResult = {
+    pending: pendingRawEvents.length,
+    processed: 0,
+    created: 0,
+    merged: 0,
+    errors: 0,
+  };
+
+  for (const rawEvent of pendingRawEvents) {
+    try {
+      const output = await processRawEvent(rawEvent);
+      result.processed += 1;
+
+      if (output === "created") {
+        result.created += 1;
+      }
+
+      if (output === "merged") {
+        result.merged += 1;
+      }
+    } catch (error) {
+      result.errors += 1;
+
+      await withTransientRetry("set-processing-error", async () =>
+        db
+          .update(rawEvents)
+          .set({
+            processingError: String(error),
+          })
+          .where(eq(rawEvents.id, rawEvent.id)),
+      );
+
+      console.error(`[pipeline] error procesando raw_event ${rawEvent.id}`, error);
+    }
+  }
+
+  return result;
+}
+
+async function processRawEvent(rawEvent: RawEvent): Promise<"created" | "merged"> {
+  const normalized = await normalizeRawEvent(rawEvent);
+  const geocode = await geocodeVenue(normalized);
+  const enriched = {
+    ...normalized,
+    latitude: geocode.latitude,
+    longitude: geocode.longitude,
+  };
+
+  const classification = classifyEvent(enriched);
+  const confidenceScore = calculateConfidenceScore(enriched);
+
+  const duplicateEventId = await findDuplicateEventId(enriched);
+
+  const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore));
+
+  const alreadyLinked = await withTransientRetry("already-linked", async () =>
+    db
+      .select({ id: eventSources.id })
+      .from(eventSources)
+      .where(and(eq(eventSources.rawEventId, rawEvent.id), eq(eventSources.eventId, eventId)))
+      .limit(1),
+  );
+
+  if (alreadyLinked.length === 0) {
+    await withTransientRetry("insert-event-source", async () =>
+      db.insert(eventSources).values({
+        eventId,
+        rawEventId: rawEvent.id,
+        source: rawEvent.source,
+        sourceUrl: rawEvent.sourceUrl,
+        createdAt: new Date(),
+      }),
+    );
+  }
+
+  await withTransientRetry("mark-processed", async () =>
+    db
+      .update(rawEvents)
+      .set({
+        processed: true,
+        processingError: null,
+      })
+      .where(eq(rawEvents.id, rawEvent.id)),
+  );
+
+  return duplicateEventId ? "merged" : "created";
+}
+
+async function createEvent(
+  rawEvent: RawEvent,
+  normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
+  classification: ReturnType<typeof classifyEvent>,
+  confidenceScore: string,
+): Promise<string> {
+  const fallbackBase = normalized.slug || `evento-${Date.now()}`;
+
+  for (let suffix = 0; suffix < 200; suffix += 1) {
+    const candidateSlug = suffix === 0 ? fallbackBase : `${fallbackBase}-${suffix}`;
+
+    try {
+      const inserted = await withTransientRetry("insert-event", async () =>
+        db
+          .insert(events)
+          .values({
+            name: normalized.name,
+            slug: candidateSlug,
+            description: normalized.description,
+            date: normalized.date,
+            startTime: normalized.startTime,
+            endTime: null,
+            venueName: normalized.venueName,
+            venueAddress: normalized.venueAddress,
+            latitude: normalized.latitude?.toString() ?? null,
+            longitude: normalized.longitude?.toString() ?? null,
+            city: normalized.city,
+            eventType: classification.eventType,
+            musicGenre: classification.musicGenre,
+            imageUrl: normalized.imageUrl,
+            ticketUrl: normalized.ticketUrl,
+            priceMin: normalized.priceMin,
+            priceMax: normalized.priceMax,
+            currency: "UYU",
+            isFree: normalized.isFree,
+            ageRestriction: normalized.ageRestriction,
+            confidenceScore,
+            status: "active",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning({ id: events.id }),
+      );
+
+      return inserted[0].id;
+    } catch (error) {
+      const conflict = String(error).includes("events_slug_unique") || String(error).includes("23505");
+
+      if (conflict) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(`[pipeline] no se pudo generar slug único para ${normalized.name}`);
+}
+
+async function withTransientRetry<T>(
+  label: string,
+  operation: () => Promise<T>,
+  attempts = 3,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const isTransient = isTransientNetworkError(error);
+
+      if (!isTransient || attempt === attempts) {
+        throw error;
+      }
+
+      const delay = 200 * attempt;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error(`[pipeline] ${label} agotó reintentos: ${String(lastError)}`);
+}
+
+function isTransientNetworkError(error: unknown): boolean {
+  const text = String(error);
+
+  return (
+    text.includes("ENOTFOUND") ||
+    text.includes("ETIMEDOUT") ||
+    text.includes("ECONNRESET") ||
+    text.includes("ECONNREFUSED") ||
+    text.includes("57P01")
+  );
+}

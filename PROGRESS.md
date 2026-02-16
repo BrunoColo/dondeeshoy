@@ -11,7 +11,7 @@
 |---------|-------|
 | **Fase actual** | Fase 1 — Scrapers MVP (en progreso) |
 | **Inicio del proyecto** | 8 de febrero de 2026 |
-| **Último update** | 16 de febrero de 2026 (setup + scraper RedTickets) |
+| **Último update** | 16 de febrero de 2026 (Fase 2 avanzado en marcha) |
 | **MVP estimado** | 15-21 días de desarrollo |
 | **Gasto mensual actual** | $0 |
 
@@ -22,7 +22,7 @@
 | Servicio | Estado | Plan | Costo |
 |----------|--------|------|-------|
 | Vercel | ⬜ Pendiente | Hobby (free) | $0 |
-| Supabase | 🟡 En progreso | Free (solo DB, sin Auth/Storage) | $0 |
+| Supabase | ✅ Listo | Free (solo DB, sin Auth/Storage) | $0 |
 | Upstash Redis | ✅ Listo | Free | $0 |
 | OpenAI API | ✅ Listo | Pay-as-you-go | ~$1-3/mes est. |
 | Dominio | ⬜ Pendiente | Opcional | $0-30/año |
@@ -38,10 +38,10 @@
 |---|-------|--------|-------|-------|
 | 0.1 | Crear proyecto Next.js 16.1 + TS + Tailwind v4 | ✅ | 16/2/2026 | Inicializado en raíz del repo |
 | 0.2 | Configurar shadcn/ui con tema dark custom | ⬜ | | Próximo bloque |
-| 0.3 | Crear proyecto en Supabase (solo DB) | ⬜ | | Acción manual pendiente |
+| 0.3 | Crear proyecto en Supabase (solo DB) | ✅ | 16/2/2026 | Proyecto creado y URI pooler configurada |
 | 0.4 | Configurar Drizzle ORM + conexión a Supabase PG | 🟡 | 16/2/2026 | Config base lista (`drizzle.config.ts`, `src/lib/db`) |
 | 0.5 | Crear schema inicial de DB | ✅ | 16/2/2026 | `raw_events`, `events`, `event_sources` + enums |
-| 0.6 | Push schema con `drizzle-kit push` | ❌ | 16/2/2026 | Bloqueado por auth de Supabase (`28P01`) |
+| 0.6 | Push schema con `drizzle-kit push` | ✅ | 16/2/2026 | Migración aplicada con Session Pooler |
 | 0.7 | Crear instancia Upstash Redis | ✅ | 16/2/2026 | Credenciales cargadas en `.env` |
 | 0.8 | Deploy inicial a Vercel | ⬜ | | Acción manual pendiente |
 | 0.9 | Configurar env vars en Vercel | ⬜ | | Después de 0.8 |
@@ -59,11 +59,11 @@
 | 1.3 | Scraper RedTickets — discover | ✅ | 16/2/2026 | Discovery por links `/evento/.../{id}` |
 | 1.4 | Scraper RedTickets — scrape detalle | ✅ | 16/2/2026 | Extrae título, fecha, venue, imagen y precios |
 | 1.5 | API route `/api/scrape/redtickets` | ✅ | 16/2/2026 | Con `CRON_SECRET` y ejecución real |
-| 1.6 | **TEST**: ejecutar RedTickets → ver raw_events | ❌ | 16/2/2026 | Scrapea OK pero no guarda por auth DB |
+| 1.6 | **TEST**: ejecutar RedTickets → ver raw_events | ✅ | 16/2/2026 | 31 descubiertos / 31 guardados / 0 errores |
 | 1.7 | Scraper Entraste.com — discover | ✅ | 16/2/2026 | Discovery por links `/evento/{slug}` |
 | 1.8 | Scraper Entraste.com — scrape detalle | ✅ | 16/2/2026 | Extrae nombre, venue, ubicación, fecha, imagen y precios |
 | 1.9 | API route `/api/scrape/entraste` | ✅ | 16/2/2026 | Con `CRON_SECRET` y ejecución real |
-| 1.10 | **TEST**: ejecutar Entraste → ver raw_events | ⬜ | | Verificar datos en Supabase |
+| 1.10 | **TEST**: ejecutar Entraste → ver raw_events | ✅ | 16/2/2026 | 10 descubiertos / 10 guardados / 0 errores |
 | 1.11 | Configurar `vercel.json` con cron jobs | ✅ | 16/2/2026 | 3 crons configurados |
 | 1.12 | **TEST**: verificar cron ejecutó en Vercel | ⬜ | | Dashboard → Cron Jobs |
 
@@ -73,16 +73,16 @@
 
 | # | Tarea | Estado | Fecha | Notas |
 |---|-------|--------|-------|-------|
-| 2.1 | `normalizer.ts` — regex para fechas UY | ⬜ | | 80% de fechas sin IA |
-| 2.2 | `normalizer.ts` — fallback OpenAI para ambiguos | ⬜ | | gpt-4o-mini batch |
-| 2.3 | `geocoder.ts` — lookup table venues conocidos | ⬜ | | Cloud 7, Antel Arena, etc. |
-| 2.4 | `geocoder.ts` — fallback Mapbox geocoding | ⬜ | | Solo si venue desconocido |
-| 2.5 | `deduplicator.ts` — fuzzy match | ⬜ | | Nombre + fecha + venue |
-| 2.6 | `classifier.ts` — clasificar tipo + género | ⬜ | | Batch OpenAI |
-| 2.7 | `pipeline.ts` — orquestador completo | ⬜ | | Procesa raw → events |
-| 2.8 | API route `/api/scrape/process` | ⬜ | | |
-| 2.9 | **TEST E2E**: raw_events → pipeline → events | ⬜ | | Datos limpios en events |
-| 2.10 | Verificar costos OpenAI reales | ⬜ | | Dashboard OpenAI usage |
+| 2.1 | `normalizer.ts` — regex para fechas UY | ✅ | 16/2/2026 | Parsea día/mes/hora a formato SQL |
+| 2.2 | `normalizer.ts` — fallback OpenAI para ambiguos | ✅ | 16/2/2026 | Fallback con `gpt-4o-mini` y JSON output |
+| 2.3 | `geocoder.ts` — lookup table venues conocidos | ✅ | 16/2/2026 | Lookup local de venues frecuentes |
+| 2.4 | `geocoder.ts` — fallback Mapbox geocoding | 🟡 | 16/2/2026 | Implementado, falta token Mapbox para activarlo |
+| 2.5 | `deduplicator.ts` — fuzzy match | ✅ | 16/2/2026 | Similaridad por bigramas (name/venue) |
+| 2.6 | `classifier.ts` — clasificar tipo + género | 🟡 | 16/2/2026 | Heurístico por keywords (OpenAI pendiente) |
+| 2.7 | `pipeline.ts` — orquestador completo | ✅ | 16/2/2026 | Upsert/merge y vínculo en `event_sources` |
+| 2.8 | API route `/api/scrape/process` | ✅ | 16/2/2026 | Endpoint operativo con `batch` param |
+| 2.9 | **TEST E2E**: raw_events → pipeline → events | ✅ | 16/2/2026 | `pending:10`, `processed:10`, `merged:10`, `errors:0` |
+| 2.10 | Verificar costos OpenAI reales | 🟡 | 16/2/2026 | Fallback IA activo, medir uso real en dashboard |
 
 ---
 
@@ -164,7 +164,9 @@
 | 5 | Pocos eventos en 2 fuentes | Home vacía | Agregar fuentes post-MVP (Passline, IG), curación manual temporal | ⬜ Abierto |
 | 6 | Passline anti-bot impide scraping | No se pueden agregar eventos de Passline | Post-MVP con Playwright. Investigar APIs internas | ⬜ Abierto |
 | 7 | Node.js menor a 20.18.1 | Warnings por `cheerio@1.2.x` | Actualizar Node a 20.18.1+ o 22 LTS | ⬜ Abierto |
-| 8 | Credenciales DB inválidas en Supabase | No se puede persistir ni migrar schema | Regenerar `DATABASE_URL`/password desde Supabase | ❌ Bloqueante |
+| 8 | Credenciales DB inválidas en Supabase | No se puede persistir ni migrar schema | Resuelto usando Session Pooler + password correcta | ✅ Cerrado |
+| 9 | Resolución DNS intermitente al pooler | Puede generar fallos transitorios del pipeline (`ENOTFOUND`) | Reintento + revisar DNS/red local | ⬜ Monitorear |
+| 10 | Falta token Mapbox en entorno | Geocoder usa solo lookup local | Agregar `NEXT_PUBLIC_MAPBOX_TOKEN` para fallback API | ⬜ Abierto |
 
 ---
 
@@ -237,6 +239,67 @@
 - **Próximo paso**:
   - Corregir credenciales de `DATABASE_URL` y ejecutar `db:push`
   - Con DB operativa, terminar Entraste y testear `raw_events`
+
+### Sesión 5 — 16 de febrero de 2026 (Desbloqueo DB + E2E scrapers)
+- **Duración**: —
+- **Qué se hizo**:
+  - Actualización de `DATABASE_URL` a Session Pooler de Supabase con SSL
+  - Ejecución de `drizzle-kit push` exitosa (tipos, tablas, índices y FKs creadas)
+  - Test E2E local RedTickets:
+    - `GET /api/scrape/redtickets` → `discovered: 31`, `saved: 31`, `errors: 0`
+  - Test E2E local Entraste:
+    - `GET /api/scrape/entraste` → `discovered: 10`, `saved: 10`, `errors: 0`
+  - Confirmación de rutas y ejecución estable en entorno local
+- **Bloqueos detectados**:
+  - Ninguno bloqueante para Fase 1
+- **Próximo paso**:
+  - Empezar Fase 2: `normalizer.ts` + primer `process/route.ts`
+
+### Sesión 6 — 16 de febrero de 2026 (Fase 2 — Pipeline base)
+- **Duración**: —
+- **Qué se hizo**:
+  - Implementación de módulos en `src/processing`:
+    - `normalizer.ts` (normalización fecha/hora/slug/precios)
+    - `deduplicator.ts` (detección de duplicados por similaridad)
+    - `classifier.ts` (clasificación heurística tipo/género)
+    - `pipeline.ts` (proceso raw → events + event_sources)
+    - `ai-client.ts` (wrapper base para OpenAI)
+  - Integración de `/api/scrape/process` con ejecución real y soporte `?batch=`
+  - Validación técnica:
+    - `npm run lint` ✅
+    - `npm run build` ✅
+  - Test E2E:
+    - Re-scrape de Entraste: `saved: 10`
+    - Proceso: `pending: 10`, `processed: 10`, `created: 0`, `merged: 10`, `errors: 0`
+- **Bloqueos detectados**:
+  - Error DNS transitorio al pooler (`ENOTFOUND`) observado una vez; reintento posterior OK
+- **Próximo paso**:
+  - Completar Fase 2 avanzada: fallback OpenAI en normalizer + geocoder (lookup + Mapbox)
+
+### Sesión 7 — 16 de febrero de 2026 (Fase 2 — Avanzado)
+- **Duración**: —
+- **Qué se hizo**:
+  - `normalizer.ts` pasó a flujo async con fallback OpenAI (`gpt-4o-mini`) para fechas ambiguas
+  - Nuevo `geocoder.ts`:
+    - Lookup local de venues conocidos (Antel Arena, Solís, etc.)
+    - Fallback opcional a Mapbox Geocoding API
+  - `pipeline.ts` mejorado:
+    - Integración de geocoding en creación de eventos
+    - Reintentos transitorios para operaciones DB/red (ENOTFOUND, ETIMEDOUT, etc.)
+    - Resolución robusta de colisiones de slug (`events_slug_unique`) con sufijos incrementales
+  - Variables de entorno:
+    - `.env.example` actualizado con `NEXT_PUBLIC_MAPBOX_TOKEN`
+    - `.env` actualizado con placeholder comentado de Mapbox
+  - Validación técnica:
+    - `npm run lint` ✅
+    - `npm run build` ✅
+  - Validación funcional:
+    - Re-scrape RedTickets y ejecución de `/api/scrape/process` sin ruptura del pipeline
+- **Bloqueos detectados**:
+  - Mapbox fallback no activo por falta de token (no bloqueante)
+- **Próximo paso**:
+  - Medir costos OpenAI y afinar prompts/rules
+  - Continuar Fase 3 frontend MVP
 
 ---
 
