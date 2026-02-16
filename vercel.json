@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/scrape/redtickets",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/scrape/entraste",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/scrape/process",
+      "schedule": "0 16 * * *"
+    }
+  ]
+}

@@ -34,15 +34,16 @@
 | ORM | Drizzle ORM | latest (~1.0) |
 | DB Driver | postgres (postgres.js) | latest |
 | Base de Datos | Supabase PostgreSQL | - |
-| Auth | Supabase Auth (`@supabase/ssr`) | latest |
-| Storage | Supabase Storage | - |
 | Styling | Tailwind CSS v4 + shadcn/ui | v4 |
 | Animaciones | Motion (ex Framer Motion) | v12 |
-| Scraping | Cheerio | 1.2.x |
+| Scraping (MVP) | Cheerio | 1.2.x |
+| Scraping (post-MVP) | Playwright | - |
 | Cache / Rate Limit | Upstash Redis | latest |
 | IA | OpenAI API | gpt-4o-mini |
 | Deploy | Vercel | - |
 | Mapas (post-MVP) | Mapbox GL JS | - |
+
+> **Nota**: Supabase Auth y Storage NO se usan en el MVP. Se agregarán en la fase de Auth + Memoria Personal post-MVP.
 
 ---
 
@@ -52,15 +53,15 @@
 |----------|----------|---------|
 | **Next.js 16 sobre 14/15** | Next.js 16.1 | Turbopack default (builds 10x más rápido), React Compiler (memoización automática), `use cache` directive, View Transitions nativas con React 19.2 |
 | **Drizzle sobre Prisma** | Drizzle ORM | Bundle ~50KB vs ~5MB de Prisma. Sin binario runtime. Edge/serverless compatible. SQL-first = más control para queries complejas (geo, filtros). Perfecto para Vercel |
-| **Supabase sobre Neon** | Supabase (all-in-one) | DB + Auth + Storage + Realtime en un solo servicio. Auth integrado evita pagar/configurar Clerk. Storage para fotos de usuarios sin S3 extra. Free tier generoso |
-| **Supabase Auth sobre Clerk** | Supabase Auth | **$0 costo** vs Clerk (gratis hasta 10K MAU pero vendor lock-in). Integrado nativamente con la DB. Menos dependencias externas |
-| **Drizzle como query layer** | Drizzle + Supabase | Drizzle se conecta directo al PostgreSQL de Supabase para queries tipadas. Supabase client se usa solo para Auth y Storage. Lo mejor de los dos mundos |
+| **Supabase (solo DB en MVP)** | Supabase PostgreSQL | Free tier generoso (500MB DB). Post-MVP se agrega Auth + Storage para features de usuario. Por ahora solo usamos el PostgreSQL |
+| **Drizzle como query layer** | Drizzle + Supabase PG | Drizzle se conecta directo al PostgreSQL de Supabase para queries tipadas. En el MVP no se usa el cliente Supabase JS (no hay auth ni storage) |
 | **Tailwind v4 + shadcn/ui** | Componentes copiados al proyecto | shadcn/ui genera código en tu repo (no es dependencia). Totalmente customizable para el tema nocturno. Radix primitives accesibles |
 | **Motion sobre CSS puro** | Motion v12 | API declarativa para micro-interacciones. Compatible React 19.2. Gestures (swipe días). Layout animations. El bundle es aceptable para la UX que necesitamos |
-| **Cheerio sobre Playwright** | Cheerio para scrapers | RedTickets y Tickantel son SSR (HTML puro). No necesitan headless browser. Cheerio es ~1MB vs Playwright ~100MB+. Corre perfecto en serverless |
+| **Cheerio para MVP, Playwright post-MVP** | Cheerio para scrapers MVP | Entraste.com y RedTickets son SSR (HTML puro). No necesitan headless browser. Cheerio es ~1MB vs Playwright ~100MB+. Corre perfecto en serverless. Passline y CobraTickets necesitan Playwright (anti-bot / SPA) → post-MVP |
 | **Upstash Redis** | HTTP-based Redis | Serverless-friendly (sin TCP). Rate limiting para scrapers. Cache de resultados. Distributed locks para evitar cron jobs concurrentes. Free tier: 10K requests/día |
 | **OpenAI gpt-4o-mini** | Modelo barato para IA | ~$0.15 por 1M input tokens. Para normalizar fechas y clasificar eventos es más que suficiente. No necesitamos gpt-4o completo para el MVP |
 | **Vercel Hobby sobre Pro** | Plan gratuito | Cron 1x/día es suficiente para MVP. 100GB bandwidth. Serverless functions 300s timeout. Upgradeamos a Pro ($20/mes) solo cuando necesitemos cron más frecuente |
+| **Sin usuarios en MVP** | Solo diseño + scraping | El MVP valida 2 cosas: (1) que el scraping funciona y alimenta datos reales, (2) que el diseño nightlife mobile-first es atractivo. Auth, asistencia, puntaje y fotos → post-MVP |
 
 ---
 
@@ -71,11 +72,10 @@
 | Servicio | Plan | Costo | Límites clave |
 |----------|------|-------|---------------|
 | **Vercel** | Hobby (free) | $0 | 100GB bandwidth, cron 1x/día, 300s serverless timeout |
-| **Supabase** | Free | $0 | 500MB DB, 1GB Storage, 50K auth MAU, 2 projects. Se pausa tras 7 días inactivo |
+| **Supabase** | Free (solo DB) | $0 | 500MB DB, 2 projects. Se pausa tras 7 días inactivo |
 | **Upstash Redis** | Free | $0 | 10K commands/día, 256MB |
-| **OpenAI** | Pay-as-you-go | ~$1-3/mes | gpt-4o-mini: ~$0.15/1M input tokens. Procesamos ~100-200 eventos/día |
+| **OpenAI** | Pay-as-you-go | ~$1-3/mes | gpt-4o-mini: ~$0.15/1M input tokens. Procesamos ~50-100 eventos/día |
 | **Dominio** | dondeeshoy.uy (si se registra) | ~$30/año | Opcional, se puede usar vercel.app gratis |
-| **Mapbox** (post-MVP) | Free tier | $0 | 50K map loads/mes gratis |
 | **TOTAL MVP** | | **~$1-3/mes** | Solo OpenAI tiene costo real. Todo lo demás en free tier |
 
 ### Cuándo escalar (y cuánto cuesta)
@@ -84,17 +84,16 @@
 |---------|---------|-------------|
 | Necesitamos cron cada hora | Vercel Pro | +$20/mes |
 | DB supera 500MB | Supabase Pro | +$25/mes |
-| Storage supera 1GB | Supabase Pro | (incluido en Pro) |
 | >10K Redis commands/día | Upstash Pay-as-you-go | +$0.20 por 100K extra |
 | Mucho tráfico de IA | Caché agresivo + batching | Reduce costos sin upgrade |
+| Agregar Passline/Cobra (Playwright) | Servicio externo o VPS | +$5-10/mes est. |
 
 ### Tips para mantener costos bajos
 
 1. **Cachear agresivamente**: eventos no cambian cada minuto. ISR con revalidate de 1 hora
 2. **Batching IA**: procesar todos los raw_events pendientes en UNA sola llamada a OpenAI (no uno por uno)
 3. **Evitar scraping innecesario**: comparar hash del HTML descargado, si no cambió → skip processing
-4. **Images**: usar Supabase Storage con transformaciones (resize server-side) para no gastar bandwidth en imágenes pesadas
-5. **Edge caching**: Vercel cachea automáticamente las respuestas de SSR/ISR en el edge
+4. **Edge caching**: Vercel cachea automáticamente las respuestas de SSR/ISR en el edge
 
 ---
 
@@ -103,11 +102,17 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    FUENTES DE DATOS                         │
-│  RedTickets.uy │ Tickantel.com.uy │ Eventbrite │ (futuro:  │
-│  (HTML scrape) │ (HTML scrape)    │ (API+scrape)│ IG, etc) │
-└───────┬─────────────────┬──────────────┬────────────────────┘
-        │                 │              │
-        ▼                 ▼              ▼
+│                                                             │
+│  MVP:                                                       │
+│  RedTickets.uy  │  Entraste.com                             │
+│  (HTML scrape)  │  (HTML scrape)                            │
+│                                                             │
+│  Post-MVP:                                                  │
+│  Passline (Playwright) │ CobraTickets (Playwright)          │
+│  Instagram (cuentas específicas)                            │
+└───────┬─────────────────┬───────────────────────────────────┘
+        │                 │
+        ▼                 ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              CAPA DE RECOLECCIÓN (Scrapers)                  │
 │  Vercel Cron (1x/día) → API Routes → Cheerio parsing        │
@@ -134,16 +139,8 @@
 │  Mobile-first, dark mode, estética nocturna                  │
 │  Home: "Hoy en tu ciudad" → lista de eventos                 │
 │  Ficha de evento → detalle completo                          │
-│  Auth: login → marca asistencia, puntaje, foto               │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              CAPA DE MEMORIA PERSONAL                         │
-│  user_attendances, user_ratings, user_photos                 │
-│  Diario personal: historial privado de jodas                 │
-│  Supabase Storage para fotos                                 │
-│  (Futuro: recap anual, stats shareables)                     │
+│  Próximos → eventos de los próximos días                     │
+│  (Sin auth ni features de usuario en MVP)                    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -153,21 +150,22 @@
 - **Escalable**: agregar nueva fuente = crear un nuevo archivo en `scrapers/`, no tocar nada más
 - **Barato**: free tiers everywhere, IA solo cuando es necesario, cache agresivo
 - **Sin overengineering**: no hay microservicios, no hay Kafka, no hay Docker. Es un monolito Next.js bien organizado
+- **MVP enfocado**: solo diseño web + scraping de datos reales. Features de usuario → post-MVP
 
 ---
 
 ## Flujo de Datos
 
-### Fuente → Evento → Usuario
+### Fuente → Evento → Presentación
 
 ```
 1. RECOLECCIÓN (automática, 1x/día)
-   ┌──────────┐     ┌──────────┐     ┌──────────┐
-   │RedTickets│     │Tickantel │     │Eventbrite│
-   │  scraper │     │  scraper │     │  scraper │
-   └────┬─────┘     └────┬─────┘     └────┬─────┘
-        │                │                │
-        ▼                ▼                ▼
+   ┌──────────┐     ┌──────────┐
+   │RedTickets│     │ Entraste │
+   │  scraper │     │  scraper │
+   └────┬─────┘     └────┬─────┘
+        │                │
+        ▼                ▼
    ┌─────────────────────────────────────────┐
    │           raw_events (DB)               │
    │  source | source_id | raw_data (JSON)   │
@@ -208,19 +206,6 @@
    │  Home → cards de eventos de hoy         │
    │  /evento/[slug] → detalle completo      │
    │  /proximos → próximos días              │
-   └──────────────────┬──────────────────────┘
-                      │
-4. INTERACCIÓN (usuario autenticado)
-                      │
-                      ▼
-   ┌─────────────────────────────────────────┐
-   │       Acciones del usuario              │
-   │                                         │
-   │  → Marcar "Asistí" (toggle)            │
-   │  → Puntuar ⭐ 1-5 (privado)           │
-   │  → Comentar (privado)                  │
-   │  → Subir 1 foto (Supabase Storage)     │
-   │  → Ver historial personal              │
    └─────────────────────────────────────────┘
 ```
 
@@ -234,7 +219,7 @@
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | `id` | uuid (PK) | auto-generated |
-| `source` | enum: `redtickets`, `tickantel`, `eventbrite` | de dónde vino |
+| `source` | enum: `redtickets`, `entraste` | de dónde vino |
 | `source_id` | varchar | ID del evento en la fuente original |
 | `source_url` | varchar | URL completa al evento en la fuente |
 | `raw_data` | jsonb | todos los datos extraídos sin procesar |
@@ -242,6 +227,8 @@
 | `processed` | boolean (default false) | si ya pasó por el pipeline IA |
 | `processing_error` | text (nullable) | si el pipeline falló, por qué |
 | **UNIQUE** | `(source, source_id)` | evita duplicados de misma fuente |
+
+> **Post-MVP**: se agregará `passline`, `cobratickets`, `instagram` al enum `source` cuando se implementen esos scrapers.
 
 ### Tabla: `events`
 > Eventos normalizados, listos para mostrar. Fuente de verdad del frontend.
@@ -277,7 +264,7 @@
 | **INDEX** | `(slug)` | para URL lookup |
 
 ### Tabla: `event_sources`
-> Relación N:N: un evento puede venir de múltiples fuentes (RedTickets + Tickantel).
+> Relación N:N: un evento puede venir de múltiples fuentes (RedTickets + Entraste).
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
@@ -287,7 +274,14 @@
 | `source` | varchar | nombre de la fuente |
 | `source_url` | varchar | link original |
 
-### Tabla: `user_attendances`
+### Tablas Post-MVP (Auth + Memoria Personal)
+
+> Estas tablas se crearán cuando se implemente la funcionalidad de usuarios. No se incluyen en el schema inicial del MVP.
+
+<details>
+<summary>Ver schema de tablas de usuario (post-MVP)</summary>
+
+#### Tabla: `user_attendances`
 > Marca de "Asistí a este evento".
 
 | Campo | Tipo | Notas |
@@ -298,7 +292,7 @@
 | `created_at` | timestamptz | |
 | **UNIQUE** | `(user_id, event_id)` | una sola asistencia por user por evento |
 
-### Tabla: `user_ratings`
+#### Tabla: `user_ratings`
 > Puntaje + comentario PRIVADO.
 
 | Campo | Tipo | Notas |
@@ -312,7 +306,7 @@
 | `updated_at` | timestamptz | |
 | **UNIQUE** | `(user_id, event_id)` | un solo rating por user por evento |
 
-### Tabla: `user_photos`
+#### Tabla: `user_photos`
 > La "mejor foto de la noche" — una foto por user por evento.
 
 | Campo | Tipo | Notas |
@@ -323,6 +317,8 @@
 | `storage_path` | varchar | path en Supabase Storage |
 | `created_at` | timestamptz | |
 | **UNIQUE** | `(user_id, event_id)` | una sola foto por user por evento |
+
+</details>
 
 ### Tabla: `venues` (preparada, se usa post-MVP)
 > Lugares normalizados. En el MVP, venue_name/venue_address están directo en events.
@@ -347,34 +343,22 @@
 dondeeshoy/
 ├── src/
 │   ├── app/                              # Next.js 16 App Router
-│   │   ├── (auth)/                       # Grupo: rutas de autenticación
-│   │   │   ├── login/page.tsx
-│   │   │   ├── register/page.tsx
-│   │   │   └── callback/route.ts         # OAuth callback
 │   │   ├── (main)/                       # Grupo: layout principal con nav
 │   │   │   ├── layout.tsx                # Layout con bottom nav + header
 │   │   │   ├── page.tsx                  # Home: "Hoy en tu ciudad"
 │   │   │   ├── evento/
 │   │   │   │   └── [slug]/page.tsx       # Ficha de evento
-│   │   │   ├── proximos/page.tsx         # Próximos días
-│   │   │   ├── historial/page.tsx        # Mi historial (auth required)
-│   │   │   └── perfil/page.tsx           # Mi perfil (auth required)
+│   │   │   └── proximos/page.tsx         # Próximos días
 │   │   ├── api/
 │   │   │   ├── scrape/
 │   │   │   │   ├── redtickets/route.ts   # Scraper RedTickets
-│   │   │   │   ├── tickantel/route.ts    # Scraper Tickantel
-│   │   │   │   ├── eventbrite/route.ts   # Scraper Eventbrite
+│   │   │   │   ├── entraste/route.ts     # Scraper Entraste.com
 │   │   │   │   └── process/route.ts      # Trigger pipeline IA
-│   │   │   ├── events/
-│   │   │   │   ├── route.ts              # GET lista de eventos
-│   │   │   │   └── [id]/route.ts         # GET detalle evento
-│   │   │   └── user/
-│   │   │       ├── attendance/route.ts   # POST/DELETE asistencia
-│   │   │       ├── rating/route.ts       # POST/PUT puntaje
-│   │   │       └── photo/route.ts        # POST foto
+│   │   │   └── events/
+│   │   │       ├── route.ts              # GET lista de eventos
+│   │   │       └── [id]/route.ts         # GET detalle evento
 │   │   ├── layout.tsx                    # Root layout (fonts, theme, providers)
-│   │   ├── globals.css                   # Tailwind + custom CSS neón
-│   │   └── proxy.ts                      # Next.js 16 proxy (ex middleware)
+│   │   └── globals.css                   # Tailwind + custom CSS neón
 │   │
 │   ├── components/
 │   │   ├── ui/                           # shadcn/ui (auto-generated)
@@ -382,7 +366,6 @@ dondeeshoy/
 │   │   │   ├── card.tsx
 │   │   │   ├── badge.tsx
 │   │   │   ├── skeleton.tsx
-│   │   │   ├── dialog.tsx
 │   │   │   └── ...
 │   │   ├── events/
 │   │   │   ├── event-card.tsx            # Card glassmorphism
@@ -394,11 +377,6 @@ dondeeshoy/
 │   │   │   ├── header.tsx                # Header sticky
 │   │   │   ├── bottom-nav.tsx            # Bottom navigation mobile
 │   │   │   └── page-transition.tsx       # Motion transitions
-│   │   ├── user/
-│   │   │   ├── attendance-button.tsx     # Toggle "Asistí"
-│   │   │   ├── rating-stars.tsx          # ⭐ 1-5
-│   │   │   ├── photo-upload.tsx          # Upload foto
-│   │   │   └── history-card.tsx          # Card historial
 │   │   └── shared/
 │   │       ├── neon-glow.tsx             # Wrapper glow effect
 │   │       ├── time-badge.tsx            # Badge "AHORA" / "En 2h"
@@ -406,14 +384,11 @@ dondeeshoy/
 │   │
 │   ├── lib/
 │   │   ├── supabase/
-│   │   │   ├── client.ts                # Browser client (createBrowserClient)
-│   │   │   ├── server.ts                # Server client (createServerClient)
 │   │   │   └── admin.ts                 # Service role (scrapers, pipeline)
 │   │   ├── db/
 │   │   │   ├── index.ts                 # Drizzle client init
 │   │   │   ├── schema/
 │   │   │   │   ├── events.ts            # events, raw_events, event_sources
-│   │   │   │   ├── users.ts             # attendances, ratings, photos
 │   │   │   │   ├── venues.ts            # venues (post-MVP)
 │   │   │   │   └── index.ts             # Re-export
 │   │   │   └── migrations/              # Drizzle Kit generated
@@ -423,8 +398,7 @@ dondeeshoy/
 │   ├── scrapers/
 │   │   ├── base-scraper.ts              # Interfaz base + helpers
 │   │   ├── redtickets.ts                # Scraper RedTickets
-│   │   ├── tickantel.ts                 # Scraper Tickantel
-│   │   ├── eventbrite.ts                # Scraper Eventbrite
+│   │   ├── entraste.ts                  # Scraper Entraste.com
 │   │   ├── types.ts                     # Tipos compartidos scrapers
 │   │   └── utils.ts                     # Rate limiting, retry, parseo
 │   │
@@ -437,14 +411,10 @@ dondeeshoy/
 │   │   └── ai-client.ts                # OpenAI wrapper
 │   │
 │   ├── hooks/
-│   │   ├── use-events.ts               # Data fetching eventos
-│   │   ├── use-attendance.ts            # Toggle asistencia
-│   │   ├── use-rating.ts               # Puntaje
-│   │   └── use-auth.ts                 # Estado auth
+│   │   └── use-events.ts               # Data fetching eventos
 │   │
 │   ├── types/
 │   │   ├── events.ts                    # Tipos de eventos
-│   │   ├── user.ts                      # Tipos de usuario
 │   │   └── api.ts                       # Tipos responses API
 │   │
 │   └── config/
@@ -478,14 +448,17 @@ dondeeshoy/
 
 ### Fuentes investigadas
 
-| Fuente | Método | Prioridad | Dificultad | API pública |
-|--------|--------|-----------|------------|-------------|
-| **RedTickets.uy** | HTML scraping (Cheerio) | 🔴 Alta | Fácil | ❌ No |
-| **Tickantel.com.uy** | HTML scraping (Cheerio) | 🔴 Alta | Media | ❌ No |
-| **Eventbrite** | Scrape discovery + API detalle | 🟡 Media | Media | ⚠️ Parcial (search deprecada) |
-| **Facebook Events** | ❌ NO VIABLE | - | - | Solo Marketing Partners |
-| **Instagram** | Post-MVP: monitorear cuentas | 🟢 Baja | Alta | ⚠️ Limitada |
-| **CobraTickets** | Necesita más investigación | 🟢 Baja | Desconocida | Desconocido |
+| Fuente | Método | Prioridad MVP | Dificultad | Viabilidad Cheerio |
+|--------|--------|---------------|------------|-------------------|
+| **RedTickets.uy** | HTML scraping (Cheerio) | 🔴 Alta (MVP) | Fácil | ✅ SSR, HTML puro |
+| **Entraste.com** | HTML scraping (Cheerio) | 🔴 Alta (MVP) | Fácil | ✅ SSR, datos limpios |
+| **Passline** | Playwright (headless browser) | 🟡 Post-MVP | Alta | ❌ Anti-bot (queue-it.net) |
+| **CobraTickets** | Playwright (headless browser) | 🟡 Post-MVP | Alta | ❌ SPA JavaScript |
+| **Instagram** | Monitorear cuentas específicas | 🟢 Post-MVP | Alta | ⚠️ Limitada |
+| ~~Eventbrite~~ | ~~Descartada~~ | — | — | ~~No es nightlife~~ |
+| ~~Tickantel~~ | ~~Descartada~~ | — | — | ~~No es nightlife~~ |
+
+> **Por qué descartamos Eventbrite y Tickantel**: no son fuentes de fiestas nocturnas. Venden entradas para teatro, deportes, conferencias, etc. Entraste.com y RedTickets son mucho más relevantes para el nightlife de Montevideo.
 
 ### RedTickets — Scraper detallado
 
@@ -509,47 +482,56 @@ dondeeshoy/
 **Rate limit**: 1 request/segundo (Upstash rate limiter)
 **Frecuencia**: 1x/día (Vercel Cron hobby plan)
 
-### Tickantel — Scraper detallado
+### Entraste.com — Scraper detallado
 
-**Arquitectura del sitio**: Java/Apache Wicket SSR. Antel (empresa estatal).
+**Arquitectura del sitio**: Server-side rendered. HTML limpio y bien estructurado. API interna en `api.entraste.com`.
 
 **Algoritmo**:
-1. Crawl categorías relevantes:
-   - `GET https://tickantel.com.uy/inicio/buscar_categoria?cat_id=1` (Teatro)
-   - `GET https://tickantel.com.uy/inicio/buscar_categoria?cat_id=2` (Música)
-   - `GET https://tickantel.com.uy/inicio/buscar_categoria?cat_id=6` (Deportes)
-   - `GET https://tickantel.com.uy/inicio/buscar_categoria?cat_id=7` (Otros)
-   - `GET https://tickantel.com.uy/inicio/buscar_categoria?cat_id=10` (Danza)
-2. Parsear lista de eventos, extraer links a detalle: `/inicio/espectaculo/{id}/...`
-3. Para cada evento:
-   - `GET` página de detalle
+1. `GET https://www.entraste.com/` → parsear homepage con Cheerio
+2. Extraer todos los links que matchean `/evento/{slug}`
+3. Para cada link único:
+   - `GET https://www.entraste.com/evento/{slug}`
    - Parsear con Cheerio:
-     - **Nombre**: e.g. "FITO PÁEZ | SALE EL SOL TOUR"
-     - **Fecha**: "Viernes 15 de mayo - 21:00 hs"
-     - **Venue**: "Antel Arena", "Teatro Solís - Sala Principal"
-     - **Precios**: "desde $1900 a $4200"
-     - **Sectores**: con disponibilidad ("DISPONIBLES", "QUEDAN POCOS", "AGOTADAS")
-     - **Imagen**: `tickantel.cdn.antel.net.uy/media/Espectaculo/{id}/{img}.jpg`
-   - Guardar en `raw_events` con `source='tickantel'`, `source_id=id`
+     - **Nombre**: `<h1>` principal (ej: "Cloud Sessions - LA NUEVA ESCUELA")
+     - **Venue**: campo "Venue:" (ej: "Cloud 7")
+     - **Dirección**: campo "Ubicación:" (ej: "Constituyente 1885, 11200 Montevideo, Departamento de Montevideo")
+     - **Fecha/hora**: campo con icono de fecha (ej: "viernes 20 de febrero a las 23:59")
+     - **Tickets**: tabla de tipos con nombre + precio en $ (ej: "Tanda 1 - General $300", "Tanda 1 - Vip $600")
+     - **Imagen**: `api.entraste.com/sc/uploads/file/{id}` (imagen del flyer)
+   - Guardar en `raw_events` con `source='entraste'`, `source_id=slug`
 
-**Rate limit**: 1 request cada 2 segundos (es Antel, ser respetuoso)
-**Nota**: Wicket genera URLs con tokens de sesión para navegación interna, pero las categorías y detalle de evento son URLs estables.
+**Datos confirmados que se pueden extraer**:
+- ✅ Nombre del evento
+- ✅ Venue (nombre del lugar)
+- ✅ Dirección completa (con ciudad y CP)
+- ✅ Fecha y hora de inicio
+- ✅ Tipos de entrada con precios
+- ✅ Imagen del evento (flyer)
+- ✅ URL para comprar entradas
 
-### Eventbrite — Scraper detallado
+**Rate limit**: 1 request/segundo (Upstash rate limiter)
+**Frecuencia**: 1x/día (Vercel Cron hobby plan)
 
-**API**: Existe pero la búsqueda por ubicación fue **deprecada en 2019**.
+**Nota**: Entraste.com es la fuente más relevante para nightlife. Tiene fiestas reales (Cloud Sessions, FOMO, DJ Sanata, MEGA PARISEO, etc.) con datos muy completos.
 
-**Algoritmo híbrido**:
-1. Scrape discovery: `GET https://www.eventbrite.com/d/uruguay--montevideo/events/`
-2. Extraer IDs de eventos de la página
-3. Usar API oficial para cada ID:
-   - `GET /v3/events/{id}/?expand=venue,category,ticket_classes,ticket_availability`
-   - Auth: Personal OAuth Token (header `Authorization: Bearer {TOKEN}`)
-4. Data estructurada: nombre, fechas ISO, venue con coordenadas, categoría, precios, sold out status
-5. Guardar en `raw_events` con `source='eventbrite'`
+### Fuentes Post-MVP
 
-**Rate limit**: seguir headers de rate limit de la API
-**Nota**: Eventbrite tiene menos nightlife de Uruguay que RedTickets/Tickantel.
+#### Passline
+- **Problema**: usa queue-it.net como protección anti-bot. Todas las requests a `/eventos` redirigen a una sala de espera y devuelven 403
+- **Solución post-MVP**: Playwright con headless browser para bypasear la protección. Alternativa: investigar si tiene APIs internas JSON (network requests) que se puedan consumir directamente
+- **Costo**: Playwright no corre en Vercel serverless (demasiado pesado). Necesitaría un servicio externo o VPS (~$5-10/mes)
+- **Valor**: plataforma grande en LATAM con presencia en Uruguay
+
+#### CobraTickets
+- **Problema**: el sitio es una SPA JavaScript que no renderiza contenido sin un browser real. El contenido no se puede extraer con Cheerio
+- **Solución post-MVP**: Playwright headless browser para renderizar la SPA y extraer datos
+- **Nota**: verificar si el sitio sigue operativo — los intentos de acceso devolvieron contenido vacío. Puede que haya cambiado de dominio o cerrado
+
+#### Instagram
+- **Estrategia**: monitorear cuentas específicas de venues y promotores de Montevideo
+- **Cuentas pendientes de definir**: el usuario mencionó cuentas de IG pero no se especificaron aún
+- **Complejidad**: la API de Instagram es limitada. Alternativas: Meta Business API (requiere cuenta Business) o scraping con Playwright
+- **Prioridad**: después de Passline/CobraTickets
 
 ### Patrón base del scraper
 
@@ -584,16 +566,12 @@ interface BaseScraper {
       "schedule": "0 14 * * *"  // 14:00 UTC = 11:00 UYT (Uruguay)
     },
     {
-      "path": "/api/scrape/tickantel",
+      "path": "/api/scrape/entraste",
       "schedule": "0 15 * * *"  // 15:00 UTC = 12:00 UYT
     },
     {
-      "path": "/api/scrape/eventbrite",
-      "schedule": "0 16 * * *"  // 16:00 UTC = 13:00 UYT
-    },
-    {
       "path": "/api/scrape/process",
-      "schedule": "0 17 * * *"  // 17:00 UTC = 14:00 UYT (después de scrapers)
+      "schedule": "0 16 * * *"  // 16:00 UTC = 13:00 UYT (después de scrapers)
     }
   ]
 }
@@ -725,9 +703,11 @@ interface BaseScraper {
 │  └────────────────────┘  │
 │                          │
 ├──────────────────────────┤
-│  🎵 Hoy  📅 Próx  📋  👤│  ← Bottom nav glassmorphism
+│     🎵 Hoy    📅 Próx   │  ← Bottom nav glassmorphism (2 tabs MVP)
 └──────────────────────────┘
 ```
+
+> **Nota MVP**: el bottom nav tiene solo 2 tabs (Hoy / Próximos). Post-MVP se agregarán Historial y Perfil cuando se implemente auth.
 
 ---
 
@@ -736,23 +716,22 @@ interface BaseScraper {
 ### Fase 0 — Setup (2-3 días)
 - [ ] Crear proyecto Next.js 16.1 + TypeScript + Tailwind v4
 - [ ] Configurar shadcn/ui con tema oscuro personalizado
-- [ ] Crear proyecto Supabase (Auth + Storage habilitados)
+- [ ] Crear proyecto Supabase (solo DB, sin Auth ni Storage por ahora)
 - [ ] Configurar Drizzle ORM + conexión a Supabase PostgreSQL
 - [ ] Schema inicial + primera migración (`drizzle-kit push`)
 - [ ] Crear instancia Upstash Redis
 - [ ] Deploy inicial a Vercel (conectar repo GitHub)
 - [ ] Configurar env variables en Vercel
 
-### Fase 1 — Scrapers MVP (4-5 días)
+### Fase 1 — Scrapers MVP (3-4 días)
 - [ ] Implementar `base-scraper.ts` (interfaz + helpers de rate limit/retry)
 - [ ] Implementar scraper RedTickets (discover + scrape + save)
 - [ ] API route `/api/scrape/redtickets`
 - [ ] Test manual: ejecutar scraper → ver raw_events en Supabase
-- [ ] Implementar scraper Tickantel
-- [ ] API route `/api/scrape/tickantel`
-- [ ] Implementar scraper Eventbrite (híbrido)
-- [ ] API route `/api/scrape/eventbrite`
-- [ ] Configurar `vercel.json` con cron jobs
+- [ ] Implementar scraper Entraste.com (discover + scrape + save)
+- [ ] API route `/api/scrape/entraste`
+- [ ] Test manual: ejecutar scraper → ver raw_events en Supabase
+- [ ] Configurar `vercel.json` con cron jobs (3 crons: redtickets, entraste, process)
 - [ ] Proteger API routes con `CRON_SECRET`
 
 ### Fase 2 — Pipeline IA (3-4 días)
@@ -766,7 +745,7 @@ interface BaseScraper {
 
 ### Fase 3 — Frontend MVP (5-7 días)
 - [ ] Root layout: fonts, theme, providers, CSS neón
-- [ ] Bottom navigation component (Motion)
+- [ ] Bottom navigation component (Motion) — 2 tabs: Hoy / Próximos
 - [ ] Home page: server component con eventos de hoy
 - [ ] Event card component (glassmorphism, badges, hora)
 - [ ] Event detail page `/evento/[slug]`
@@ -774,33 +753,48 @@ interface BaseScraper {
 - [ ] Skeleton loaders con shimmer neón
 - [ ] Page transitions con Motion
 - [ ] Empty states con diseño
-- [ ] Pull-to-refresh
+- [ ] Responsive: testar en móvil real
 
-### Fase 4 — Auth + Memoria personal (3-4 días)
-- [ ] Configurar Supabase Auth con `@supabase/ssr`
-- [ ] Proxy.ts para refresh de tokens
-- [ ] Login page (Google + email)
-- [ ] Botón "Asistí" (toggle con animación)
-- [ ] Rating stars (1-5, privado, con animación)
-- [ ] Comentario privado (dialog/sheet)
-- [ ] Upload foto (Supabase Storage, resize)
-- [ ] Página "Mi Historial" (timeline de eventos)
-
-### Fase 5 — Polish + Launch (2-3 días)
+### Fase 4 — Polish + Launch (2-3 días)
 - [ ] SEO: metadata, OG image, structured data (JSON-LD)
 - [ ] Performance: ISR con revalidate, edge caching
-- [ ] Error handling completo (errores de red, auth, etc.)
+- [ ] Error handling completo (errores de red, etc.)
 - [ ] PWA básico (manifest.json para "Add to Home Screen")
 - [ ] Testing manual en dispositivos reales (mobile)
 - [ ] **🚀 LAUNCH MVP**
 
-### Total estimado: 19-26 días de desarrollo
+### Total estimado: 15-21 días de desarrollo
 
 ---
 
 ## Niveles Post-MVP
 
-### Nivel 2 — Mejoras (post-launch, según tracción)
+### Post-MVP A — Auth + Memoria Personal (3-4 días)
+
+> Lo que se sacó del MVP. Implementar cuando el scraping y el diseño estén validados.
+
+| Feature | Descripción | Dependencia |
+|---------|-------------|-------------|
+| Supabase Auth | Configurar Auth con `@supabase/ssr`, proxy.ts, refresh tokens | Supabase configurado |
+| Login | Página login (Google + email) con diseño nocturno | Auth configurado |
+| Botón "Asistí" | Toggle con animación, server action | Auth + events funcionando |
+| Rating ⭐ 1-5 | Puntaje privado con animación de scale | Auth |
+| Comentario privado | Dialog/sheet con textarea | Auth |
+| Upload foto | Supabase Storage, resize client-side | Auth + Storage bucket |
+| Historial | Página "Mi Historial" — timeline de eventos | Auth + attendances |
+| Perfil | Info básica + logout | Auth |
+| Bottom nav 4 tabs | Agregar Historial y Perfil al nav | Auth implementado |
+
+### Post-MVP B — Más Fuentes de Datos (4-6 días)
+
+| Feature | Descripción | Dependencia |
+|---------|-------------|-------------|
+| Passline scraper | Playwright headless browser para bypasear queue-it.net | VPS o servicio externo (~$5-10/mes) |
+| CobraTickets scraper | Playwright para renderizar SPA | Mismo infra que Passline |
+| APIs ocultas | Investigar network requests de Passline/Cobra para encontrar APIs JSON internas | Research |
+| Instagram scraping | Monitorear cuentas específicas de venues/promotores | Meta Business API o Playwright + definir cuentas |
+
+### Post-MVP C — Mejoras de UX (según tracción)
 
 | Feature | Descripción | Dependencia |
 |---------|-------------|-------------|
@@ -808,10 +802,9 @@ interface BaseScraper {
 | Filtro música | Tags de género musical clickeables | Clasificador IA funcionando |
 | "Último momento" | Filtro: eventos que empiezan en próximas 2h | Horarios precisos en DB |
 | Instagram auto | @dondeeshoy: posts automáticos del día | Meta Business API + cuenta IG Bus. |
-| Scraping IG | Monitorear cuentas de venues/promotores | Curación manual + NLP |
 | Motion avanzado | Layout animations, shared element transitions | Motion v12 |
 
-### Nivel 3 — Visión futura (no implementar, solo prever)
+### Visión Futura (no implementar, solo prever)
 
 | Feature | Concepto |
 |---------|----------|
@@ -827,17 +820,18 @@ interface BaseScraper {
 En orden estricto:
 
 1. **Crear proyecto**: `npx shadcn@latest create dondeeshoy` o `npx create-next-app@latest`
-2. **Instalar deps**: `npm install drizzle-orm postgres @supabase/supabase-js @supabase/ssr motion cheerio @upstash/redis @upstash/ratelimit`
-3. **Crear proyecto Supabase**: supabase.com/dashboard → New Project
+2. **Instalar deps**: `npm install drizzle-orm postgres motion cheerio @upstash/redis @upstash/ratelimit`
+3. **Crear proyecto Supabase**: supabase.com/dashboard → New Project (solo DB, sin activar Auth/Storage)
 4. **Crear instancia Upstash Redis**: console.upstash.com → New Database
 5. **Configurar `.env.local`** con todas las keys
 6. **Configurar Drizzle**: `drizzle.config.ts` + schema en `src/lib/db/schema/`
 7. **Push schema**: `npx drizzle-kit push`
 8. **Primer scraper**: implementar RedTickets completo
-9. **Primer API route**: `/api/scrape/redtickets` → ejecutar → ver datos en Supabase
-10. **Pipeline básico**: normalizar + guardar en `events`
-11. **Primera UI**: home page con lista de eventos de hoy
-12. **Deploy a Vercel**: conectar repo → deploy → verificar
+9. **Segundo scraper**: implementar Entraste.com completo
+10. **API routes**: `/api/scrape/redtickets` + `/api/scrape/entraste` → ejecutar → ver datos en Supabase
+11. **Pipeline básico**: normalizar + guardar en `events`
+12. **Primera UI**: home page con lista de eventos de hoy
+13. **Deploy a Vercel**: conectar repo → deploy → verificar
 
 ---
 
@@ -845,7 +839,8 @@ En orden estricto:
 
 ### Scrapers ✅
 - `/api/scrape/redtickets` ejecuta sin errores
-- `raw_events` tiene registros con datos válidos
+- `/api/scrape/entraste` ejecuta sin errores
+- `raw_events` tiene registros con datos válidos de ambas fuentes
 - No hay duplicados de `(source, source_id)`
 - Rate limiting funciona (1 req/seg)
 
@@ -862,13 +857,6 @@ En orden estricto:
 - Ficha de evento muestra toda la info relevante
 - Navegación fluida, sin "jank" visual
 
-### Auth + Memoria ✅
-- Login con Google funciona
-- "Asistí" toggle persiste
-- Rating 1-5 se guarda y muestra correctamente
-- Foto se sube y se muestra en el historial
-- Todo es PRIVADO (ningún otro usuario ve mi data)
-
 ### Performance ✅
 - Lighthouse mobile: Performance >80, Accessibility >90
 - TTFB <500ms (ISR/Edge)
@@ -882,11 +870,9 @@ En orden estricto:
 ```bash
 # .env.local (template en .env.example)
 
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_ROLE_KEY=xxx
+# Supabase (solo DB en MVP — sin Auth ni Storage)
 DATABASE_URL=postgresql://postgres:xxx@db.xxx.supabase.co:5432/postgres
+SUPABASE_SERVICE_ROLE_KEY=xxx
 
 # Upstash Redis
 UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
@@ -895,17 +881,18 @@ UPSTASH_REDIS_REST_TOKEN=xxx
 # OpenAI (para pipeline IA)
 OPENAI_API_KEY=sk-xxx
 
-# Eventbrite (para API)
-EVENTBRITE_OAUTH_TOKEN=xxx
-
 # Vercel Cron (seguridad)
 CRON_SECRET=xxx
 
-# Mapbox (post-MVP, para geocoding y mapas)
+# Post-MVP: Supabase Auth (cuando se implemente)
+# NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+
+# Post-MVP: Mapbox (para geocoding y mapas)
 # NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx
 ```
 
 ---
 
-> **Última actualización**: 8 de febrero de 2026
-> **Estado**: Plan definido, pendiente inicio de implementación
+> **Última actualización**: 16 de febrero de 2026
+> **Estado**: Plan actualizado — MVP enfocado en diseño web + scraping (Entraste.com + RedTickets). Sin features de usuario.
