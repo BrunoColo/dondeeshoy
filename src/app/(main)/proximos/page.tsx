@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function ProximosPage() {
   return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 sm:px-6">
       <Suspense fallback={<ProximosLoading />}>
         <ProximosContent />
       </Suspense>
@@ -32,13 +32,13 @@ async function ProximosContent() {
   return (
     <>
       {/* Page header */}
-      <div className="mb-5 pt-4 fade-up">
+      <div className="mb-6 pt-4 fade-up">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-cyan/10">
-            <CalendarDays className="h-4 w-4 text-neon-cyan" strokeWidth={2.5} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-blue/10 border border-neon-cyan/20 shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+            <CalendarDays className="h-4.5 w-4.5 text-neon-cyan drop-shadow-[0_0_6px_rgba(34,211,238,0.5)]" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neon-cyan">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] bg-gradient-to-r from-neon-cyan to-neon-blue bg-clip-text text-transparent">
               PRÓXIMOS
             </p>
             <p className="text-[13px] font-medium text-muted-foreground">

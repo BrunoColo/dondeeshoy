@@ -78,8 +78,8 @@ export function extractMoneyValues(text: string): number[] {
 
     const amount = Number.parseInt(normalized, 10);
 
-    if (!Number.isNaN(amount)) {
-      values.push(amount * 100);
+    if (!Number.isNaN(amount) && amount > 0) {
+      values.push(amount);
     }
   }
 

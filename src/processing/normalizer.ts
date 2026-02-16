@@ -58,14 +58,21 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
 
   const venueNameCandidate = sanitizeText((rawData.venueName as string) ?? "");
   const venueTextCandidate = sanitizeText((rawData.venueText as string) ?? "");
-  const venueName = venueNameCandidate || venueTextCandidate || "Venue por confirmar";
+  const venueName = cleanVenueName(venueNameCandidate || venueTextCandidate) || "Venue por confirmar";
 
-  const venueAddress = sanitizeText((rawData.venueAddress as string) ?? "") || null;
+  const venueAddress = cleanVenueAddress(sanitizeText((rawData.venueAddress as string) ?? "")) || null;
 
   const prices = normalizePrices(rawData.prices);
   const priceMin = prices.length > 0 ? Math.min(...prices) : null;
   const priceMax = prices.length > 0 ? Math.max(...prices) : null;
-  const isFree = prices.length > 0 && prices.every((price) => price === 0);
+
+  // Only mark as free if the text explicitly says so, never from price data alone
+  const bodyText = sanitizeText(
+    `${(rawData.title as string) ?? ""} ${(rawData.description as string) ?? ""} ${(rawData.dateText as string) ?? ""}`,
+  ).toLowerCase();
+  const isFree =
+    prices.length === 0 &&
+    /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
 
   return {
     name,
@@ -197,7 +204,53 @@ function normalizePrices(pricesRaw: unknown): number[] {
 
   return pricesRaw
     .map((price) => (typeof price === "number" ? price : Number.parseInt(String(price), 10)))
-    .filter((price) => Number.isFinite(price) && price >= 0);
+    .filter((price) => Number.isFinite(price) && price > 0);
+}
+
+/**
+ * Strip junk text that gets appended to venue names from scraping.
+ * Cuts at known boundary words like "Ubicación", "Ver flyer", "Tickets", etc.
+ */
+function cleanVenueName(raw: string): string {
+  if (!raw) return "";
+
+  const cutPatterns = [
+    /\s*Ubicaci[oó]n\s*:.*/i,
+    /\s*Ver flyer.*/i,
+    /\s*Tickets.*/i,
+    /\s*Informaci[oó]n.*/i,
+    /\s*Eleg[ií]\s+tu.*/i,
+    /\s*Precio.*/i,
+    /\s*Tanda\s+\d.*/i,
+  ];
+
+  let cleaned = raw;
+  for (const pattern of cutPatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  return cleaned.trim();
+}
+
+/**
+ * Strip junk text from venue addresses.
+ */
+function cleanVenueAddress(raw: string): string {
+  if (!raw) return "";
+
+  const cutPatterns = [
+    /\s*Ver flyer.*/i,
+    /\s*Tickets.*/i,
+    /\s*Informaci[oó]n.*/i,
+    /\s*Eleg[ií]\s+tu.*/i,
+  ];
+
+  let cleaned = raw;
+  for (const pattern of cutPatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  return cleaned.trim();
 }
 
 function sanitizeText(value: string): string {

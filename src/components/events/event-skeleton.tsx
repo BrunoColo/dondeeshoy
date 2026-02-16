@@ -22,7 +22,7 @@ function SingleSkeleton() {
 
 export function EventSkeleton({ count = 3, className }: EventSkeletonProps) {
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", className)}>
       {Array.from({ length: count }).map((_, i) => (
         <SingleSkeleton key={i} />
       ))}

@@ -9,9 +9,9 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Fase actual** | Fase 3 — Frontend MVP (completado) |
+| **Fase actual** | Fase 4 — Polish + Launch |
 | **Inicio del proyecto** | 8 de febrero de 2026 |
-| **Último update** | 16 de febrero de 2026 (Fase 3 frontend completado) |
+| **Último update** | 17 de febrero de 2026 (Bug fixes + diseño vibrante) |
 | **MVP estimado** | 15-21 días de desarrollo |
 | **Gasto mensual actual** | $0 |
 
@@ -55,7 +55,7 @@
 | # | Tarea | Estado | Fecha | Notas |
 |---|-------|--------|-------|-------|
 | 1.1 | `base-scraper.ts` — interfaz + helpers | ✅ | 16/2/2026 | Run loop + upsert a `raw_events` |
-| 1.2 | `scrapers/utils.ts` — parseo fechas español | 🟡 | 16/2/2026 | Utilidades base + regex inicial |
+| 1.2 | `scrapers/utils.ts` — parseo fechas español | ✅ | 16/2/2026 | Corregido: extractMoneyValues sin ×100, filter amount>0 |
 | 1.3 | Scraper RedTickets — discover | ✅ | 16/2/2026 | Discovery por links `/evento/.../{id}` |
 | 1.4 | Scraper RedTickets — scrape detalle | ✅ | 16/2/2026 | Extrae título, fecha, venue, imagen y precios |
 | 1.5 | API route `/api/scrape/redtickets` | ✅ | 16/2/2026 | Con `CRON_SECRET` y ejecución real |
@@ -78,7 +78,7 @@
 | 2.3 | `geocoder.ts` — lookup table venues conocidos | ✅ | 16/2/2026 | Lookup local de venues frecuentes |
 | 2.4 | `geocoder.ts` — fallback Mapbox geocoding | 🟡 | 16/2/2026 | Implementado, falta token Mapbox para activarlo |
 | 2.5 | `deduplicator.ts` — fuzzy match | ✅ | 16/2/2026 | Similaridad por bigramas (name/venue) |
-| 2.6 | `classifier.ts` — clasificar tipo + género | 🟡 | 16/2/2026 | Heurístico por keywords (OpenAI pendiente) |
+| 2.6 | `classifier.ts` — clasificar tipo + género | ✅ | 16/2/2026 | Heurístico por keywords + isFree corregido |
 | 2.7 | `pipeline.ts` — orquestador completo | ✅ | 16/2/2026 | Upsert/merge y vínculo en `event_sources` |
 | 2.8 | API route `/api/scrape/process` | ✅ | 16/2/2026 | Endpoint operativo con `batch` param |
 | 2.9 | **TEST E2E**: raw_events → pipeline → events | ✅ | 16/2/2026 | `pending:10`, `processed:10`, `merged:10`, `errors:0` |
@@ -94,9 +94,9 @@
 | 3.2 | `globals.css` — custom utilities neón/glow/glass | ✅ | 16/2/2026 | Noise texture, ambient gradients, glassmorphism, shimmer, badges |
 | 3.3 | Bottom navigation component | ✅ | 16/2/2026 | 2 tabs: Hoy / Próximos con glass + active glow |
 | 3.4 | Header sticky | ✅ | 16/2/2026 | Logo + ciudad con glass + scroll-aware |
-| 3.5 | Event card component (glassmorphism) | ✅ | 16/2/2026 | Cards con imagen hero overlay + sin imagen fallback |
+| 3.5 | Event card component (glassmorphism) | ✅ | 17/2/2026 | Cards con imagen hero overlay + fallback gradiente por tipo + card-glow hover |
 | 3.6 | Time badge ("AHORA", "En 2h") | ✅ | 16/2/2026 | Badge live-pulse, soon (amber), later |
-| 3.7 | Event type badge (colores neón) | ✅ | 16/2/2026 | 7 tipos con colores únicos |
+| 3.7 | Event type badge (colores neón) | ✅ | 16/2/2026 | 7 tipos con colores únicos + text-shadow glow |
 | 3.8 | Home page (server component) | ✅ | 16/2/2026 | SSR con Drizzle, ISR 1h, Suspense + skeleton |
 | 3.9 | Event detail page `/evento/[slug]` | ✅ | 16/2/2026 | Hero image, info cards, CTA fijo, metadata dinámica |
 | 3.10 | Página "Próximos" | ✅ | 16/2/2026 | Grouped by day, 14 días ahead, ISR 1h |
@@ -104,6 +104,9 @@
 | 3.12 | Empty states con diseño | ✅ | 16/2/2026 | 3 variantes: today, upcoming, search |
 | 3.13 | Page transitions con Motion | ✅ | 16/2/2026 | CSS fade-up + blur (card-enter staggered) |
 | 3.14 | Responsive: testar en móvil real | 🟡 | | Build compila OK, falta test en dispositivo |
+| 3.15 | Responsive grid desktop | ✅ | 17/2/2026 | Grid 1→2→3 columnas, max-w-5xl, header/nav actualizados |
+| 3.16 | Broken image fallback | ✅ | 17/2/2026 | Client component con onError, gradiente por tipo de evento |
+| 3.17 | Diseño vibrante / llamativo | ✅ | 17/2/2026 | Ambient gradient animado, card-glow hover, badges con text-shadow, gradient logo |
 
 ---
 
@@ -300,6 +303,49 @@
 - **Próximo paso**:
   - Medir costos OpenAI y afinar prompts/rules
   - Continuar Fase 3 frontend MVP
+
+### Sesión 8 — 17 de febrero de 2026 (Frontend completo)
+- **Duración**: —
+- **Qué se hizo**:
+  - Frontend completo de Fase 3
+  - Construido todo el design system: globals.css (neón, glassmorphism, shimmer, animations)
+  - Componentes: Header, BottomNav, EventCard, EventList, EventSkeleton, TimeBadge, EventTypeBadge, EmptyState
+  - Páginas: Home (Hoy), Próximos, /evento/[slug]
+  - Queries layer con Drizzle
+  - Build exitoso con TypeScript
+- **Próximo paso**: Corregir bugs de datos (precios, venues, imágenes, isFree)
+
+### Sesión 9 — 17 de febrero de 2026 (Bug fixing scrapers + datos)
+- **Duración**: —
+- **Qué se hizo**:
+  - Investigación profunda de datos con scripts de inspección (inspect-db*.js, inspect-html*.mjs)
+  - Fixes en scrapers:
+    - `utils.ts`: eliminado multiplicador ×100 en extractMoneyValues, filtro amount>0
+    - `entraste.ts`: reescrito venue extraction con parsing HTML `<br>`, resolveImageUrl (relativo→absoluto), extractPricesFromHtml
+    - `redtickets.ts`: reescrito para usar `span.Description.Flex` para venue/fecha
+  - Fixes en pipeline:
+    - `normalizer.ts`: isFree solo si texto dice "gratis" explícitamente, cleanVenueName/cleanVenueAddress helpers
+  - Wipe completo de DB + re-scrape: 42 eventos, 0 gratis falsos, 0 "por confirmar"
+  - Layout desktop: max-w-2xl → max-w-5xl, grid responsivo 1→2→3 columnas
+- **Próximo paso**: Fix de imagen rota y diseño más vibrante
+
+### Sesión 10 — 17 de febrero de 2026 (Polish visual)
+- **Duración**: —
+- **Qué se hizo**:
+  - **Broken image fix**: EventCard convertido a client component con useState para imgError. Fallback con gradiente por tipo de evento + ícono Music watermark
+  - **Diseño vibrante**:
+    - Ambient gradient boosted (0.12→0.18 opacity) con 3 radiales + magenta + animación drift
+    - Glass-card hover mejorado: translateY(-2px), box-shadow con depth, border violeta
+    - Card-glow: efecto de borde gradiente neón en hover (violet→cyan→magenta)
+    - Badges con text-shadow glow por color
+    - Glass nav/header con tintes violeta en bordes
+    - Logo "hoy" con gradient multicolor (violet→magenta→cyan)
+    - Section headers con gradientes de color en iconos y texto
+    - Image overlay más suave (menos crushing del negro)
+    - Glows boosted (+33% intensidad)
+  - Header y BottomNav: max-w-2xl → max-w-5xl para desktop
+  - Build exitoso ✅
+- **Próximo paso**: Fase 4 — Deploy a Vercel, PWA, SEO avanzado
 
 ---
 

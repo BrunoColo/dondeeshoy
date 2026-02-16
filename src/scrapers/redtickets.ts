@@ -5,7 +5,6 @@ import { scraperConfig } from "@/config/scraper-config";
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
 import {
-  extractMoneyValues,
   fetchHtml,
   normalizeWhitespace,
   toAbsoluteUrl,
@@ -52,8 +51,10 @@ export class RedTicketsScraper extends BaseScraper {
     const html = await fetchHtml(url);
     const $ = cheerio.load(html);
 
+    // RedTickets uses span.Title for event name on detail pages
     const title = normalizeWhitespace(
-      $("h1").first().text() ||
+      $("span.Title").first().text() ||
+        $("h1").first().text() ||
         $("meta[property='og:title']").attr("content") ||
         $("title").text() ||
         "",
@@ -63,16 +64,21 @@ export class RedTicketsScraper extends BaseScraper {
       return null;
     }
 
-    const bodyText = normalizeWhitespace($.root().text());
     const imageUrl =
       $("meta[property='og:image']").attr("content") ??
       $("img[src*='files.redtickets.uy']").first().attr("src") ??
       null;
 
     const category = this.extractCategory($);
-    const dateText = this.extractDateText(bodyText);
-    const venueText = this.extractVenueText($, bodyText);
-    const prices = extractMoneyValues(bodyText);
+
+    // RedTickets detail pages use span.Description.Flex for date and venue
+    const descFlex = $("span.Description.Flex");
+    const dateText = descFlex.eq(0).text().trim() || null;
+    const venueText = this.cleanVenueText(descFlex.eq(1).text().trim()) || null;
+
+    // RedTickets detail pages show $0 in cart — no reliable price from HTML
+    // Skip price extraction for RedTickets (prices not in static HTML)
+    const prices: number[] = [];
 
     return {
       source: "redtickets",
@@ -105,27 +111,19 @@ export class RedTicketsScraper extends BaseScraper {
     return normalized || null;
   }
 
-  private extractDateText(fullText: string): string | null {
-    const match = fullText.match(
-      /(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+\d{1,2}\s+de\s+[a-záéíóúñ]+(?:\s*-\s*\d{1,2}(?::\d{2})?\s*hs?)?/i,
-    );
+  /**
+   * Clean venue text from RedTickets detail page.
+   * Format: "VenueName - Address, PostalCode City" — extract the venue name part.
+   */
+  private cleanVenueText(raw: string): string | null {
+    if (!raw) return null;
 
-    return match ? normalizeWhitespace(match[0]) : null;
-  }
-
-  private extractVenueText($: cheerio.CheerioAPI, fullText: string): string | null {
-    const fromSelectors = normalizeWhitespace(
-      $("[class*='venue']").first().text() ||
-        $("[class*='lugar']").first().text() ||
-        $("[class*='location']").first().text() ||
-        "",
-    );
-
-    if (fromSelectors) {
-      return fromSelectors;
+    // Take just the first part before " - " if there's an address after
+    const dashIdx = raw.indexOf(" - ");
+    if (dashIdx > 0) {
+      return normalizeWhitespace(raw.substring(0, dashIdx));
     }
 
-    const fromText = fullText.match(/(?:lugar|ubicación|ubicacion)\s*:?\s*([\w\s,.-]{4,120})/i);
-    return fromText ? normalizeWhitespace(fromText[1] ?? "") : null;
+    return normalizeWhitespace(raw) || null;
   }
 }

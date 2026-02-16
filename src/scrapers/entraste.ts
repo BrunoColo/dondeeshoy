@@ -13,6 +13,7 @@ import {
 } from "./utils";
 
 const EVENT_PATH_REGEX = /\/evento\/([^/?#]+)$/i;
+const ENTRASTE_API_BASE = "https://api.entraste.com/sc";
 
 export class EntrasteScraper extends BaseScraper {
   constructor() {
@@ -63,18 +64,20 @@ export class EntrasteScraper extends BaseScraper {
       return null;
     }
 
-    const bodyText = normalizeWhitespace($.root().text());
+    // Extract venue/address from structured HTML instead of body text
+    const { venueName, venueAddress } = this.extractVenueFromHtml($);
 
-    const venueName = this.findLabelValue(bodyText, ["Venue"]);
-    const venueAddress = this.findLabelValue(bodyText, ["Ubicación", "Ubicacion", "Location"]);
+    const bodyText = normalizeWhitespace($.root().text());
     const dateText = this.extractDateText(bodyText);
 
+    // Prefer full-resolution img tags over og:image (which uses relative paths)
     const imageUrl =
-      $("meta[property='og:image']").attr("content") ??
       $("img[src*='api.entraste.com']").first().attr("src") ??
+      this.resolveImageUrl($("meta[property='og:image']").attr("content")) ??
       null;
 
-    const prices = extractMoneyValues(bodyText);
+    // Extract prices from .price elements instead of full body text
+    const prices = this.extractPricesFromHtml($, bodyText);
 
     return {
       source: "entraste",
@@ -97,23 +100,76 @@ export class EntrasteScraper extends BaseScraper {
     return match?.[1] ?? null;
   }
 
-  private findLabelValue(fullText: string, labels: string[]): string | null {
-    for (const label of labels) {
-      const regex = new RegExp(`${label}\\s*:?\\s*([^|•\\n]{3,120})`, "i");
-      const match = fullText.match(regex);
+  /**
+   * Extract venue name and address from the structured HTML.
+   * Entraste uses: <p>Venue: {name}<br>Ubicación: {address}<br></p>
+   */
+  private extractVenueFromHtml($: cheerio.CheerioAPI): {
+    venueName: string | null;
+    venueAddress: string | null;
+  } {
+    let venueName: string | null = null;
+    let venueAddress: string | null = null;
 
-      if (!match?.[1]) {
-        continue;
-      }
+    // Find the <p> element that contains "Venue:"
+    const venueP = $("p").filter((_, el) => $(el).text().includes("Venue:"));
 
-      const normalized = normalizeWhitespace(match[1]);
+    if (venueP.length > 0) {
+      const htmlContent = venueP.html() ?? "";
+      const parts = htmlContent.split(/<br\s*\/?>/i).map((part) => part.trim());
 
-      if (normalized) {
-        return normalized;
+      for (const part of parts) {
+        const textOnly = cheerio.load(part).text().trim();
+
+        const venueMatch = textOnly.match(/Venue\s*:\s*(.+)/i);
+        if (venueMatch?.[1]) {
+          venueName = normalizeWhitespace(venueMatch[1]);
+        }
+
+        const addrMatch = textOnly.match(/Ubicaci[oó]n\s*:\s*(.+)/i);
+        if (addrMatch?.[1]) {
+          venueAddress = normalizeWhitespace(addrMatch[1]);
+        }
       }
     }
 
-    return null;
+    return { venueName, venueAddress };
+  }
+
+  /**
+   * Turn relative og:image paths into absolute URLs.
+   */
+  private resolveImageUrl(rawUrl: string | undefined): string | null {
+    if (!rawUrl) return null;
+
+    if (rawUrl.startsWith("http")) return rawUrl;
+
+    // Relative path like /uploads/thumbs/...
+    return `${ENTRASTE_API_BASE}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+  }
+
+  /**
+   * Extract prices from CSS .price elements first, fall back to body text.
+   */
+  private extractPricesFromHtml($: cheerio.CheerioAPI, bodyText: string): number[] {
+    const priceEls = $(".price, .precio");
+    const prices: number[] = [];
+
+    priceEls.each((_, el) => {
+      const text = $(el).text().trim();
+      const numMatch = text.match(/^[\d.,]+$/);
+      if (numMatch) {
+        const amount = Number.parseInt(text.replace(/\./g, "").replace(",", ""), 10);
+        if (!Number.isNaN(amount) && amount > 0) {
+          prices.push(amount);
+        }
+      }
+    });
+
+    if (prices.length > 0) return prices;
+
+    // Fallback to extracting from text
+    return extractMoneyValues(bodyText);
   }
 
   private extractDateText(fullText: string): string | null {

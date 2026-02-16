@@ -713,54 +713,61 @@ interface BaseScraper {
 
 ## Roadmap por Fases
 
-### Fase 0 — Setup (2-3 días)
-- [ ] Crear proyecto Next.js 16.1 + TypeScript + Tailwind v4
-- [ ] Configurar shadcn/ui con tema oscuro personalizado
-- [ ] Crear proyecto Supabase (solo DB, sin Auth ni Storage por ahora)
-- [ ] Configurar Drizzle ORM + conexión a Supabase PostgreSQL
-- [ ] Schema inicial + primera migración (`drizzle-kit push`)
-- [ ] Crear instancia Upstash Redis
+### Fase 0 — Setup (2-3 días) ✅ COMPLETADO
+- [x] Crear proyecto Next.js 16.1 + TypeScript + Tailwind v4
+- [ ] Configurar shadcn/ui con tema oscuro personalizado (se hizo tema custom sin shadcn/ui)
+- [x] Crear proyecto Supabase (solo DB, sin Auth ni Storage por ahora)
+- [x] Configurar Drizzle ORM + conexión a Supabase PostgreSQL
+- [x] Schema inicial + primera migración (`drizzle-kit push`)
+- [x] Crear instancia Upstash Redis
 - [ ] Deploy inicial a Vercel (conectar repo GitHub)
 - [ ] Configurar env variables en Vercel
 
-### Fase 1 — Scrapers MVP (3-4 días)
-- [ ] Implementar `base-scraper.ts` (interfaz + helpers de rate limit/retry)
-- [ ] Implementar scraper RedTickets (discover + scrape + save)
-- [ ] API route `/api/scrape/redtickets`
-- [ ] Test manual: ejecutar scraper → ver raw_events en Supabase
-- [ ] Implementar scraper Entraste.com (discover + scrape + save)
-- [ ] API route `/api/scrape/entraste`
-- [ ] Test manual: ejecutar scraper → ver raw_events en Supabase
-- [ ] Configurar `vercel.json` con cron jobs (3 crons: redtickets, entraste, process)
-- [ ] Proteger API routes con `CRON_SECRET`
+### Fase 1 — Scrapers MVP (3-4 días) ✅ COMPLETADO
+- [x] Implementar `base-scraper.ts` (interfaz + helpers de rate limit/retry)
+- [x] Implementar scraper RedTickets (discover + scrape + save)
+- [x] API route `/api/scrape/redtickets`
+- [x] Test manual: ejecutar scraper → ver raw_events en Supabase
+- [x] Implementar scraper Entraste.com (discover + scrape + save)
+- [x] API route `/api/scrape/entraste`
+- [x] Test manual: ejecutar scraper → ver raw_events en Supabase
+- [x] Configurar `vercel.json` con cron jobs (3 crons: redtickets, entraste, process)
+- [x] Proteger API routes con `CRON_SECRET`
+- [x] Fix: precios sin multiplicador ×100, venue extraction con HTML parsing, URLs absolutas Entraste
 
-### Fase 2 — Pipeline IA (3-4 días)
-- [ ] Implementar normalizer (regex + fallback IA)
-- [ ] Implementar geocoder (lookup table + Mapbox fallback)
-- [ ] Implementar deduplicador (fuzzy match con pg_trgm)
-- [ ] Implementar clasificador (batch OpenAI gpt-4o-mini)
-- [ ] Implementar pipeline orquestador
-- [ ] API route `/api/scrape/process`
-- [ ] Test E2E: raw_events → pipeline → events limpios
+### Fase 2 — Pipeline IA (3-4 días) ✅ COMPLETADO
+- [x] Implementar normalizer (regex + fallback IA)
+- [x] Implementar geocoder (lookup table + Mapbox fallback)
+- [x] Implementar deduplicador (fuzzy match bigramas)
+- [x] Implementar clasificador (heurístico por keywords)
+- [x] Implementar pipeline orquestador
+- [x] API route `/api/scrape/process`
+- [x] Test E2E: raw_events → pipeline → events limpios
+- [x] Fix: isFree solo si texto dice "gratis", cleanVenueName/cleanVenueAddress
 
-### Fase 3 — Frontend MVP (5-7 días)
-- [ ] Root layout: fonts, theme, providers, CSS neón
-- [ ] Bottom navigation component (Motion) — 2 tabs: Hoy / Próximos
-- [ ] Home page: server component con eventos de hoy
-- [ ] Event card component (glassmorphism, badges, hora)
-- [ ] Event detail page `/evento/[slug]`
-- [ ] Página "Próximos" con filtro por día
-- [ ] Skeleton loaders con shimmer neón
-- [ ] Page transitions con Motion
-- [ ] Empty states con diseño
+### Fase 3 — Frontend MVP (5-7 días) ✅ COMPLETADO
+- [x] Root layout: fonts (Outfit + DM Sans + DM Mono), theme, CSS neón
+- [x] Bottom navigation component — 2 tabs: Hoy / Próximos
+- [x] Home page: server component con eventos de hoy
+- [x] Event card component (glassmorphism, badges, hora, card-glow hover)
+- [x] Event detail page `/evento/[slug]`
+- [x] Página "Próximos" con agrupado por día
+- [x] Skeleton loaders con shimmer neón
+- [x] Page transitions con CSS animations (card-enter staggered)
+- [x] Empty states con diseño
+- [x] Responsive: grid 1→2→3 columnas desktop
+- [x] Broken image fallback (gradiente por tipo de evento)
+- [x] Diseño vibrante: ambient gradient animado, card-glow, badges con text-shadow, logo gradient
 - [ ] Responsive: testar en móvil real
 
-### Fase 4 — Polish + Launch (2-3 días)
-- [ ] SEO: metadata, OG image, structured data (JSON-LD)
+### Fase 4 — Polish + Launch (2-3 días) 🟡 EN PROGRESO
+- [x] SEO: metadata dinámicas por página
+- [ ] SEO: OG image, structured data (JSON-LD)
 - [ ] Performance: ISR con revalidate, edge caching
 - [ ] Error handling completo (errores de red, etc.)
 - [ ] PWA básico (manifest.json para "Add to Home Screen")
 - [ ] Testing manual en dispositivos reales (mobile)
+- [ ] Deploy a Vercel
 - [ ] **🚀 LAUNCH MVP**
 
 ### Total estimado: 15-21 días de desarrollo
@@ -894,5 +901,5 @@ CRON_SECRET=xxx
 
 ---
 
-> **Última actualización**: 16 de febrero de 2026
-> **Estado**: Plan actualizado — MVP enfocado en diseño web + scraping (Entraste.com + RedTickets). Sin features de usuario.
+> **Última actualización**: 17 de febrero de 2026
+> **Estado**: Fases 0-3 completadas. Frontend MVP funcional con 42 eventos reales. En Fase 4 (Polish + Launch).

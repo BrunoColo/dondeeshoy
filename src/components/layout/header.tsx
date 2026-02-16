@@ -22,16 +22,16 @@ export function Header() {
         scrolled ? "py-2.5" : "py-3.5",
       )}
     >
-      <div className="mx-auto flex max-w-2xl items-center justify-between px-5">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-5">
         {/* Logo */}
         <div className="flex items-center gap-1.5">
-          <span className="font-display text-[17px] font-bold tracking-tight text-foreground">
+          <span className="font-display text-[18px] font-extrabold tracking-tight text-foreground">
             ¿Dónde es
           </span>
-          <span className="font-display text-[17px] font-bold tracking-tight text-neon-violet">
+          <span className="font-display text-[18px] font-extrabold tracking-tight bg-gradient-to-r from-neon-violet via-neon-magenta to-neon-cyan bg-clip-text text-transparent">
             hoy
           </span>
-          <span className="font-display text-[17px] font-bold tracking-tight text-foreground">
+          <span className="font-display text-[18px] font-extrabold tracking-tight text-foreground">
             ?
           </span>
         </div>
