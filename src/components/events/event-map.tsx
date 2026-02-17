@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, Clock, Ticket, ExternalLink } from "lucide-react";
+import { MapPin, Clock, Ticket, ExternalLink, RotateCw } from "lucide-react";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { formatPrice, formatTime } from "@/lib/format";
 import Link from "next/link";
@@ -58,6 +58,7 @@ export interface MapEvent {
   isFree: boolean;
   currency?: string;
   imageUrl?: string | null;
+  isRecurring?: boolean;
 }
 
 interface EventMapProps {
@@ -91,6 +92,13 @@ function TileSwitch({ tileKey }: { tileKey: TileLayerKey }) {
 export function EventMap({ events }: EventMapProps) {
   const [selected, setSelected] = useState<MapEvent | null>(null);
   const [tileKey, setTileKey] = useState<TileLayerKey>("calles");
+  const [hideRecurring, setHideRecurring] = useState(false);
+
+  const recurringCount = useMemo(() => events.filter((e) => e.isRecurring).length, [events]);
+  const visibleEvents = useMemo(
+    () => (hideRecurring ? events.filter((e) => !e.isRecurring) : events),
+    [events, hideRecurring],
+  );
 
   // Pre-build marker icons (memoized per event type)
   const iconCache = useMemo(() => {
@@ -122,7 +130,7 @@ export function EventMap({ events }: EventMapProps) {
       >
         <TileSwitch tileKey={tileKey} />
 
-        {events.map((event) => (
+        {visibleEvents.map((event) => (
           <Marker
             key={event.id}
             position={[event.latitude, event.longitude]}
@@ -201,20 +209,37 @@ export function EventMap({ events }: EventMapProps) {
           ))}
       </div>
 
-      {/* Event count */}
-      <div className="absolute top-4 left-4 z-[1000] glass-card rounded-lg px-3 py-1.5 text-xs text-text-secondary">
-        {events.length} {events.length === 1 ? "evento" : "eventos"} en el mapa
+      {/* Event count + recurring toggle */}
+      <div className="absolute top-4 left-4 z-[1000] flex items-center gap-2">
+        <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+          {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
+        </div>
+        {recurringCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setHideRecurring((v) => !v)}
+            title={hideRecurring ? "Mostrar eventos recurrentes" : "Ocultar eventos recurrentes"}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-all shadow-lg backdrop-blur-sm ${
+              hideRecurring
+                ? "bg-amber-500/20 border border-amber-400/60 text-amber-300 shadow-amber-900/30"
+                : "bg-black/80 border border-white/20 text-white/80 hover:text-amber-300 hover:border-amber-400/40"
+            }`}
+          >
+            <RotateCw className="h-3 w-3" />
+            {hideRecurring ? "Recurrentes ocultos" : "Ocultar recurrentes"}
+          </button>
+        )}
       </div>
 
       {/* Style switcher */}
-      <div className="absolute top-4 right-4 z-[1000] flex items-center gap-1 rounded-lg glass-card p-1">
+      <div className="absolute top-4 right-4 z-[1000] flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1">
         <button
           type="button"
           onClick={() => setTileKey("calles")}
-          className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+          className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
             tileKey === "calles"
-              ? "bg-white/15 text-white"
-              : "text-text-muted hover:text-white"
+              ? "bg-white/20 text-white shadow-sm"
+              : "text-white/50 hover:text-white"
           }`}
         >
           Calles
@@ -222,10 +247,10 @@ export function EventMap({ events }: EventMapProps) {
         <button
           type="button"
           onClick={() => setTileKey("oscuro")}
-          className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+          className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
             tileKey === "oscuro"
-              ? "bg-white/15 text-white"
-              : "text-text-muted hover:text-white"
+              ? "bg-white/20 text-white shadow-sm"
+              : "text-white/50 hover:text-white"
           }`}
         >
           Noche

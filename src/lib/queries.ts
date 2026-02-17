@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema/events";
-import { eq, and, gte, lte, gt, asc, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, asc, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import type { EventType, EventFilters } from "@/types/events";
 
 /* ─── Columns used by list/card views (skip heavy/unused fields) ─── */
@@ -233,13 +233,14 @@ export async function searchEvents(filters: EventFilters, limit: number = 50) {
 }
 
 /**
- * Get trending events (most viewed) for a date — excludes recurring events
+ * Get trending events (most viewed) for a date — excludes recurring events.
+ * Requires at least 3 views to avoid showing barely-seen events as "most searched".
  */
 export async function getTrendingEvents(date: string, limit: number = 5) {
   return db
     .select(listColumns)
     .from(events)
-    .where(and(eq(events.date, date), activeStatus, gt(events.viewCount, 0), eq(events.isRecurring, false)))
+    .where(and(eq(events.date, date), activeStatus, gte(events.viewCount, 3), eq(events.isRecurring, false)))
     .orderBy(desc(events.viewCount))
     .limit(limit);
 }

@@ -119,13 +119,13 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
         />
       </div>
 
-      {/* Trending section (only when no filters active) */}
+      {/* Los más buscados (only when no filters active) */}
       {trending.length > 0 && !hasFilters && (
         <div className="mb-6 fade-up">
           <div className="flex items-center gap-2 mb-3">
             <Flame className="h-4 w-4 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.5)]" strokeWidth={2.5} />
             <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-orange-400">
-              Trending
+              Los más buscados
             </h2>
           </div>
           <EventList events={trending} trendingIds={trendingIds} />

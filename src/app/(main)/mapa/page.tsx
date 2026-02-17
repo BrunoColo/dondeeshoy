@@ -40,6 +40,7 @@ async function MapContent() {
       isFree: e.isFree,
       currency: e.currency ?? undefined,
       imageUrl: e.imageUrl,
+      isRecurring: e.isRecurring ?? false,
     }));
 
   if (events.length === 0) {
