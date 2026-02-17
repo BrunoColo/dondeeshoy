@@ -99,26 +99,22 @@ const GENRE_RULES: Array<{ genre: string; regex: RegExp }> = [
 ];
 
 /* ─── Recurrence detection ─── */
+const DAY = `(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)`;
 const RECURRENCE_PATTERNS = [
   /\btodos los d[ií]as\b/i,
   /\btodo el a[nñ]o\b/i,
   /\bdurante todo el a[nñ]o\b/i,
   /\babierto todo el a[nñ]o\b/i,
-  /\bde lunes a\b/i,
-  /\bde\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+a\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b/i,
-  /\blunes a s[aá]bado\b/i,
-  /\blunes a viernes\b/i,
-  /\blunes a domingo\b/i,
-  /\bmartes a domingo\b/i,
-  /\bmi[eé]rcoles a domingo\b/i,
-  /\bjueves a domingo\b/i,
-  /\bviernes a domingo\b/i,
+  // "DayA a DayB" — with or without "de" prefix (matches "Lunes a Jueves", "de Martes a Viernes", etc.)
+  new RegExp(`\\b(?:de\\s+)?${DAY}\\s+a\\s+${DAY}\\b`, "i"),
   /\btodos los fines?\s*de?\s*semana\b/i,
   /\bcada fin\s*de\s*semana\b/i,
-  /\btodos?\s+los?\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)\b/i,
-  /\bcada\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b/i,
-  /\bs[aá]bados\s+y\s+domingos\b/i,
-  /\bs[aá]bado\s+y\s+domingo\b/i,
+  new RegExp(`\\btodos?\\s+los?\\s+${DAY}\\b`, "i"),
+  new RegExp(`\\bcada\\s+${DAY}\\b`, "i"),
+  /\bs[aá]bados?\s+y\s+domingos?\b/i,
+  /\bviernes\s+y\s+s[aá]bados?\b/i,
+  /\bjueves\s+y\s+viernes\b/i,
+  /\bmartes\s+y\s+jueves\b/i,
   /\blun(?:es)?\.?\s*a\s*vie(?:rnes)?\.?\b/i,
   /\bs[aá]b\.?\s*y\s*dom\.?\b/i,
   /\babierto\s+(todos|cada|siempre)\b/i,
@@ -128,6 +124,8 @@ const RECURRENCE_PATTERNS = [
   /\bd[ií]a\s+de\s+por\s+medio\b/i,
   /\bsemanal(mente)?\b/i,
   /\bpermanente\b/i,
+  // "Visita" type experiences (tours that run regularly)
+  /\bvisitas?\s+(a\s+la|al|guiadas?)\b/i,
 ];
 
 /* ─── Non-event / venue-service detection ─── */

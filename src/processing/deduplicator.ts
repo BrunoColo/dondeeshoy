@@ -5,6 +5,13 @@ import { events } from "@/lib/db/schema";
 
 import type { NormalizedEventInput } from "./normalizer";
 
+const PLACEHOLDER_VENUE = "venue por confirmar";
+
+function isPlaceholderVenue(venue: string): boolean {
+  const v = venue.toLowerCase().trim();
+  return v === PLACEHOLDER_VENUE || v === "por confirmar" || v === "" || v === "tba";
+}
+
 export async function findDuplicateEventId(normalized: NormalizedEventInput): Promise<string | null> {
   const sameDayEvents = await db
     .select({
@@ -21,15 +28,26 @@ export async function findDuplicateEventId(normalized: NormalizedEventInput): Pr
 
   const normalizedName = normalize(normalized.name);
   const normalizedVenue = normalize(normalized.venueName);
+  const incomingIsPlaceholder = isPlaceholderVenue(normalized.venueName);
 
   let bestId: string | null = null;
   let bestScore = 0;
 
   for (const candidate of sameDayEvents) {
     const nameScore = similarity(normalizedName, normalize(candidate.name));
-    const venueScore = similarity(normalizedVenue, normalize(candidate.venueName));
 
-    const totalScore = nameScore * 0.75 + venueScore * 0.25;
+    // If either venue is a placeholder, venue comparison is irrelevant —
+    // rely entirely on name similarity
+    const candidateIsPlaceholder = isPlaceholderVenue(candidate.venueName);
+    let totalScore: number;
+
+    if (incomingIsPlaceholder || candidateIsPlaceholder) {
+      // Name-only: high name match is enough
+      totalScore = nameScore;
+    } else {
+      const venueScore = similarity(normalizedVenue, normalize(candidate.venueName));
+      totalScore = nameScore * 0.75 + venueScore * 0.25;
+    }
 
     if (totalScore > bestScore) {
       bestScore = totalScore;

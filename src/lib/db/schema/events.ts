@@ -15,7 +15,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-export const sourceEnum = pgEnum("source", ["redtickets", "entraste", "cartelera", "mvd_eventos"]);
+export const sourceEnum = pgEnum("source", ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket"]);
 export const eventTypeEnum = pgEnum("event_type", [
   "fiesta",
   "festival",

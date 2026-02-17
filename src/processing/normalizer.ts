@@ -8,6 +8,7 @@ export interface NormalizedEventInput {
   scheduleText: string | null;
   date: string;
   startTime: string | null;
+  endTime: string | null;
   venueName: string;
   venueAddress: string | null;
   city: string;
@@ -60,6 +61,10 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   const parsedStartTime = aiResolvedDate?.startTime ?? parsedDate.startTime;
   const startTime = parsedStartTime ?? normalizeTimeString(rawStartTime);
 
+  // Use explicit endTime from raw data if provided (e.g., CobraTicket)
+  const rawEndTime = sanitizeText((rawData.endTime as string) ?? "");
+  const endTime = normalizeTimeString(rawEndTime);
+
   const venueNameCandidate = sanitizeText((rawData.venueName as string) ?? "");
   const venueTextCandidate = sanitizeText((rawData.venueText as string) ?? "");
   const venueName = cleanVenueName(venueNameCandidate || venueTextCandidate) || "Venue por confirmar";
@@ -81,6 +86,10 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     prices.length === 0 &&
     /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
 
+  // Use pre-extracted coordinates from scrapers that provide them (e.g., CobraTicket)
+  const rawLatitude = typeof rawData.latitude === "number" ? rawData.latitude : null;
+  const rawLongitude = typeof rawData.longitude === "number" ? rawData.longitude : null;
+
   return {
     name,
     slug: slugify(name),
@@ -88,6 +97,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     scheduleText: dateText || null,
     date,
     startTime,
+    endTime,
     venueName,
     venueAddress,
     city: "Montevideo",
@@ -96,9 +106,9 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     priceMin,
     priceMax,
     isFree,
-    ageRestriction: null,
-    latitude: null,
-    longitude: null,
+    ageRestriction: typeof rawData.ageRestriction === "number" ? rawData.ageRestriction : null,
+    latitude: rawLatitude,
+    longitude: rawLongitude,
   };
 }
 

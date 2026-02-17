@@ -233,13 +233,13 @@ export async function searchEvents(filters: EventFilters, limit: number = 50) {
 }
 
 /**
- * Get trending events (most viewed) for a date
+ * Get trending events (most viewed) for a date — excludes recurring events
  */
 export async function getTrendingEvents(date: string, limit: number = 5) {
   return db
     .select(listColumns)
     .from(events)
-    .where(and(eq(events.date, date), activeStatus, gt(events.viewCount, 0)))
+    .where(and(eq(events.date, date), activeStatus, gt(events.viewCount, 0), eq(events.isRecurring, false)))
     .orderBy(desc(events.viewCount))
     .limit(limit);
 }

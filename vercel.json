@@ -9,6 +9,10 @@
       "schedule": "0 15 * * *"
     },
     {
+      "path": "/api/scrape/cobraticket",
+      "schedule": "30 15 * * *"
+    },
+    {
       "path": "/api/scrape/process",
       "schedule": "0 16 * * *"
     }

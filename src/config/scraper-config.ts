@@ -4,6 +4,7 @@ export const scraperConfig = {
   carteleraBaseUrl: "https://cartelera.montevideo.com.uy",
   carteleraFrontUrl: "https://www.cartelera.com.uy",
   mvdEventosBaseUrl: "https://eventos.montevideo.gub.uy",
+  cobraticketBaseUrl: "https://cobraticket.uy",
   requestsPerSecond: 1,
   retryAttempts: 3,
   timeoutMs: 15_000,

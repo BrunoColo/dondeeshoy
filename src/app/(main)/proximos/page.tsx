@@ -106,7 +106,9 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
                     {isTomorrow ? formatDateES(date) : label}
                   </h2>
                   <span className="text-[11px] text-text-muted">
-                    ({dateEvents.length}{recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""})
+                    ({dateEvents.length > 0
+                      ? `${dateEvents.length}${recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""}`
+                      : `${recurringDateEvents.length} recurrentes`})
                   </span>
                 </div>
 

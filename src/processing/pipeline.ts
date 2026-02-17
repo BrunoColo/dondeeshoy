@@ -228,7 +228,7 @@ async function createEvent(
             description: normalized.description,
             date: normalized.date,
             startTime: normalized.startTime,
-            endTime: null,
+            endTime: normalized.endTime,
             venueName: normalized.venueName,
             venueAddress: normalized.venueAddress,
             latitude: normalized.latitude?.toString() ?? null,

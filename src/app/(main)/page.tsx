@@ -93,9 +93,15 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
               <span className="text-[11px] font-bold text-emerald-400">
-                {events.length} {events.length === 1 ? "evento" : "eventos"}
-                {recurringEvents.length > 0 && (
-                  <span className="text-text-muted font-normal"> + {recurringEvents.length} recurrentes</span>
+                {events.length > 0 ? (
+                  <>
+                    {events.length} {events.length === 1 ? "evento" : "eventos"}
+                    {recurringEvents.length > 0 && (
+                      <span className="text-text-muted font-normal"> + {recurringEvents.length} recurrentes</span>
+                    )}
+                  </>
+                ) : (
+                  <>{recurringEvents.length} recurrentes</>
                 )}
               </span>
             </div>
@@ -127,25 +133,27 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
       )}
 
       {/* One-time / special events section */}
-      <div className="fade-up">
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-neon-cyan" strokeWidth={2.5} />
-          <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
-            Eventos únicos de hoy
-          </h2>
-          <span className="text-[10px] text-neon-cyan/70">
-            ({events.length})
-          </span>
-        </div>
-
-        {events.length > 0 ? (
-          <EventList events={events} trendingIds={trendingIds} />
-        ) : (
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[12px] text-muted-foreground">
-            No hay eventos únicos para hoy con los filtros actuales.
+      {(events.length > 0 || hasFilters) && (
+        <div className="fade-up">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-neon-cyan" strokeWidth={2.5} />
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
+              Eventos únicos de hoy
+            </h2>
+            <span className="text-[10px] text-neon-cyan/70">
+              ({events.length})
+            </span>
           </div>
-        )}
-      </div>
+
+          {events.length > 0 ? (
+            <EventList events={events} trendingIds={trendingIds} />
+          ) : (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[12px] text-muted-foreground">
+              No hay eventos únicos para hoy con los filtros actuales.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recurring / always-available section */}
       {recurringEvents.length > 0 && (
