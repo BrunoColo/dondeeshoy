@@ -29,6 +29,7 @@ const listColumns = {
   ageRestriction: events.ageRestriction,
   confidenceScore: events.confidenceScore,
   viewCount: events.viewCount,
+  isRecurring: events.isRecurring,
   status: events.status,
   createdAt: events.createdAt,
   updatedAt: events.updatedAt,
@@ -53,6 +54,11 @@ function buildFilterConditions(filters?: EventFilters) {
   }
   if (filters?.free) {
     conditions.push(eq(events.isFree, true));
+  }
+  if (filters?.recurring === true) {
+    conditions.push(eq(events.isRecurring, true));
+  } else if (filters?.recurring === false) {
+    conditions.push(eq(events.isRecurring, false));
   }
   if (filters?.q && filters.q.trim().length > 0) {
     const query = filters.q.trim();

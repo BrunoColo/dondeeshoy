@@ -12,25 +12,25 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@types/mapbox-gl": "^3.4.1",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.2",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.564.0",
-    "mapbox-gl": "^3.18.1",
     "motion": "^12.34.0",
     "next": "16.1.6",
     "openai": "^6.22.0",
     "postgres": "^3.4.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-map-gl": "^8.1.0",
+    "react-leaflet": "^5.0.0",
     "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

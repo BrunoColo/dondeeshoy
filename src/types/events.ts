@@ -1,5 +1,6 @@
 export type EventType =
   | "fiesta"
+  | "baile"
   | "festival"
   | "concierto"
   | "recital"
@@ -18,6 +19,7 @@ export type EventStatus = "active" | "cancelled" | "past";
 
 export const EVENT_TYPES: EventType[] = [
   "fiesta",
+  "baile",
   "festival",
   "concierto",
   "recital",
@@ -35,6 +37,7 @@ export const EVENT_TYPES: EventType[] = [
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   fiesta: "Fiesta",
+  baile: "Baile",
   festival: "Festival",
   concierto: "Concierto",
   recital: "Recital",
@@ -67,6 +70,7 @@ export interface EventCardData {
   currency?: string;
   musicGenre?: string | null;
   isTrending?: boolean;
+  isRecurring?: boolean;
 }
 
 export interface EventDetailData extends EventCardData {
@@ -88,4 +92,5 @@ export interface EventFilters {
   genre?: string;
   department?: string;
   free?: boolean;
+  recurring?: boolean;
 }

@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { getEventsWithCoordinates } from "@/lib/queries";
 import { getTodayUY } from "@/lib/format";
 import type { Metadata } from "next";
-import { EventMap, type MapEvent } from "@/components/events/event-map";
+import type { MapEvent } from "@/components/events/event-map";
+import { EventMapWrapper } from "@/components/events/event-map-wrapper";
 
 export const metadata: Metadata = {
   title: "Mapa — ¿Dónde es hoy?",
@@ -10,7 +11,6 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 3600;
-export const dynamic = "force-dynamic";
 
 export default function MapaPage() {
   return (
@@ -23,23 +23,6 @@ export default function MapaPage() {
 async function MapContent() {
   const today = getTodayUY();
   const rawEvents = await getEventsWithCoordinates(today);
-
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
-  if (!token) {
-    return (
-      <div className="flex h-[calc(100dvh-8rem)] items-center justify-center px-4">
-        <div className="glass-card rounded-2xl p-8 text-center max-w-sm">
-          <p className="text-text-secondary text-sm">
-            El mapa no está disponible en este momento.
-          </p>
-          <p className="text-text-muted text-xs mt-2">
-            Falta configurar NEXT_PUBLIC_MAPBOX_TOKEN
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const events: MapEvent[] = rawEvents
     .filter((e) => e.latitude && e.longitude)
@@ -77,17 +60,17 @@ async function MapContent() {
 
   return (
     <div className="h-[calc(100dvh-8rem)]">
-      <EventMap events={events} token={token} />
+      <EventMapWrapper events={events} />
     </div>
   );
 }
 
 function MapLoading() {
   return (
-    <div className="h-[calc(100dvh-8rem)] flex items-center justify-center">
+    <div className="flex h-[calc(100dvh-8rem)] items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 rounded-full border-2 border-neon-violet/30 border-t-neon-violet animate-spin" />
-        <p className="text-text-muted text-xs">Cargando mapa…</p>
+        <div className="skeleton h-8 w-8 rounded-full" />
+        <p className="text-text-muted text-sm">Cargando mapa...</p>
       </div>
     </div>
   );

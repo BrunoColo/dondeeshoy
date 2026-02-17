@@ -3,9 +3,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
 
-import { classifyEvent } from "./classifier";
+import { classifyEvent, shouldUseAiClassification } from "./classifier";
 import { findDuplicateEventId } from "./deduplicator";
 import { geocodeVenue } from "./geocoder";
+import { classifyEventWithAi } from "./ai-client";
 import { calculateConfidenceScore, normalizeRawEvent } from "./normalizer";
 
 export interface PipelineResult {
@@ -14,6 +15,7 @@ export interface PipelineResult {
   created: number;
   merged: number;
   errors: number;
+  aiClassified: number;
 }
 
 export async function runProcessingPipeline(batchSize = 50): Promise<PipelineResult> {
@@ -25,17 +27,23 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
       .limit(batchSize),
   );
 
+  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "6", 10);
+  let aiClassified = 0;
+
   const result: PipelineResult = {
     pending: pendingRawEvents.length,
     processed: 0,
     created: 0,
     merged: 0,
     errors: 0,
+    aiClassified: 0,
   };
 
   for (const rawEvent of pendingRawEvents) {
     try {
-      const output = await processRawEvent(rawEvent);
+      const output = await processRawEvent(rawEvent, {
+        aiEnabled: aiClassified < aiBudget,
+      });
       result.processed += 1;
 
       if (output === "created") {
@@ -44,6 +52,23 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
 
       if (output === "merged") {
         result.merged += 1;
+      }
+
+      if (output === "ai") {
+        aiClassified += 1;
+        result.aiClassified = aiClassified;
+      }
+
+      if (output === "created+ai") {
+        result.created += 1;
+        aiClassified += 1;
+        result.aiClassified = aiClassified;
+      }
+
+      if (output === "merged+ai") {
+        result.merged += 1;
+        aiClassified += 1;
+        result.aiClassified = aiClassified;
       }
     } catch (error) {
       result.errors += 1;
@@ -64,7 +89,10 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
   return result;
 }
 
-async function processRawEvent(rawEvent: RawEvent): Promise<"created" | "merged"> {
+async function processRawEvent(
+  rawEvent: RawEvent,
+  options: { aiEnabled: boolean },
+): Promise<"created" | "merged" | "ai" | "created+ai" | "merged+ai"> {
   const normalized = await normalizeRawEvent(rawEvent);
   const geocode = await geocodeVenue(normalized);
   const enriched = {
@@ -73,12 +101,37 @@ async function processRawEvent(rawEvent: RawEvent): Promise<"created" | "merged"
     longitude: geocode.longitude,
   };
 
-  const classification = classifyEvent(enriched);
+  const heuristic = classifyEvent(enriched);
+  let classification = {
+    eventType: heuristic.eventType,
+    musicGenre: heuristic.musicGenre,
+  };
+  const isRecurring = heuristic.isRecurring;
+
+  let usedAi = false;
+
+  if (options.aiEnabled && shouldUseAiClassification(enriched, heuristic)) {
+    const aiClassification = await classifyEventWithAi({
+      name: enriched.name,
+      description: enriched.description,
+      venueName: enriched.venueName,
+      fallbackType: heuristic.eventType,
+    });
+
+    if (aiClassification && aiClassification.confidence >= 0.65) {
+      classification = {
+        eventType: aiClassification.eventType,
+        musicGenre: aiClassification.musicGenre,
+      };
+      usedAi = true;
+    }
+  }
+
   const confidenceScore = calculateConfidenceScore(enriched);
 
   const duplicateEventId = await findDuplicateEventId(enriched);
 
-  const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore));
+  const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore, isRecurring));
 
   const alreadyLinked = await withTransientRetry("already-linked", async () =>
     db
@@ -110,14 +163,19 @@ async function processRawEvent(rawEvent: RawEvent): Promise<"created" | "merged"
       .where(eq(rawEvents.id, rawEvent.id)),
   );
 
-  return duplicateEventId ? "merged" : "created";
+  if (duplicateEventId) {
+    return usedAi ? "merged+ai" : "merged";
+  }
+
+  return usedAi ? "created+ai" : "created";
 }
 
 async function createEvent(
   rawEvent: RawEvent,
   normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
-  classification: ReturnType<typeof classifyEvent>,
+  classification: { eventType: ReturnType<typeof classifyEvent>["eventType"]; musicGenre: string | null },
   confidenceScore: string,
+  isRecurring: boolean,
 ): Promise<string> {
   // Include date in slug base to avoid collisions for multi-date events
   const dateSlug = normalized.date ? `-${normalized.date}` : "";
@@ -151,6 +209,7 @@ async function createEvent(
             currency: "UYU",
             isFree: normalized.isFree,
             ageRestriction: normalized.ageRestriction,
+            isRecurring,
             confidenceScore,
             status: "active",
             createdAt: new Date(),

@@ -5,7 +5,7 @@ import { EventList } from "@/components/events/event-list";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
-import { Zap, Flame } from "lucide-react";
+import { Zap, Flame, RotateCw } from "lucide-react";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
 export const revalidate = 3600; // ISR: revalidate every hour
@@ -40,11 +40,15 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
 
   // Fetch events + filter options + trending in parallel (3 queries instead of 5)
-  const [events, filterOptions, trending] = await Promise.all([
+  const [allEvents, filterOptions, trending] = await Promise.all([
     getEventsByDate(today, filters),
     getFilterOptions(today),
     hasFilters ? Promise.resolve([]) : getTrendingEvents(today, 3),
   ]);
+
+  // Separate recurring (daily/weekly) from unique (one-time) events
+  const events = allEvents.filter((e) => !e.isRecurring);
+  const recurringEvents = allEvents.filter((e) => e.isRecurring);
 
   const { genres, types, departments } = filterOptions;
 
@@ -85,11 +89,14 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             </div>
           </div>
 
-          {events.length > 0 && (
+          {allEvents.length > 0 && (
             <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
               <span className="text-[11px] font-bold text-emerald-400">
                 {events.length} {events.length === 1 ? "evento" : "eventos"}
+                {recurringEvents.length > 0 && (
+                  <span className="text-text-muted font-normal"> + {recurringEvents.length} recurrentes</span>
+                )}
               </span>
             </div>
           )}
@@ -124,6 +131,25 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
         <EventList events={events} trendingIds={trendingIds} />
       ) : (
         <EmptyState variant={hasFilters ? "search" : "today"} />
+      )}
+
+      {/* Recurring / always-available section */}
+      {recurringEvents.length > 0 && !hasFilters && (
+        <div className="mt-8 mb-6 fade-up">
+          <div className="flex items-center gap-2 mb-3">
+            <RotateCw className="h-4 w-4 text-text-muted" strokeWidth={2.5} />
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-text-muted">
+              Siempre disponible
+            </h2>
+            <span className="text-[10px] text-text-muted/60">
+              ({recurringEvents.length})
+            </span>
+          </div>
+          <p className="text-[11px] text-text-muted mb-3">
+            Actividades recurrentes y espacios con horarios regulares
+          </p>
+          <EventList events={recurringEvents} />
+        </div>
       )}
     </>
   );

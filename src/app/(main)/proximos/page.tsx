@@ -5,7 +5,7 @@ import { EventList } from "@/components/events/event-list";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, RotateCw } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
@@ -84,8 +84,14 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 
       {hasEvents ? (
         <div className="space-y-8">
-          {Array.from(grouped.entries()).map(([date, events]) => {
+          {Array.from(grouped.entries()).map(([date, allDateEvents]) => {
             const { label, isTomorrow } = getDateLabel(date);
+
+            // Separate recurring from unique events per date
+            const dateEvents = allDateEvents.filter((e) => !e.isRecurring);
+            const recurringDateEvents = allDateEvents.filter((e) => e.isRecurring);
+
+            if (dateEvents.length === 0 && recurringDateEvents.length === 0) return null;
 
             return (
               <section key={date} className="fade-up">
@@ -100,11 +106,25 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
                     {isTomorrow ? formatDateES(date) : label}
                   </h2>
                   <span className="text-[11px] text-text-muted">
-                    ({events.length})
+                    ({dateEvents.length}{recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""})
                   </span>
                 </div>
 
-                <EventList events={events} />
+                {dateEvents.length > 0 && (
+                  <EventList events={dateEvents} />
+                )}
+
+                {recurringDateEvents.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <RotateCw className="h-3 w-3 text-text-muted" strokeWidth={2} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                        Siempre disponible
+                      </span>
+                    </div>
+                    <EventList events={recurringDateEvents} />
+                  </div>
+                )}
               </section>
             );
           })}

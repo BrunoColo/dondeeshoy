@@ -12,6 +12,7 @@ import { useState } from "react";
 
 const TYPE_GRADIENT: Record<string, string> = {
   fiesta: "from-violet-600/30 via-fuchsia-600/20 to-transparent",
+  baile: "from-fuchsia-600/30 via-pink-600/20 to-transparent",
   festival: "from-pink-600/30 via-rose-600/20 to-transparent",
   concierto: "from-sky-600/30 via-blue-600/20 to-transparent",
   recital: "from-cyan-500/30 via-sky-600/20 to-transparent",

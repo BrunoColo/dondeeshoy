@@ -18,6 +18,7 @@ import {
 export const sourceEnum = pgEnum("source", ["redtickets", "entraste", "cartelera", "mvd_eventos"]);
 export const eventTypeEnum = pgEnum("event_type", [
   "fiesta",
+  "baile",
   "festival",
   "concierto",
   "recital",
@@ -75,6 +76,7 @@ export const events = pgTable(
     ageRestriction: integer("age_restriction"),
     confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }).default("0.00").notNull(),
     viewCount: integer("view_count").default(0).notNull(),
+    isRecurring: boolean("is_recurring").default(false).notNull(),
     status: eventStatusEnum("status").default("active").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

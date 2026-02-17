@@ -22,6 +22,7 @@ interface EventFiltersProps {
 // Chip color classes matching existing badge-* CSS
 const TYPE_CHIP_STYLES: Record<EventType, { bg: string; activeBg: string; text: string }> = {
   fiesta: { bg: "bg-violet-500/10 border-violet-500/20", activeBg: "bg-violet-500/25 border-violet-500/50", text: "text-violet-300" },
+  baile: { bg: "bg-fuchsia-500/10 border-fuchsia-500/20", activeBg: "bg-fuchsia-500/25 border-fuchsia-500/50", text: "text-fuchsia-300" },
   festival: { bg: "bg-pink-500/10 border-pink-500/20", activeBg: "bg-pink-500/25 border-pink-500/50", text: "text-pink-300" },
   concierto: { bg: "bg-sky-500/10 border-sky-500/20", activeBg: "bg-sky-500/25 border-sky-500/50", text: "text-sky-300" },
   recital: { bg: "bg-cyan-500/10 border-cyan-500/20", activeBg: "bg-cyan-500/25 border-cyan-500/50", text: "text-cyan-300" },
