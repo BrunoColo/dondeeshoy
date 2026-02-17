@@ -54,13 +54,19 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
       : null;
 
   const date = aiResolvedDate?.date ?? parsedDate.date;
-  const startTime = aiResolvedDate?.startTime ?? parsedDate.startTime;
+  // Use explicit startTime from raw data if the parser couldn't extract one
+  const rawStartTime = sanitizeText((rawData.startTime as string) ?? "");
+  const parsedStartTime = aiResolvedDate?.startTime ?? parsedDate.startTime;
+  const startTime = parsedStartTime ?? normalizeTimeString(rawStartTime);
 
   const venueNameCandidate = sanitizeText((rawData.venueName as string) ?? "");
   const venueTextCandidate = sanitizeText((rawData.venueText as string) ?? "");
   const venueName = cleanVenueName(venueNameCandidate || venueTextCandidate) || "Venue por confirmar";
 
-  const venueAddress = cleanVenueAddress(sanitizeText((rawData.venueAddress as string) ?? "")) || null;
+  // Prefer explicit venueAddress; for RedTickets also check rawData.venueAddress
+  const venueAddress = cleanVenueAddress(
+    sanitizeText((rawData.venueAddress as string) ?? "")
+  ) || null;
 
   const prices = normalizePrices(rawData.prices);
   const priceMin = prices.length > 0 ? Math.min(...prices) : null;
@@ -110,6 +116,37 @@ export function calculateConfidenceScore(normalized: NormalizedEventInput): stri
 function parseUruguayDateTime(value: string): { date: string; startTime: string | null; wasFallback: boolean } {
   const now = new Date();
 
+  // Try DD/MM/YYYY format first (used by MVD Eventos)
+  const ddmmMatch = value.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/);
+  if (ddmmMatch) {
+    const day = Number.parseInt(ddmmMatch[1], 10);
+    const month = Number.parseInt(ddmmMatch[2], 10);
+    const year = Number.parseInt(ddmmMatch[3], 10);
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+    let startTime: string | null = null;
+    if (timeMatch) {
+      const hour = Number.parseInt(timeMatch[1], 10);
+      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    }
+    return { date, startTime, wasFallback: false };
+  }
+
+  // Try YYYY-MM-DD format
+  const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const date = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+    let startTime: string | null = null;
+    if (timeMatch) {
+      const hour = Number.parseInt(timeMatch[1], 10);
+      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    }
+    return { date, startTime, wasFallback: false };
+  }
+
   const dateMatch = value.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)/i);
 
   if (!dateMatch) {
@@ -125,13 +162,15 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
   const candidate = new Date(Date.UTC(year, month - 1, day));
   const daysDiff = (candidate.getTime() - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000;
 
-  if (daysDiff < -180) {
+  // If the date is more than 30 days in the past, it likely refers to next year
+  if (daysDiff < -30) {
     year += 1;
   }
 
   const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-  const timeMatch = value.match(/(?:-|a\s+las)\s*(\d{1,2})(?::(\d{2}))?\s*(?:hs?)?/i);
+  // Try time after "-", "a las", or standalone HH:MM
+  const timeMatch = value.match(/(?:[-–]\s*|a\s+las\s+)?(\d{1,2}):(\d{2})\s*(?:hs?)?/i);
   if (!timeMatch) {
     return { date, startTime: null, wasFallback: false };
   }
@@ -279,4 +318,18 @@ function formatDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Normalize a time string like "20:00" or "21:30hs" into HH:mm:ss format.
+ * Returns null if the input is empty or unparseable.
+ */
+function normalizeTimeString(raw: string): string | null {
+  if (!raw) return null;
+  const m = raw.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+  if (!m) return null;
+  const hour = Number.parseInt(m[1], 10);
+  const minute = Number.parseInt(m[2] ?? "0", 10);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }

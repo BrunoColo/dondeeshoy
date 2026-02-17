@@ -119,7 +119,9 @@ async function createEvent(
   classification: ReturnType<typeof classifyEvent>,
   confidenceScore: string,
 ): Promise<string> {
-  const fallbackBase = normalized.slug || `evento-${Date.now()}`;
+  // Include date in slug base to avoid collisions for multi-date events
+  const dateSlug = normalized.date ? `-${normalized.date}` : "";
+  const fallbackBase = (normalized.slug || `evento-${Date.now()}`) + dateSlug;
 
   for (let suffix = 0; suffix < 200; suffix += 1) {
     const candidateSlug = suffix === 0 ? fallbackBase : `${fallbackBase}-${suffix}`;
@@ -159,7 +161,10 @@ async function createEvent(
 
       return inserted[0].id;
     } catch (error) {
-      const conflict = String(error).includes("events_slug_unique") || String(error).includes("23505");
+      const errorStr = String(error);
+      const causeStr = error instanceof Error && error.cause ? String(error.cause) : "";
+      const fullStr = `${errorStr} ${causeStr}`;
+      const conflict = fullStr.includes("events_slug_unique") || fullStr.includes("23505");
 
       if (conflict) {
         continue;

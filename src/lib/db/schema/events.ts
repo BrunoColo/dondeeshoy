@@ -15,7 +15,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-export const sourceEnum = pgEnum("source", ["redtickets", "entraste"]);
+export const sourceEnum = pgEnum("source", ["redtickets", "entraste", "cartelera", "mvd_eventos"]);
 export const eventTypeEnum = pgEnum("event_type", [
   "fiesta",
   "festival",
@@ -73,9 +73,16 @@ export const events = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    // Primary query pattern: events by date + status (covers home, proximos, trending, map)
+    index("events_date_status_idx").on(table.date, table.status),
+    // Composite: date + city (department) + status for filtered queries
     index("events_date_city_status_idx").on(table.date, table.city, table.status),
+    // Slug lookup for event detail page
     index("events_slug_idx").on(table.slug),
+    // Type filter
     index("events_event_type_idx").on(table.eventType),
+    // Status-only for global filter queries
+    index("events_status_idx").on(table.status),
   ],
 );
 

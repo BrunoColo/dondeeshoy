@@ -1,4 +1,4 @@
-export type SupportedSource = "redtickets" | "entraste";
+export type SupportedSource = "redtickets" | "entraste" | "cartelera" | "mvd_eventos";
 
 export interface ScrapedRawEvent {
   source: SupportedSource;

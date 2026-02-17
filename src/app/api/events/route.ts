@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchEvents, getActiveGenres, getActiveEventTypes, getActiveDepartments } from "@/lib/queries";
+import { searchEvents, getFilterOptions } from "@/lib/queries";
 import type { EventType, EventFilters } from "@/types/events";
 
 const VALID_TYPES = new Set<EventType>(["fiesta", "festival", "recital", "club", "bar", "teatro", "otro"]);
@@ -18,14 +18,10 @@ export async function GET(request: NextRequest) {
     const free = searchParams.get("free");
     const meta = searchParams.get("meta"); // ?meta=filters returns available filters
 
-    // If meta=filters, return available filter options
+    // If meta=filters, return available filter options (single query)
     if (meta === "filters") {
-      const [genres, types, departments] = await Promise.all([
-        getActiveGenres(),
-        getActiveEventTypes(),
-        getActiveDepartments(),
-      ]);
-      return NextResponse.json({ ok: true, data: { genres, types, departments } });
+      const data = await getFilterOptions();
+      return NextResponse.json({ ok: true, data });
     }
 
     const filters: EventFilters = {};

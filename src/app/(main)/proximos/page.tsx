@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { getUpcomingEvents, getActiveGenres, getActiveEventTypes, getActiveDepartments } from "@/lib/queries";
-import { getTomorrowUY, formatDateES, getDateLabel } from "@/lib/format";
+import { getUpcomingEvents, getFilterOptions } from "@/lib/queries";
+import { getTomorrowUY, formatDateES, getDateLabel, getDateOffsetUY } from "@/lib/format";
 import { EventList } from "@/components/events/event-list";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -43,13 +43,13 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
 
-  const [grouped, genres, types, departments] = await Promise.all([
+  // 2 queries instead of 4: events + combined filter options
+  const [grouped, filterOptions] = await Promise.all([
     getUpcomingEvents(tomorrow, 14, filters),
-    getActiveGenres(),
-    getActiveEventTypes(),
-    getActiveDepartments(),
+    getFilterOptions(undefined, { start: tomorrow, end: getDateOffsetUY(15) }),
   ]);
 
+  const { genres, types, departments } = filterOptions;
   const hasEvents = grouped.size > 0;
   const totalCount = hasFilters ? Array.from(grouped.values()).reduce((sum, evts) => sum + evts.length, 0) : undefined;
 

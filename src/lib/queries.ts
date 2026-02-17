@@ -2,12 +2,43 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema/events";
-import { eq, and, gte, lte, asc, desc, sql, ilike, or } from "drizzle-orm";
+import { eq, and, gte, lte, gt, asc, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import type { EventType, EventFilters } from "@/types/events";
 
-/**
- * Build WHERE conditions array from filters
- */
+/* ─── Columns used by list/card views (skip heavy/unused fields) ─── */
+const listColumns = {
+  id: events.id,
+  name: events.name,
+  slug: events.slug,
+  date: events.date,
+  startTime: events.startTime,
+  endTime: events.endTime,
+  venueName: events.venueName,
+  venueAddress: events.venueAddress,
+  latitude: events.latitude,
+  longitude: events.longitude,
+  city: events.city,
+  eventType: events.eventType,
+  musicGenre: events.musicGenre,
+  imageUrl: events.imageUrl,
+  ticketUrl: events.ticketUrl,
+  priceMin: events.priceMin,
+  priceMax: events.priceMax,
+  currency: events.currency,
+  isFree: events.isFree,
+  ageRestriction: events.ageRestriction,
+  confidenceScore: events.confidenceScore,
+  viewCount: events.viewCount,
+  status: events.status,
+  createdAt: events.createdAt,
+  updatedAt: events.updatedAt,
+  description: events.description,
+} as const;
+
+/* ─── Base conditions ─── */
+const activeStatus = eq(events.status, "active");
+
+/* ─── Filter builder ─── */
 function buildFilterConditions(filters?: EventFilters) {
   const conditions = [];
 
@@ -25,7 +56,6 @@ function buildFilterConditions(filters?: EventFilters) {
   }
   if (filters?.q && filters.q.trim().length > 0) {
     const query = filters.q.trim();
-    // Use ILIKE for simple, reliable search across name, venue, description
     const pattern = `%${query}%`;
     conditions.push(
       or(
@@ -40,6 +70,55 @@ function buildFilterConditions(filters?: EventFilters) {
   return conditions;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   Combined filter-options query (genres + types + departments in ONE
+   round-trip instead of three separate queries)
+   ═══════════════════════════════════════════════════════════════════ */
+export interface FilterOptions {
+  genres: string[];
+  types: EventType[];
+  departments: string[];
+}
+
+export async function getFilterOptions(date?: string, dateRange?: { start: string; end: string }): Promise<FilterOptions> {
+  let dateCondition = sql`TRUE`;
+  if (dateRange) {
+    dateCondition = sql`${events.date} >= ${dateRange.start} AND ${events.date} <= ${dateRange.end}`;
+  } else if (date) {
+    dateCondition = sql`${events.date} = ${date}`;
+  }
+
+  const rows = await db.execute<{
+    music_genre: string | null;
+    event_type: EventType;
+    city: string;
+  }>(sql`
+    SELECT DISTINCT music_genre, event_type, city
+    FROM events
+    WHERE status = 'active' AND (${dateCondition})
+  `);
+
+  const genreSet = new Set<string>();
+  const typeSet = new Set<EventType>();
+  const deptSet = new Set<string>();
+
+  for (const row of rows) {
+    if (row.music_genre && row.music_genre.trim()) genreSet.add(row.music_genre);
+    if (row.event_type) typeSet.add(row.event_type);
+    if (row.city && row.city.trim()) deptSet.add(row.city);
+  }
+
+  return {
+    genres: [...genreSet].sort(),
+    types: [...typeSet],
+    departments: [...deptSet].sort((a, b) => a.localeCompare(b, "es")),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Event queries
+   ═══════════════════════════════════════════════════════════════════ */
+
 /**
  * Get all active events for a specific date, with optional filters
  */
@@ -47,15 +126,9 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
 
   return db
-    .select()
+    .select(listColumns)
     .from(events)
-    .where(
-      and(
-        eq(events.date, date),
-        eq(events.status, "active"),
-        ...filterConditions,
-      ),
-    )
+    .where(and(eq(events.date, date), activeStatus, ...filterConditions))
     .orderBy(desc(events.viewCount), asc(events.startTime), asc(events.name));
 }
 
@@ -66,16 +139,9 @@ export async function getEventsBetweenDates(startDate: string, endDate: string, 
   const filterConditions = buildFilterConditions(filters);
 
   return db
-    .select()
+    .select(listColumns)
     .from(events)
-    .where(
-      and(
-        gte(events.date, startDate),
-        lte(events.date, endDate),
-        eq(events.status, "active"),
-        ...filterConditions,
-      ),
-    )
+    .where(and(gte(events.date, startDate), lte(events.date, endDate), activeStatus, ...filterConditions))
     .orderBy(asc(events.date), desc(events.viewCount), asc(events.startTime), asc(events.name));
 }
 
@@ -93,19 +159,15 @@ export async function getEventBySlug(slug: string) {
 }
 
 /**
- * Get total count of active events for today (used for header indicator)
+ * Get total count of active events for a date (uses COUNT instead of fetching all rows)
  */
 export async function getEventCountForDate(date: string) {
-  const results = await db
-    .select()
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
     .from(events)
-    .where(
-      and(
-        eq(events.date, date),
-        eq(events.status, "active"),
-      ),
-    );
-  return results.length;
+    .where(and(eq(events.date, date), activeStatus));
+
+  return Number(result[0]?.count ?? 0);
 }
 
 /**
@@ -116,86 +178,38 @@ export async function getUpcomingEvents(startDate: string, daysAhead: number = 7
   const filterConditions = buildFilterConditions(filters);
 
   const results = await db
-    .select()
+    .select(listColumns)
     .from(events)
-    .where(
-      and(
-        gte(events.date, startDate),
-        lte(events.date, endDate),
-        eq(events.status, "active"),
-        ...filterConditions,
-      ),
-    )
+    .where(and(gte(events.date, startDate), lte(events.date, endDate), activeStatus, ...filterConditions))
     .orderBy(asc(events.date), desc(events.viewCount), asc(events.startTime), asc(events.name));
 
   // Group by date
   const grouped = new Map<string, typeof results>();
   for (const event of results) {
-    const date = event.date;
-    if (!grouped.has(date)) {
-      grouped.set(date, []);
-    }
-    grouped.get(date)!.push(event);
+    const d = event.date;
+    if (!grouped.has(d)) grouped.set(d, []);
+    grouped.get(d)!.push(event);
   }
 
   return grouped;
 }
 
 /**
- * Get the distinct music genres that have active events (for filter chips)
+ * Legacy wrappers for pages that still call individual filter queries
  */
 export async function getActiveGenres(date?: string) {
-  const conditions = [eq(events.status, "active")];
-  if (date) {
-    conditions.push(eq(events.date, date));
-  }
-
-  const results = await db
-    .selectDistinct({ genre: events.musicGenre })
-    .from(events)
-    .where(and(...conditions));
-
-  return results
-    .map((r) => r.genre)
-    .filter((g): g is string => g !== null && g.trim().length > 0)
-    .sort();
+  const opts = await getFilterOptions(date);
+  return opts.genres;
 }
 
-/**
- * Get distinct event types that have active events (for filter chips)
- */
 export async function getActiveEventTypes(date?: string) {
-  const conditions = [eq(events.status, "active")];
-  if (date) {
-    conditions.push(eq(events.date, date));
-  }
-
-  const results = await db
-    .selectDistinct({ type: events.eventType })
-    .from(events)
-    .where(and(...conditions));
-
-  return results.map((r) => r.type);
+  const opts = await getFilterOptions(date);
+  return opts.types;
 }
 
-/**
- * Get distinct departments/cities that have active events
- */
 export async function getActiveDepartments(date?: string) {
-  const conditions = [eq(events.status, "active")];
-  if (date) {
-    conditions.push(eq(events.date, date));
-  }
-
-  const results = await db
-    .selectDistinct({ department: events.city })
-    .from(events)
-    .where(and(...conditions));
-
-  return results
-    .map((r) => r.department)
-    .filter((d): d is string => d !== null && d.trim().length > 0)
-    .sort((a, b) => a.localeCompare(b, "es"));
+  const opts = await getFilterOptions(date);
+  return opts.departments;
 }
 
 /**
@@ -205,14 +219,9 @@ export async function searchEvents(filters: EventFilters, limit: number = 50) {
   const filterConditions = buildFilterConditions(filters);
 
   return db
-    .select()
+    .select(listColumns)
     .from(events)
-    .where(
-      and(
-        eq(events.status, "active"),
-        ...filterConditions,
-      ),
-    )
+    .where(and(activeStatus, ...filterConditions))
     .orderBy(desc(events.viewCount), asc(events.date), asc(events.startTime))
     .limit(limit);
 }
@@ -222,15 +231,9 @@ export async function searchEvents(filters: EventFilters, limit: number = 50) {
  */
 export async function getTrendingEvents(date: string, limit: number = 5) {
   return db
-    .select()
+    .select(listColumns)
     .from(events)
-    .where(
-      and(
-        eq(events.date, date),
-        eq(events.status, "active"),
-        sql`${events.viewCount} > 0`,
-      ),
-    )
+    .where(and(eq(events.date, date), activeStatus, gt(events.viewCount, 0)))
     .orderBy(desc(events.viewCount))
     .limit(limit);
 }
@@ -250,27 +253,28 @@ export async function incrementViewCount(eventId: string) {
  */
 export async function getEventsWithCoordinates(date?: string) {
   const conditions = [
-    eq(events.status, "active"),
-    sql`${events.latitude} IS NOT NULL`,
-    sql`${events.longitude} IS NOT NULL`,
+    activeStatus,
+    isNotNull(events.latitude),
+    isNotNull(events.longitude),
   ];
   if (date) {
     conditions.push(eq(events.date, date));
   }
 
   return db
-    .select()
+    .select(listColumns)
     .from(events)
     .where(and(...conditions))
     .orderBy(asc(events.date), asc(events.startTime));
 }
 
+/* ─── Helpers ─── */
 function getOffsetDate(dateStr: string, days: number): string {
   const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  const d = new Date(year, month - 1, day);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 }

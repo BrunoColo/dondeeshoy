@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getEventsByDate, getActiveGenres, getActiveEventTypes, getTrendingEvents, getActiveDepartments } from "@/lib/queries";
+import { getEventsByDate, getFilterOptions, getTrendingEvents } from "@/lib/queries";
 import { getTodayUY, formatDateES } from "@/lib/format";
 import { EventList } from "@/components/events/event-list";
 import { EventSkeleton } from "@/components/events/event-skeleton";
@@ -39,14 +39,14 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
 
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
 
-  // Fetch events, genres, types, and trending in parallel
-  const [events, genres, types, departments, trending] = await Promise.all([
+  // Fetch events + filter options + trending in parallel (3 queries instead of 5)
+  const [events, filterOptions, trending] = await Promise.all([
     getEventsByDate(today, filters),
-    getActiveGenres(today),
-    getActiveEventTypes(today),
-    getActiveDepartments(today),
+    getFilterOptions(today),
     hasFilters ? Promise.resolve([]) : getTrendingEvents(today, 3),
   ]);
+
+  const { genres, types, departments } = filterOptions;
 
   // Build set of trending IDs for badge display
   const trendingIds = new Set(trending.map((e) => e.id));

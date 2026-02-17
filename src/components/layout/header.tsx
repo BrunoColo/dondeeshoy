@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { MapPin, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
@@ -13,7 +13,6 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedDepartment = searchParams.get("department") ?? "Montevideo";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -138,14 +137,6 @@ export function Header() {
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
             </button>
-
-            {/* City indicator */}
-            <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-3 py-1.5">
-              <MapPin className="h-3 w-3 text-neon-violet" strokeWidth={2.5} />
-              <span className="max-w-[120px] truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {selectedDepartment}
-              </span>
-            </div>
           </div>
         )}
       </div>

@@ -74,7 +74,10 @@ export class RedTicketsScraper extends BaseScraper {
     // RedTickets detail pages use span.Description.Flex for date and venue
     const descFlex = $("span.Description.Flex");
     const dateText = descFlex.eq(0).text().trim() || null;
-    const venueText = this.cleanVenueText(descFlex.eq(1).text().trim()) || null;
+    const rawVenueText = descFlex.eq(1).text().trim() || null;
+    
+    // Extract venue name AND address from "VenueName - Address, Postal City"
+    const { venueName: rtVenueName, venueAddress: rtVenueAddress } = this.parseVenueText(rawVenueText);
 
     // RedTickets detail pages show $0 in cart — no reliable price from HTML
     // Skip price extraction for RedTickets (prices not in static HTML)
@@ -88,7 +91,8 @@ export class RedTicketsScraper extends BaseScraper {
         title,
         category,
         dateText,
-        venueText,
+        venueText: rtVenueName,
+        venueAddress: rtVenueAddress,
         imageUrl,
         prices,
         extractedAt: new Date().toISOString(),
@@ -112,18 +116,20 @@ export class RedTicketsScraper extends BaseScraper {
   }
 
   /**
-   * Clean venue text from RedTickets detail page.
-   * Format: "VenueName - Address, PostalCode City" — extract the venue name part.
+   * Parse venue text from RedTickets detail page.
+   * Format: "VenueName - Address, PostalCode City"
+   * Now preserves the address for geocoding.
    */
-  private cleanVenueText(raw: string): string | null {
-    if (!raw) return null;
+  private parseVenueText(raw: string | null): { venueName: string | null; venueAddress: string | null } {
+    if (!raw) return { venueName: null, venueAddress: null };
 
-    // Take just the first part before " - " if there's an address after
     const dashIdx = raw.indexOf(" - ");
     if (dashIdx > 0) {
-      return normalizeWhitespace(raw.substring(0, dashIdx));
+      const name = normalizeWhitespace(raw.substring(0, dashIdx)) || null;
+      const address = normalizeWhitespace(raw.substring(dashIdx + 3)) || null;
+      return { venueName: name, venueAddress: address };
     }
 
-    return normalizeWhitespace(raw) || null;
+    return { venueName: normalizeWhitespace(raw) || null, venueAddress: null };
   }
 }
