@@ -1,6 +1,5 @@
 export type EventType =
   | "fiesta"
-  | "baile"
   | "festival"
   | "concierto"
   | "recital"
@@ -19,7 +18,6 @@ export type EventStatus = "active" | "cancelled" | "past";
 
 export const EVENT_TYPES: EventType[] = [
   "fiesta",
-  "baile",
   "festival",
   "concierto",
   "recital",
@@ -37,7 +35,6 @@ export const EVENT_TYPES: EventType[] = [
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   fiesta: "Fiesta",
-  baile: "Baile",
   festival: "Festival",
   concierto: "Concierto",
   recital: "Recital",

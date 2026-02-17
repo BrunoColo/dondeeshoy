@@ -88,13 +88,7 @@ export class CarteleraScraper extends BaseScraper {
     const durationRaw = $("[itemprop='duration']").first().text();
     const duration = durationRaw ? normalizeWhitespace(durationRaw) : null;
 
-    // Venue / Sala — extract from the salas div, clean out JavaScript
-    const salasDiv = $(".salas").first();
-    const venueName = normalizeWhitespace(
-      salasDiv.find("a").first().text() ||
-        salasDiv.clone().children("script").remove().end().text() ||
-        "",
-    ).replace(/Ver en mapa.*$/i, "").trim() || null;
+    const { venueName, venueAddress } = this.extractVenueData($);
 
     // Image
     const imageUrl =
@@ -132,6 +126,7 @@ export class CarteleraScraper extends BaseScraper {
           duration,
           description,
           venueText: venueName,
+          venueAddress,
           imageUrl,
           prices,
           cast: cast.length > 0 ? cast : undefined,
@@ -155,6 +150,7 @@ export class CarteleraScraper extends BaseScraper {
           duration,
           description,
           venueText: venueName,
+          venueAddress,
           imageUrl,
           prices,
           cast: cast.length > 0 ? cast : undefined,
@@ -307,5 +303,49 @@ export class CarteleraScraper extends BaseScraper {
       }
     }
     return values;
+  }
+
+  private extractVenueData($: cheerio.CheerioAPI): { venueName: string | null; venueAddress: string | null } {
+    const selectors = [
+      ".salas a",
+      ".salas",
+      "[itemprop='location']",
+      ".teatro a",
+      ".teatro",
+      ".sala a",
+      ".sala",
+      "[class*='sala'] a",
+      "[class*='sala']",
+    ];
+
+    let rawVenue = "";
+    for (const selector of selectors) {
+      const el = $(selector).first();
+      if (el.length === 0) continue;
+
+      const text = selector.includes(".salas")
+        ? normalizeWhitespace(el.clone().children("script").remove().end().text())
+        : normalizeWhitespace(el.text());
+
+      if (text) {
+        rawVenue = text;
+        break;
+      }
+    }
+
+    const cleaned = rawVenue
+      .replace(/Ver en mapa.*$/i, "")
+      .replace(/Funciones?.*$/i, "")
+      .trim();
+
+    if (!cleaned) {
+      return { venueName: null, venueAddress: null };
+    }
+
+    const parts = cleaned.split(/\s+-\s+/);
+    const venueName = normalizeWhitespace(parts[0] ?? "") || null;
+    const venueAddress = parts.length > 1 ? normalizeWhitespace(parts.slice(1).join(" - ")) || null : null;
+
+    return { venueName, venueAddress };
   }
 }

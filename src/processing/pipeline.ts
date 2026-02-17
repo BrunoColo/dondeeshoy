@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
 
-import { classifyEvent, shouldUseAiClassification } from "./classifier";
+import { classifyEvent, shouldRejectEvent, shouldUseAiClassification } from "./classifier";
 import { findDuplicateEventId } from "./deduplicator";
 import { geocodeVenue } from "./geocoder";
 import { classifyEventWithAi } from "./ai-client";
@@ -14,6 +14,7 @@ export interface PipelineResult {
   processed: number;
   created: number;
   merged: number;
+  skipped: number;
   errors: number;
   aiClassified: number;
 }
@@ -35,6 +36,7 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
     processed: 0,
     created: 0,
     merged: 0,
+    skipped: 0,
     errors: 0,
     aiClassified: 0,
   };
@@ -52,6 +54,10 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
 
       if (output === "merged") {
         result.merged += 1;
+      }
+
+      if (output === "skipped") {
+        result.skipped += 1;
       }
 
       if (output === "ai") {
@@ -92,8 +98,25 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
 async function processRawEvent(
   rawEvent: RawEvent,
   options: { aiEnabled: boolean },
-): Promise<"created" | "merged" | "ai" | "created+ai" | "merged+ai"> {
+): Promise<"created" | "merged" | "skipped" | "ai" | "created+ai" | "merged+ai"> {
   const normalized = await normalizeRawEvent(rawEvent);
+
+  // Reject non-events before geocoding/classifying (saves API calls)
+  const rejectReason = shouldRejectEvent(normalized);
+  if (rejectReason) {
+    console.log(`[pipeline] skipping raw_event ${rawEvent.id}: ${rejectReason}`);
+    await withTransientRetry("mark-rejected", async () =>
+      db
+        .update(rawEvents)
+        .set({
+          processed: true,
+          processingError: rejectReason,
+        })
+        .where(eq(rawEvents.id, rawEvent.id)),
+    );
+    return "skipped";
+  }
+
   const geocode = await geocodeVenue(normalized);
   const enriched = {
     ...normalized,
@@ -101,7 +124,15 @@ async function processRawEvent(
     longitude: geocode.longitude,
   };
 
-  const heuristic = classifyEvent(enriched);
+  const rawData = rawEvent.rawData as Record<string, unknown>;
+  const category = typeof rawData.category === "string" ? rawData.category : null;
+  const genre = typeof rawData.genre === "string" ? rawData.genre : null;
+
+  const heuristic = classifyEvent(enriched, {
+    source: rawEvent.source,
+    category,
+    genre,
+  });
   let classification = {
     eventType: heuristic.eventType,
     musicGenre: heuristic.musicGenre,
@@ -116,6 +147,9 @@ async function processRawEvent(
       description: enriched.description,
       venueName: enriched.venueName,
       fallbackType: heuristic.eventType,
+      source: rawEvent.source,
+      category,
+      genre,
     });
 
     if (aiClassification && aiClassification.confidence >= 0.65) {

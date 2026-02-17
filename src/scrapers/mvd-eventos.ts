@@ -122,11 +122,7 @@ export class MvdEventosScraper extends BaseScraper {
         "",
     ).substring(0, 1000) || null;
 
-    // Venue from field--name-field-donde — text is often inside a <p> within the div
-    const dondeField = $("[class*='field--name-field-donde']").first();
-    const venueName = normalizeWhitespace(
-      dondeField.find("p").first().text() || dondeField.text() || "",
-    ) || null;
+    const { venueName, venueAddress } = this.extractVenueData($, description);
 
     // Category from field--name-field-categoria-listado
     const category = normalizeWhitespace(
@@ -168,6 +164,7 @@ export class MvdEventosScraper extends BaseScraper {
         description,
         dateText,
         venueText: venueName,
+        venueAddress,
         category,
         imageUrl: fullImageUrl,
         isFree,
@@ -215,6 +212,52 @@ export class MvdEventosScraper extends BaseScraper {
     // Look for DD/MM/YYYY patterns
     const ddmmMatch = mainText.match(/\d{2}\/\d{2}\/\d{4}/);
     if (ddmmMatch) return ddmmMatch[0];
+
+    return null;
+  }
+
+  private extractVenueData(
+    $: cheerio.CheerioAPI,
+    description: string | null,
+  ): { venueName: string | null; venueAddress: string | null } {
+    const venueCandidates = [
+      "[class*='field--name-field-donde'] .field__item",
+      "[class*='field--name-field-donde']",
+      "[class*='field--name-field-lugar'] .field__item",
+      "[class*='field--name-field-lugar']",
+      "[class*='field--name-field-sala'] .field__item",
+      "[class*='field--name-field-sala']",
+      "[class*='field--name-field-ubicacion'] .field__item",
+      "[class*='field--name-field-ubicacion']",
+    ];
+
+    const addressCandidates = [
+      "[class*='field--name-field-direccion'] .field__item",
+      "[class*='field--name-field-direccion']",
+      "[class*='field--name-field-dirección'] .field__item",
+      "[class*='field--name-field-dirección']",
+    ];
+
+    const venueNameFromFields = this.pickFirstNonEmpty($, venueCandidates);
+    const venueAddressFromFields = this.pickFirstNonEmpty($, addressCandidates);
+
+    const desc = normalizeWhitespace(description ?? "");
+    const labelVenue = desc.match(/\b(?:lugar|d[oó]nde|sala)\s*:\s*([^.;\n]+)/i)?.[1] ?? null;
+    const labelAddress = desc.match(/\b(?:direcci[oó]n|ubicaci[oó]n)\s*:\s*([^.;\n]+)/i)?.[1] ?? null;
+
+    const venueName = normalizeWhitespace(venueNameFromFields ?? labelVenue ?? "") || null;
+    const venueAddress = normalizeWhitespace(venueAddressFromFields ?? labelAddress ?? "") || null;
+
+    return { venueName, venueAddress };
+  }
+
+  private pickFirstNonEmpty($: cheerio.CheerioAPI, selectors: string[]): string | null {
+    for (const selector of selectors) {
+      const value = normalizeWhitespace($(selector).first().text() || "");
+      if (value) {
+        return value;
+      }
+    }
 
     return null;
   }

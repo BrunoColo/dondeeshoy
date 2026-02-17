@@ -405,13 +405,6 @@ body::after {
   text-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
 }
 
-.badge-baile {
-  background: rgba(219, 39, 119, 0.2);
-  color: #F9A8D4;
-  border: 1px solid rgba(219, 39, 119, 0.35);
-  text-shadow: 0 0 12px rgba(219, 39, 119, 0.3);
-}
-
 .badge-festival {
   background: rgba(236, 72, 153, 0.2);
   color: #F472B6;

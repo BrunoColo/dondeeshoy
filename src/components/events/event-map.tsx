@@ -13,7 +13,6 @@ import "leaflet/dist/leaflet.css";
 /** Marker color per event type (neon palette) */
 const TYPE_COLORS: Record<string, string> = {
   fiesta: "#A855F7",    // violet
-  baile: "#DB2777",     // fuchsia/pink
   festival: "#EC4899",  // pink
   concierto: "#0EA5E9", // sky
   recital: "#06B6D4",   // cyan

@@ -5,6 +5,7 @@ export interface NormalizedEventInput {
   name: string;
   slug: string;
   description: string | null;
+  scheduleText: string | null;
   date: string;
   startTime: string | null;
   venueName: string;
@@ -84,6 +85,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     name,
     slug: slugify(name),
     description,
+    scheduleText: dateText || null,
     date,
     startTime,
     venueName,

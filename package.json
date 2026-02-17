@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "rescrape:targeted": "node scripts/rescrape-targeted.mjs",
+    "fix:recurring": "node scripts/fix-recurring-events.mjs",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"

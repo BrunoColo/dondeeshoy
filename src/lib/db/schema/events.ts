@@ -18,7 +18,6 @@ import {
 export const sourceEnum = pgEnum("source", ["redtickets", "entraste", "cartelera", "mvd_eventos"]);
 export const eventTypeEnum = pgEnum("event_type", [
   "fiesta",
-  "baile",
   "festival",
   "concierto",
   "recital",

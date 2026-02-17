@@ -5,7 +5,7 @@ import { EventList } from "@/components/events/event-list";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
-import { Zap, Flame, RotateCw } from "lucide-react";
+import { Zap, Flame, RotateCw, Sparkles } from "lucide-react";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
 export const revalidate = 3600; // ISR: revalidate every hour
@@ -109,7 +109,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           availableTypes={types}
           availableGenres={genres}
           availableDepartments={departments}
-          resultCount={hasFilters ? events.length : undefined}
+          resultCount={hasFilters ? allEvents.length : undefined}
         />
       </div>
 
@@ -126,29 +126,52 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
         </div>
       )}
 
-      {/* Events list or empty state */}
-      {events.length > 0 ? (
-        <EventList events={events} trendingIds={trendingIds} />
-      ) : (
-        <EmptyState variant={hasFilters ? "search" : "today"} />
-      )}
+      {/* One-time / special events section */}
+      <div className="fade-up">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-neon-cyan" strokeWidth={2.5} />
+          <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
+            Eventos únicos de hoy
+          </h2>
+          <span className="text-[10px] text-neon-cyan/70">
+            ({events.length})
+          </span>
+        </div>
+
+        {events.length > 0 ? (
+          <EventList events={events} trendingIds={trendingIds} />
+        ) : (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[12px] text-muted-foreground">
+            No hay eventos únicos para hoy con los filtros actuales.
+          </div>
+        )}
+      </div>
 
       {/* Recurring / always-available section */}
-      {recurringEvents.length > 0 && !hasFilters && (
+      {recurringEvents.length > 0 && (
         <div className="mt-8 mb-6 fade-up">
-          <div className="flex items-center gap-2 mb-3">
-            <RotateCw className="h-4 w-4 text-text-muted" strokeWidth={2.5} />
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-text-muted">
-              Siempre disponible
+          <div className="flex items-center gap-2 mb-2">
+            <RotateCw className="h-4 w-4 text-amber-300" strokeWidth={2.5} />
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-amber-300">
+              Eventos recurrentes
             </h2>
-            <span className="text-[10px] text-text-muted/60">
+            <span className="text-[10px] text-amber-200/70">
               ({recurringEvents.length})
             </span>
           </div>
-          <p className="text-[11px] text-text-muted mb-3">
-            Actividades recurrentes y espacios con horarios regulares
+          <p className="text-[11px] text-amber-100/70 mb-3">
+            Se repiten semanalmente o están disponibles durante gran parte del año
           </p>
-          <EventList events={recurringEvents} />
+          <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.04] p-3 sm:p-4">
+            <EventList events={recurringEvents} />
+          </div>
+        </div>
+      )}
+
+      {/* Global empty state only when there are truly no events at all */}
+      {events.length === 0 && recurringEvents.length === 0 && (
+        <div className="mt-6">
+          <EmptyState variant={hasFilters ? "search" : "today"} />
         </div>
       )}
     </>

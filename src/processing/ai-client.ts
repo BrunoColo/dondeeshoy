@@ -5,7 +5,6 @@ let client: OpenAI | null = null;
 
 const ALLOWED_EVENT_TYPES: EventType[] = [
   "fiesta",
-  "baile",
   "festival",
   "concierto",
   "recital",
@@ -47,6 +46,9 @@ export async function classifyEventWithAi(input: {
   description: string | null;
   venueName: string;
   fallbackType: EventType;
+  source?: string;
+  category?: string | null;
+  genre?: string | null;
 }): Promise<AiClassificationResult | null> {
   try {
     const client = getOpenAIClient();
@@ -62,7 +64,7 @@ export async function classifyEventWithAi(input: {
         {
           role: "system",
           content:
-            "Sos un clasificador de eventos sociales en Uruguay. Respondé JSON puro con campos: eventType, musicGenre, confidence. eventType debe ser uno de esta lista exacta: fiesta, baile, festival, concierto, recital, cultural, deportivo, gastronomico, familiar, feria, taller, club, bar, teatro, otro. 'baile' es para eventos de boliche/nightclub/dance que arrancan tarde en la noche (23h+). musicGenre puede ser null. confidence debe ser un número entre 0 y 1.",
+            "Sos un clasificador de eventos sociales en Uruguay. Respondé JSON puro con campos: eventType, musicGenre, confidence. eventType debe ser uno de esta lista exacta: fiesta, festival, concierto, recital, cultural, deportivo, gastronomico, familiar, feria, taller, club, bar, teatro, otro. 'fiesta' incluye fiestas, boliches, eventos nocturnos (desde las 23:00), dance, DJ, openbar, cloud sessions, reggaeton/reggeaton/reguetón. 'deportivo' incluye boxeo, veladas de box, MMA, torneos y partidos. Usá 'otro' solo cuando no encaje claramente en ningún tipo. musicGenre puede ser null. confidence debe ser un número entre 0 y 1.",
         },
         {
           role: "user",
@@ -70,6 +72,9 @@ export async function classifyEventWithAi(input: {
             `Nombre: ${input.name}`,
             `Descripción: ${input.description ?? ""}`,
             `Venue: ${input.venueName}`,
+            `Source: ${input.source ?? ""}`,
+            `Category: ${input.category ?? ""}`,
+            `Genre: ${input.genre ?? ""}`,
             `Si no estás seguro, usá fallbackType=${input.fallbackType}`,
           ].join("\n"),
         },
