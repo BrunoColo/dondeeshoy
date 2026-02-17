@@ -1,7 +1,14 @@
 export type EventType =
   | "fiesta"
   | "festival"
+  | "concierto"
   | "recital"
+  | "cultural"
+  | "deportivo"
+  | "gastronomico"
+  | "familiar"
+  | "feria"
+  | "taller"
   | "club"
   | "bar"
   | "teatro"
@@ -12,7 +19,14 @@ export type EventStatus = "active" | "cancelled" | "past";
 export const EVENT_TYPES: EventType[] = [
   "fiesta",
   "festival",
+  "concierto",
   "recital",
+  "cultural",
+  "deportivo",
+  "gastronomico",
+  "familiar",
+  "feria",
+  "taller",
   "club",
   "bar",
   "teatro",
@@ -22,11 +36,18 @@ export const EVENT_TYPES: EventType[] = [
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   fiesta: "Fiesta",
   festival: "Festival",
+  concierto: "Concierto",
   recital: "Recital",
+  cultural: "Cultural",
+  deportivo: "Deportivo",
+  gastronomico: "Gastronómico",
+  familiar: "Familiar",
+  feria: "Feria",
+  taller: "Taller",
   club: "Club",
   bar: "Bar",
   teatro: "Teatro",
-  otro: "Evento",
+  otro: "Otros",
 };
 
 export interface EventCardData {

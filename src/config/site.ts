@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: "¿Dónde es Hoy?",
-  description: "Entrás y en 5 segundos sabés a dónde ir esta noche en Montevideo.",
+  description: "Todo lo que pasa en Uruguay, en un solo lugar.",
   locale: "es-UY",
-  city: "Montevideo",
+  city: "Uruguay",
 } as const;

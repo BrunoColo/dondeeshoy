@@ -1,15 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { EventType } from "@/types/events";
-
-const TYPE_LABELS: Record<EventType, string> = {
-  fiesta: "Fiesta",
-  festival: "Festival",
-  recital: "Recital",
-  club: "Club",
-  bar: "Bar",
-  teatro: "Teatro",
-  otro: "Evento",
-};
+import { EVENT_TYPE_LABELS } from "@/types/events";
 
 interface EventTypeBadgeProps {
   type: EventType;
@@ -28,7 +19,7 @@ export function EventTypeBadge({ type, className, size = "sm" }: EventTypeBadgeP
         className,
       )}
     >
-      {TYPE_LABELS[type]}
+      {EVENT_TYPE_LABELS[type]}
     </span>
   );
 }

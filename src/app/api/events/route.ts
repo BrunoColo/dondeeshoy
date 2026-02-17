@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchEvents, getFilterOptions } from "@/lib/queries";
+import { EVENT_TYPES } from "@/types/events";
 import type { EventType, EventFilters } from "@/types/events";
 
-const VALID_TYPES = new Set<EventType>(["fiesta", "festival", "recital", "club", "bar", "teatro", "otro"]);
+const VALID_TYPES = new Set<EventType>(EVENT_TYPES);
 
 /**
  * GET /api/events?q=...&type=...&genre=...&free=true

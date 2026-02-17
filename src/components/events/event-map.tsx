@@ -13,7 +13,14 @@ import "mapbox-gl/dist/mapbox-gl.css";
 const TYPE_COLORS: Record<string, string> = {
   fiesta: "#A855F7",   // violet
   festival: "#EC4899", // pink
+  concierto: "#0EA5E9", // sky
   recital: "#06B6D4",  // cyan
+  cultural: "#6366F1", // indigo
+  deportivo: "#22C55E", // green
+  gastronomico: "#F97316", // orange
+  familiar: "#84CC16", // lime
+  feria: "#F43F5E", // rose
+  taller: "#14B8A6", // teal
   club: "#6366F1",     // indigo
   bar: "#F59E0B",      // amber
   teatro: "#10B981",   // emerald

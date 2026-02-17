@@ -53,6 +53,21 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
 
   return (
     <>
+      {/* Hero tagline */}
+      <section className="pt-4 pb-2 fade-up">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neon-cyan/80">
+          Descubrí Uruguay
+        </p>
+        <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
+          <span className="bg-gradient-to-r from-neon-violet via-neon-magenta to-neon-cyan bg-clip-text text-transparent">
+            Donde comienza tu próxima salida
+          </span>
+        </h1>
+        <p className="mt-2 max-w-2xl text-[13px] sm:text-sm text-muted-foreground">
+          Todo lo que pasa en Uruguay, en un solo lugar: conciertos, ferias, teatro, deporte y más.
+        </p>
+      </section>
+
       {/* Date header */}
       <div className="mb-4 pt-4 fade-up">
         <div className="flex items-center gap-3">

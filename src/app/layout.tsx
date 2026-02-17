@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: `%s — ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: ["montevideo", "eventos", "nightlife", "fiestas", "hoy", "noche", "uruguay"],
+  keywords: ["eventos", "uruguay", "salidas", "conciertos", "ferias", "teatro", "actividades", "hoy"],
   authors: [{ name: "DondeEsHoy" }],
   openGraph: {
     title: siteConfig.name,
@@ -45,7 +45,6 @@ export const viewport: Viewport = {
   themeColor: "#06060C",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
 };
 
