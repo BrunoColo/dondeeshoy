@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
+import { NeonParallax } from "@/components/layout/neon-parallax";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -58,7 +59,8 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${dmSans.variable} ${dmMono.variable} antialiased`}
       >
-        {children}
+        <NeonParallax />
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );

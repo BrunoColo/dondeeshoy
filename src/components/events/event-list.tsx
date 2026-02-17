@@ -3,10 +3,11 @@ import type { Event } from "@/lib/db/schema/events";
 
 interface EventListProps {
   events: Event[];
+  trendingIds?: Set<string>;
   className?: string;
 }
 
-export function EventList({ events, className }: EventListProps) {
+export function EventList({ events, trendingIds, className }: EventListProps) {
   return (
     <div className={className}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -27,6 +28,7 @@ export function EventList({ events, className }: EventListProps) {
             isFree={event.isFree}
             currency={event.currency}
             musicGenre={event.musicGenre}
+            isTrending={trendingIds?.has(event.id)}
           />
         ))}
       </div>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/queries";
 import { EventDetail } from "@/components/events/event-detail";
+import { ViewTracker } from "@/components/events/view-tracker";
 import type { Metadata } from "next";
 
 interface EventPageProps {
@@ -46,7 +47,53 @@ async function EventDetailContent({ slug }: { slug: string }) {
     notFound();
   }
 
-  return <EventDetail event={event} />;
+  const eventStatus =
+    event.status === "cancelled"
+      ? "https://schema.org/EventCancelled"
+      : event.status === "past"
+        ? "https://schema.org/EventCompleted"
+        : "https://schema.org/EventScheduled";
+
+  const startDate = event.startTime
+    ? `${event.date}T${event.startTime}`
+    : `${event.date}T20:00:00`;
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.name,
+    startDate,
+    eventStatus,
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: event.venueName,
+      ...(event.venueAddress && { address: event.venueAddress }),
+    },
+    ...(event.imageUrl && { image: [event.imageUrl] }),
+    ...(event.ticketUrl && {
+      offers: {
+        "@type": "Offer",
+        url: event.ticketUrl,
+        priceCurrency: event.currency ?? "UYU",
+        ...(event.priceMin != null && { price: event.priceMin }),
+        availability: "https://schema.org/InStock",
+      },
+    }),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <ViewTracker eventId={event.id} />
+      <EventDetail event={event} />
+    </>
+  );
 }
 
 function EventDetailLoading() {

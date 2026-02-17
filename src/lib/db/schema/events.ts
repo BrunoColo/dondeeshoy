@@ -67,6 +67,7 @@ export const events = pgTable(
     isFree: boolean("is_free").default(false).notNull(),
     ageRestriction: integer("age_restriction"),
     confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }).default("0.00").notNull(),
+    viewCount: integer("view_count").default(0).notNull(),
     status: eventStatusEnum("status").default("active").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -74,6 +75,7 @@ export const events = pgTable(
   (table) => [
     index("events_date_city_status_idx").on(table.date, table.city, table.status),
     index("events_slug_idx").on(table.slug),
+    index("events_event_type_idx").on(table.eventType),
   ],
 );
 

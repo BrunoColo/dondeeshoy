@@ -116,13 +116,14 @@
 |---|-------|--------|-------|-------|
 | 4.1 | SEO: metadata dinámicas por página | ✅ | 16/2/2026 | Metadata en layout, evento detail y próximos |
 | 4.2 | OG Image para shares | ⬜ | | |
-| 4.3 | Structured data (JSON-LD) para eventos | ⬜ | | |
-| 4.4 | ISR: revalidate en home y listados | ⬜ | | |
-| 4.5 | Error handling completo | ⬜ | | |
-| 4.6 | PWA: manifest.json + Add to Home Screen | ⬜ | | |
+| 4.3 | Structured data (JSON-LD) para eventos | ✅ | 16/2/2026 | JSON-LD `Event` agregado en `/evento/[slug]` |
+| 4.4 | ISR: revalidate en home y listados | ✅ | 16/2/2026 | `revalidate = 3600` en Home y Próximos; edge cache por Vercel |
+| 4.5 | Error handling completo | ✅ | 16/2/2026 | `src/app/error.tsx` con fallback y botón reintentar |
+| 4.6 | PWA: manifest.json + Add to Home Screen | ✅ | 16/2/2026 | `src/app/manifest.ts` con name/theme/start_url/display |
 | 4.7 | Testing en dispositivos móviles reales | ⬜ | | Android + iOS Safari |
 | 4.8 | Lighthouse audit (target: perf>80, a11y>90) | ⬜ | | |
-| 4.9 | **🚀 LAUNCH MVP** | ⬜ | | |
+| 4.9 | Seguridad API (hardening cron + headers) | ✅ | 16/2/2026 | Auth cron robusta (Bearer/x-cron-secret), locks Redis, no-store, batch bounds, headers HTTP |
+| 4.10 | **🚀 LAUNCH MVP** | ⬜ | | |
 
 ---
 

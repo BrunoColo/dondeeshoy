@@ -762,12 +762,14 @@ interface BaseScraper {
 
 ### Fase 4 — Polish + Launch (2-3 días) 🟡 EN PROGRESO
 - [x] SEO: metadata dinámicas por página
-- [ ] SEO: OG image, structured data (JSON-LD)
-- [ ] Performance: ISR con revalidate, edge caching
-- [ ] Error handling completo (errores de red, etc.)
-- [ ] PWA básico (manifest.json para "Add to Home Screen")
+- [ ] SEO: OG image
+- [x] Structured data (JSON-LD) en `/evento/[slug]`
+- [x] Performance: ISR con revalidate en home/listados + edge caching por Vercel
+- [x] Error handling base global (`src/app/error.tsx`)
+- [x] PWA básico (manifest.json para "Add to Home Screen")
+- [x] Hardening de seguridad en API cron (auth robusta, no-store, lock anti-concurrencia, batch acotado)
 - [ ] Testing manual en dispositivos reales (mobile)
-- [ ] Deploy a Vercel
+- [x] Deploy a Vercel
 - [ ] **🚀 LAUNCH MVP**
 
 ### Total estimado: 15-21 días de desarrollo

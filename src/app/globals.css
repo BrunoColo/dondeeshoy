@@ -133,6 +133,34 @@ body::after {
   100% { transform: translate(-1%, 2%) scale(0.98); }
 }
 
+/* ─── Dynamic web neon background ─── */
+
+.neon-web-bg {
+  position: fixed;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  filter: blur(78px) saturate(125%);
+  will-change: transform;
+  transform-origin: center;
+  background:
+    radial-gradient(circle at 18% 28%, rgba(168, 85, 247, 0.85) 0%, transparent 45%),
+    radial-gradient(circle at 78% 22%, rgba(34, 211, 238, 0.75) 0%, transparent 42%),
+    radial-gradient(circle at 62% 76%, rgba(236, 72, 153, 0.7) 0%, transparent 44%);
+}
+
+.neon-web-bg--alt {
+  opacity: 0.17;
+  filter: blur(96px) saturate(120%);
+  mix-blend-mode: screen;
+  transform-origin: center;
+  background:
+    radial-gradient(circle at 22% 68%, rgba(59, 130, 246, 0.62) 0%, transparent 42%),
+    radial-gradient(circle at 84% 58%, rgba(16, 185, 129, 0.48) 0%, transparent 40%),
+    radial-gradient(circle at 52% 12%, rgba(168, 85, 247, 0.55) 0%, transparent 46%);
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 4px;
@@ -451,4 +479,42 @@ body::after {
   outline: 2px solid var(--neon-violet);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  .neon-web-bg,
+  .neon-web-bg--alt,
+  .card-animate,
+  .fade-up,
+  .live-dot {
+    animation: none !important;
+  }
+}
+
+/* ─── Mapbox Popup Overrides ─── */
+.event-map-popup .mapboxgl-popup-content {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.event-map-popup .mapboxgl-popup-tip {
+  border-top-color: var(--bg-elevated);
+}
+
+.event-map-popup .mapboxgl-popup-close-button {
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 4px 8px;
+  right: 2px;
+  top: 2px;
+}
+
+.event-map-popup .mapboxgl-popup-close-button:hover {
+  color: white;
+  background: transparent;
 }
