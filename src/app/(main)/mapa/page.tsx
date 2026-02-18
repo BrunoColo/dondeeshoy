@@ -54,7 +54,6 @@ async function MapContent() {
 
   const todayEvents = toMapEvents(todayRaw);
   const tomorrowEvents = toMapEvents(tomorrowRaw);
-  // getEventsBetweenDates returns same shape, filter coords
   const weekendEvents = weekendRaw
     .filter((e) => e.latitude && e.longitude)
     .map((e) => ({
@@ -93,7 +92,14 @@ async function MapContent() {
   }
 
   return (
-    <div className="h-[calc(100dvh-8rem)]">
+    /*
+     * Full-bleed map container: escape the layout's px-4 sm:px-6 padding
+     * and the DesktopSidebar column so the map+sidebar fills the full viewport width.
+     * -mx-4 sm:-mx-6 cancels the parent padding.
+     * lg:-mr-0 lg:-ml-0 is handled by the lg:flex layout below.
+     * Height = 100dvh minus the 60px header.
+     */
+    <div className="-mx-4 sm:-mx-6 lg:-mx-6 h-[calc(100dvh-60px)]">
       <EventMapWrapper
         todayEvents={todayEvents}
         tomorrowEvents={tomorrowEvents}

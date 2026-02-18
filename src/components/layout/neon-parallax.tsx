@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
   motion,
   useReducedMotion,
@@ -9,7 +10,23 @@ import {
   useTransform,
 } from "motion/react";
 
+/**
+ * Wrapper: skips rendering on /mapa where the layers are hidden behind the map.
+ */
 export function NeonParallax() {
+  const pathname = usePathname();
+
+  if (pathname === "/mapa") {
+    return null;
+  }
+
+  return <NeonParallaxLayers />;
+}
+
+/**
+ * Inner component — all hooks are called unconditionally here.
+ */
+function NeonParallaxLayers() {
   const shouldReduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
 

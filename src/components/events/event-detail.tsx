@@ -10,10 +10,10 @@ import {
   Ticket,
   Calendar,
   ArrowLeft,
-  ExternalLink,
   Users,
   Music,
 } from "lucide-react";
+import { TicketButton } from "@/components/events/ticket-button";
 import type { Event } from "@/lib/db/schema/events";
 
 interface EventDetailProps {
@@ -223,16 +223,7 @@ export function EventDetail({ event }: EventDetailProps) {
           style={{ background: "linear-gradient(to top, rgba(6,6,12,0.95) 60%, transparent)" }}
         >
           <div className="mx-auto max-w-2xl">
-            <a
-              href={event.ticketUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-neon flex w-full items-center justify-center gap-2 text-center"
-            >
-              <Ticket className="h-4.5 w-4.5" strokeWidth={2} />
-              <span>Comprar entradas</span>
-              <ExternalLink className="h-3.5 w-3.5 opacity-60" strokeWidth={2} />
-            </a>
+            <TicketButton ticketUrl={event.ticketUrl} />
           </div>
         </div>
       )}

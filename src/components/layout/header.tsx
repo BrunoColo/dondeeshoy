@@ -16,15 +16,14 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const desktopInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -38,11 +37,19 @@ export function Header() {
     });
   }, [searchParams]);
 
-  // Focus input when opened
+  // Focus the right input when search opens
   useEffect(() => {
-    if (searchOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (!searchOpen) return;
+    // Small delay to let the DOM render
+    const t = setTimeout(() => {
+      // On mobile (< 640px) focus mobile input, else desktop
+      if (window.innerWidth < 640) {
+        mobileInputRef.current?.focus();
+      } else {
+        desktopInputRef.current?.focus();
+      }
+    }, 50);
+    return () => clearTimeout(t);
   }, [searchOpen]);
 
   const submitSearch = useCallback(
@@ -61,12 +68,8 @@ export function Header() {
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      submitSearch(searchValue);
-    }
-    if (e.key === "Escape") {
-      closeSearch();
-    }
+    if (e.key === "Enter") submitSearch(searchValue);
+    if (e.key === "Escape") closeSearch();
   };
 
   const closeSearch = () => {
@@ -87,10 +90,75 @@ export function Header() {
         scrolled ? "py-2" : "py-3",
       )}
     >
-      <div className="mx-auto flex max-w-5xl items-center px-5 gap-4">
+      <div className="mx-auto flex max-w-5xl items-center px-4 sm:px-5 gap-3">
 
-        {/* Logo — always visible, never hidden */}
-        <div className="flex items-center shrink-0">
+        {/* ══════════════════════════════════════════
+            MOBILE LAYOUT (< 640px)
+            ══════════════════════════════════════════ */}
+
+        {/* Mobile: search overlay — full width, replaces everything */}
+        {searchOpen && (
+          <div className="flex sm:hidden items-center gap-2 w-full">
+            <div className="relative flex-1 min-w-0">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
+                strokeWidth={2}
+              />
+              <input
+                ref={mobileInputRef}
+                type="text"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Buscar eventos…"
+                className="w-full rounded-full bg-white/[0.08] border border-white/[0.14] pl-10 pr-4 py-2.5 text-[14px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-neon-violet/45 focus:shadow-[0_0_14px_rgba(168,85,247,0.2)] transition-all duration-200"
+              />
+            </div>
+            {searchValue.trim().length > 0 && (
+              <button
+                onClick={() => submitSearch(searchValue)}
+                className="shrink-0 inline-flex h-9 items-center justify-center rounded-full bg-neon-violet/20 border border-neon-violet/30 px-3.5 text-[12px] font-semibold uppercase tracking-wide text-neon-violet hover:bg-neon-violet/30 transition-colors"
+              >
+                Ir
+              </button>
+            )}
+            <button
+              onClick={closeSearch}
+              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] border border-white/[0.1] hover:border-white/[0.2] transition-colors"
+              aria-label="Cerrar buscador"
+            >
+              <X className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+            </button>
+          </div>
+        )}
+
+        {/* Mobile: logo + search button (when search is closed) */}
+        {!searchOpen && (
+          <div className="flex sm:hidden items-center w-full">
+            <Link href="/" className="flex items-center gap-[3px]">
+              <span className="font-display text-[17px] font-extrabold tracking-tight text-[#CBD5E1]">
+                ¿Dónde es
+              </span>
+              <span className="font-display text-[17px] font-extrabold tracking-tight bg-gradient-to-r from-neon-violet via-neon-magenta to-neon-cyan bg-clip-text text-transparent">
+                hoy?
+              </span>
+            </Link>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.05] border border-white/[0.08] hover:border-neon-violet/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.1)] active:scale-95 transition-all duration-200"
+              aria-label="Buscar"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+            </button>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            DESKTOP LAYOUT (≥ 640px)
+            ══════════════════════════════════════════ */}
+
+        {/* Desktop: Logo — always visible */}
+        <div className="hidden sm:flex items-center shrink-0">
           <Link href="/" className="flex items-center gap-[3px]">
             <span className="font-display text-[17px] font-extrabold tracking-tight text-[#CBD5E1]">
               ¿Dónde es
@@ -101,7 +169,7 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Desktop nav links — center, always visible on sm+ */}
+        {/* Desktop: Nav links — centered */}
         <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
           {NAV_ITEMS.map((item) => {
             const isActive =
@@ -121,7 +189,10 @@ export function Header() {
                 )}
               >
                 <Icon
-                  className={cn("h-3.5 w-3.5 shrink-0", isActive && "drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]")}
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    isActive && "drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]",
+                  )}
                   strokeWidth={isActive ? 2.2 : 1.8}
                 />
                 {item.label}
@@ -130,26 +201,28 @@ export function Header() {
           })}
         </nav>
 
-        {/* Right side */}
-        <div className="ml-auto sm:ml-0 flex items-center gap-2 shrink-0">
+        {/* Desktop: Search — right side */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           {searchOpen ? (
-            <div className="flex items-center gap-2">
-              {/* On mobile the input is narrower so the logo stays visible */}
-              <div className="relative flex-1 min-w-0 w-[130px] sm:w-[280px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+            <>
+              <div className="relative w-[280px]">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
+                  strokeWidth={2}
+                />
                 <input
-                  ref={inputRef}
+                  ref={desktopInputRef}
                   type="text"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Buscar…"
+                  placeholder="Buscar eventos…"
                   className="w-full rounded-full bg-white/[0.08] border border-white/[0.14] pl-9 pr-10 py-2 text-[13px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-neon-violet/45 focus:shadow-[0_0_14px_rgba(168,85,247,0.2)] transition-all duration-200"
                 />
                 {searchValue.trim().length > 0 && (
                   <button
                     onClick={() => submitSearch(searchValue)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-7 items-center justify-center rounded-full bg-neon-violet/20 border border-neon-violet/30 px-2 text-[10px] font-semibold uppercase tracking-wide text-neon-violet hover:bg-neon-violet/30"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-7 items-center justify-center rounded-full bg-neon-violet/20 border border-neon-violet/30 px-2 text-[10px] font-semibold uppercase tracking-wide text-neon-violet hover:bg-neon-violet/30 transition-colors"
                   >
                     Ir
                   </button>
@@ -162,7 +235,7 @@ export function Header() {
               >
                 <X className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
               </button>
-            </div>
+            </>
           ) : (
             <button
               onClick={() => setSearchOpen(true)}
@@ -173,6 +246,7 @@ export function Header() {
             </button>
           )}
         </div>
+
       </div>
     </header>
   );

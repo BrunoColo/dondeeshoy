@@ -566,6 +566,40 @@ body::after {
   }
 }
 
+/* ─── Mobile performance: simplify heavy visual effects ─── */
+@media (max-width: 639px) {
+  /* Reduce noise overlay opacity — SVG filter is expensive on low-end GPUs */
+  body::before {
+    opacity: 0.015;
+  }
+
+  /* Reduce ambient gradient blur — blur(90px) is costly on mobile */
+  body::after {
+    filter: blur(50px);
+    opacity: 0.12;
+    animation: none;
+  }
+
+  /* Reduce neon layer blur and opacity */
+  .neon-web-bg {
+    filter: blur(48px) saturate(110%);
+    opacity: 0.14;
+  }
+
+  .neon-web-bg--alt {
+    filter: blur(60px) saturate(105%);
+    opacity: 0.10;
+  }
+}
+
+/* Disable all heavy animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    animation: none !important;
+    filter: blur(50px) !important;
+  }
+}
+
 /* ─── Mapbox Popup Overrides ─── */
 .event-map-popup .mapboxgl-popup-content {
   background: var(--bg-elevated);

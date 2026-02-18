@@ -16,7 +16,7 @@ interface HomePageProps {
 
 export default function HomePage({ searchParams }: HomePageProps) {
   return (
-    <div id="top" className="mx-auto max-w-5xl px-4 sm:px-6">
+    <div id="top">
       <Suspense fallback={<HomeLoading />}>
         <HomeContent searchParams={searchParams} />
       </Suspense>

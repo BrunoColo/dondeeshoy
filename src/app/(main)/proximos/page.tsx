@@ -22,7 +22,7 @@ interface ProximosPageProps {
 
 export default function ProximosPage({ searchParams }: ProximosPageProps) {
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6">
+    <div>
       <Suspense fallback={<ProximosLoading />}>
         <ProximosContent searchParams={searchParams} />
       </Suspense>

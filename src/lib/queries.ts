@@ -241,9 +241,10 @@ export async function getActiveDepartments(date?: string) {
 }
 
 /**
- * Search events across all active events with text query + filters
+ * Search events across all active events with text query + filters.
+ * Supports pagination via limit + offset.
  */
-export async function searchEvents(filters: EventFilters, limit: number = 50) {
+export async function searchEvents(filters: EventFilters, limit: number = 50, offset: number = 0) {
   const filterConditions = buildFilterConditions(filters);
 
   return db
@@ -251,7 +252,8 @@ export async function searchEvents(filters: EventFilters, limit: number = 50) {
     .from(events)
     .where(and(activeStatus, ...filterConditions))
     .orderBy(desc(events.viewCount), asc(events.date), asc(events.startTime))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
 }
 
 /**

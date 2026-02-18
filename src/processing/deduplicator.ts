@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
+import { detectRecurrence } from "./classifier";
 
 import type { NormalizedEventInput } from "./normalizer";
 
@@ -13,6 +14,15 @@ function isPlaceholderVenue(venue: string): boolean {
 }
 
 export async function findDuplicateEventId(normalized: NormalizedEventInput): Promise<string | null> {
+  const isRecurring = detectRecurrence(normalized);
+
+  if (isRecurring) {
+    // Recurring events are not tied to a specific date — match by name + city only
+    // so that re-scrapes of the same recurring event merge into the existing row
+    // instead of creating a new duplicate for each scrape cycle.
+    return findRecurringDuplicate(normalized);
+  }
+
   const sameDayEvents = await db
     .select({
       id: events.id,
@@ -26,6 +36,32 @@ export async function findDuplicateEventId(normalized: NormalizedEventInput): Pr
     return null;
   }
 
+  return scoreBestMatch(normalized, sameDayEvents);
+}
+
+async function findRecurringDuplicate(normalized: NormalizedEventInput): Promise<string | null> {
+  // Search across all dates for the same city — recurring events can be stored
+  // under any date (the date of their first scrape) so we can't filter by date.
+  const sameCityEvents = await db
+    .select({
+      id: events.id,
+      name: events.name,
+      venueName: events.venueName,
+    })
+    .from(events)
+    .where(and(eq(events.city, normalized.city), eq(events.isRecurring, true)));
+
+  if (sameCityEvents.length === 0) {
+    return null;
+  }
+
+  return scoreBestMatch(normalized, sameCityEvents);
+}
+
+function scoreBestMatch(
+  normalized: NormalizedEventInput,
+  candidates: Array<{ id: string; name: string; venueName: string }>,
+): string | null {
   const normalizedName = normalize(normalized.name);
   const normalizedVenue = normalize(normalized.venueName);
   const incomingIsPlaceholder = isPlaceholderVenue(normalized.venueName);
@@ -33,7 +69,7 @@ export async function findDuplicateEventId(normalized: NormalizedEventInput): Pr
   let bestId: string | null = null;
   let bestScore = 0;
 
-  for (const candidate of sameDayEvents) {
+  for (const candidate of candidates) {
     const nameScore = similarity(normalizedName, normalize(candidate.name));
 
     // If either venue is a placeholder, venue comparison is irrelevant —

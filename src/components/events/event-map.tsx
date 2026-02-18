@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { MapPin, Clock, Ticket, ExternalLink, RotateCw } from "lucide-react";
@@ -29,16 +29,22 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 /** Create a colored SVG marker icon for Leaflet */
-function createMarkerIcon(color: string): L.DivIcon {
+function createMarkerIcon(color: string, isSelected = false): L.DivIcon {
+  const size = isSelected ? 36 : 28;
+  const height = isSelected ? 46 : 36;
+  const ring = isSelected
+    ? `<circle cx="${size / 2}" cy="${size / 2 - 1}" r="${size / 2 + 3}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity="0.5"/>`
+    : "";
   return L.divIcon({
     className: "",
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -36],
+    iconSize: [size, height],
+    iconAnchor: [size / 2, height],
+    popupAnchor: [0, -height],
     html: `
-      <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="${color}" fill-opacity="0.85" stroke="${color}" stroke-width="1.5"/>
-        <circle cx="14" cy="13" r="5.5" fill="white" fill-opacity="0.9"/>
+      <svg width="${size}" height="${height}" viewBox="0 0 ${size} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        ${ring}
+        <path d="M${size / 2} 0C${size * 0.232} 0 0 ${size * 0.232} 0 ${size / 2}c0 ${size * 0.375} ${size / 2} ${size * 0.786} ${size / 2} ${size * 0.786}s${size / 2}-${size * 0.411} ${size / 2}-${size * 0.786}C${size} ${size * 0.232} ${size * 0.768} 0 ${size / 2} 0z" fill="${color}" fill-opacity="${isSelected ? 1 : 0.85}" stroke="${color}" stroke-width="1.5"/>
+        <circle cx="${size / 2}" cy="${size / 2 - 1}" r="${size * 0.196}" fill="white" fill-opacity="0.9"/>
       </svg>
     `,
   });
@@ -65,9 +71,15 @@ interface EventMapProps {
   todayEvents: MapEvent[];
   tomorrowEvents: MapEvent[];
   weekendEvents: MapEvent[];
+  /** Controlled selected event id (from sidebar) */
+  selectedEventId?: string | null;
+  /** Called when user clicks a marker */
+  onEventSelect?: (event: MapEvent | null) => void;
+  /** Called when date filter changes */
+  onDateFilterChange?: (filter: DateFilter, events: MapEvent[]) => void;
 }
 
-type DateFilter = "hoy" | "manana" | "finde";
+export type DateFilter = "hoy" | "manana" | "finde";
 
 const TILE_LAYERS = {
   calles: {
@@ -93,11 +105,32 @@ function TileSwitch({ tileKey }: { tileKey: TileLayerKey }) {
   return <TileLayer key={tileKey} url={tile.url} attribution={tile.attribution} />;
 }
 
-export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMapProps) {
-  const [selected, setSelected] = useState<MapEvent | null>(null);
+/** Flies map to a given position when selectedEventId changes */
+function MapFlyTo({ event }: { event: MapEvent | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (event) {
+      map.flyTo([event.latitude, event.longitude], Math.max(map.getZoom(), 14), {
+        duration: 0.8,
+      });
+    }
+  }, [map, event]);
+  return null;
+}
+
+export function EventMap({
+  todayEvents,
+  tomorrowEvents,
+  weekendEvents,
+  selectedEventId,
+  onEventSelect,
+  onDateFilterChange,
+}: EventMapProps) {
+  const [internalSelected, setInternalSelected] = useState<MapEvent | null>(null);
   const [tileKey, setTileKey] = useState<TileLayerKey>("calles");
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
+  const popupRef = useRef<L.Popup | null>(null);
 
   const activeEvents = useMemo(() => {
     if (dateFilter === "manana") return tomorrowEvents;
@@ -111,23 +144,56 @@ export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMa
     [activeEvents, hideRecurring],
   );
 
-  // Pre-build marker icons (memoized per event type)
+  // Notify parent when date filter or visible events change
+  useEffect(() => {
+    onDateFilterChange?.(dateFilter, visibleEvents);
+  }, [dateFilter, visibleEvents, onDateFilterChange]);
+
+  // Resolve the selected event object (from controlled id or internal state)
+  const selectedEvent = useMemo(() => {
+    if (selectedEventId !== undefined) {
+      return visibleEvents.find((e) => e.id === selectedEventId) ?? null;
+    }
+    return internalSelected;
+  }, [selectedEventId, internalSelected, visibleEvents]);
+
+  // Pre-build marker icons (memoized per event type + selected state)
   const iconCache = useMemo(() => {
     const cache = new Map<string, L.DivIcon>();
     for (const [type, color] of Object.entries(TYPE_COLORS)) {
-      cache.set(type, createMarkerIcon(color));
+      cache.set(type, createMarkerIcon(color, false));
+      cache.set(`${type}:selected`, createMarkerIcon(color, true));
     }
     return cache;
   }, []);
 
   const getIcon = useCallback(
-    (eventType: string) => iconCache.get(eventType) ?? iconCache.get("otro")!,
+    (eventType: string, isSelected: boolean) => {
+      const key = isSelected ? `${eventType}:selected` : eventType;
+      return iconCache.get(key) ?? iconCache.get(isSelected ? "otro:selected" : "otro")!;
+    },
     [iconCache],
   );
 
-  const handleMarkerClick = useCallback((event: MapEvent) => {
-    setSelected(event);
-  }, []);
+  const handleMarkerClick = useCallback(
+    (event: MapEvent) => {
+      if (onEventSelect) {
+        onEventSelect(event);
+      } else {
+        setInternalSelected(event);
+      }
+    },
+    [onEventSelect],
+  );
+
+  const handleDateChange = (f: DateFilter) => {
+    setDateFilter(f);
+    if (onEventSelect) {
+      onEventSelect(null);
+    } else {
+      setInternalSelected(null);
+    }
+  };
 
   return (
     <div className="relative h-full w-full">
@@ -140,61 +206,74 @@ export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMa
         zoomControl={false}
       >
         <TileSwitch tileKey={tileKey} />
+        <MapFlyTo event={selectedEvent} />
 
-        {visibleEvents.map((event) => (
-          <Marker
-            key={event.id}
-            position={[event.latitude, event.longitude]}
-            icon={getIcon(event.eventType)}
-            eventHandlers={{
-              click: () => handleMarkerClick(event),
-            }}
-          />
-        ))}
+        {visibleEvents.map((event) => {
+          const isSelected = selectedEvent?.id === event.id;
+          return (
+            <Marker
+              key={event.id}
+              position={[event.latitude, event.longitude]}
+              icon={getIcon(event.eventType, isSelected)}
+              zIndexOffset={isSelected ? 1000 : 0}
+              eventHandlers={{
+                click: () => handleMarkerClick(event),
+              }}
+            />
+          );
+        })}
 
-        {selected && (
+        {selectedEvent && (
           <Popup
-            position={[selected.latitude, selected.longitude]}
-            offset={[0, -36]}
+            key={selectedEvent.id}
+            position={[selectedEvent.latitude, selectedEvent.longitude]}
+            offset={[0, -(selectedEvent.id === selectedEvent.id ? 46 : 36)]}
             closeButton
             autoPan
+            ref={popupRef}
             eventHandlers={{
-              remove: () => setSelected(null),
+              remove: () => {
+                if (onEventSelect) {
+                  onEventSelect(null);
+                } else {
+                  setInternalSelected(null);
+                }
+              },
             }}
           >
             <div className="space-y-2 p-1 min-w-[220px] max-w-[280px]">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold leading-tight line-clamp-2 text-gray-900">
-                  {selected.name}
+                  {selectedEvent.name}
                 </h3>
-                <EventTypeBadge type={selected.eventType} />
+                <EventTypeBadge type={selectedEvent.eventType} />
               </div>
 
               <div className="space-y-1 text-xs text-gray-600">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{selected.venueName}</span>
+                  <span className="truncate">{selectedEvent.venueName}</span>
                 </div>
-                {selected.startTime && (
+                {selectedEvent.startTime && (
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3 w-3 shrink-0" />
-                    <span>{formatTime(selected.startTime)}</span>
+                    <span>{formatTime(selectedEvent.startTime)}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5">
                   <Ticket className="h-3 w-3 shrink-0" />
                   <span>
-                    {selected.isFree
+                    {selectedEvent.isFree
                       ? "Gratis"
-                      : selected.priceMin
-                        ? formatPrice(selected.priceMin, null, false, selected.currency)
+                      : selectedEvent.priceMin
+                        ? formatPrice(selectedEvent.priceMin, null, false, selectedEvent.currency)
                         : "Consultar"}
                   </span>
                 </div>
               </div>
 
               <Link
-                href={`/evento/${selected.slug}`}
+                href={`/evento/${selectedEvent.slug}`}
                 className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-violet-100 border border-violet-300 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-200 transition-colors"
               >
                 Ver evento
@@ -205,8 +284,8 @@ export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMa
         )}
       </MapContainer>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-[1000] flex flex-wrap gap-2 rounded-xl glass-card px-3 py-2 text-[10px] max-w-[280px]">
+      {/* Legend — hidden on mobile to save space */}
+      <div className="absolute bottom-4 left-4 z-[1000] hidden lg:flex flex-wrap gap-2 rounded-xl glass-card px-3 py-2 text-[10px] max-w-[280px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .map(([type, color]) => (
@@ -215,6 +294,19 @@ export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMa
                 className="h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: color }}
               />
+              <span className="capitalize text-text-muted">{type}</span>
+            </div>
+          ))}
+      </div>
+
+      {/* Mobile legend (compact) */}
+      <div className="absolute bottom-4 left-4 z-[1000] flex lg:hidden flex-wrap gap-1.5 rounded-xl glass-card px-2.5 py-1.5 text-[9px] max-w-[200px]">
+        {Object.entries(TYPE_COLORS)
+          .filter(([key]) => key !== "otro")
+          .slice(0, 8)
+          .map(([type, color]) => (
+            <div key={type} className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
               <span className="capitalize text-text-muted">{type}</span>
             </div>
           ))}
@@ -237,7 +329,7 @@ export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMa
                 <button
                   key={f}
                   type="button"
-                  onClick={() => { setDateFilter(f); setSelected(null); }}
+                  onClick={() => handleDateChange(f)}
                   className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all ${
                     dateFilter === f
                       ? "bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan shadow-sm"
