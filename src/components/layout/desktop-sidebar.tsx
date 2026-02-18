@@ -21,15 +21,17 @@ import {
   Megaphone,
   Sparkles,
   BadgeCheck,
-  Mail,
   BarChart3,
   CalendarCheck,
+  Rocket,
+  ExternalLink,
+  Tag,
 } from "lucide-react";
 
 /**
  * Sidebar fijo full-height en desktop (lg+).
  * Ocupa el margen derecho vacío en pantallas anchas.
- * Contiene: CTA publicar, trending events, categorías, próximos destacados, stats.
+ * Contiene: trending events, categorías, próximos destacados, ads, stats, CTA publicar.
  * Server component — fetches data directly.
  */
 export async function DesktopSidebar() {
@@ -45,62 +47,21 @@ export async function DesktopSidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-[260px] xl:w-[280px] shrink-0">
       {/* Sticky container que ocupa todo el alto visible */}
-      <div className="sticky top-[60px] h-[calc(100vh-60px)] flex flex-col gap-4 overflow-y-auto overflow-x-hidden py-4 pr-1 scrollbar-none">
-
-        {/* ── CTA PUBLICAR EVENTO ── */}
-        <div className="glass-card relative rounded-2xl overflow-hidden border border-neon-violet/30 bg-gradient-to-br from-neon-violet/12 via-neon-magenta/6 to-transparent">
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-violet/8 to-transparent pointer-events-none" />
-          <div className="relative p-4 flex flex-col gap-3">
-            {/* Header row */}
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neon-violet/70">
-                Publicidad
-              </span>
-              <Megaphone className="h-3 w-3 text-neon-violet/50" />
-            </div>
-
-            {/* Main CTA content */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-start gap-2.5">
-                <div className="shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-neon-violet/30 to-neon-magenta/20 flex items-center justify-center border border-neon-violet/20">
-                  <Sparkles className="h-4 w-4 text-neon-violet" />
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <p className="text-[13px] font-bold text-foreground leading-tight">
-                    Publicá tu evento
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70 leading-snug">
-                    Llegá a miles de personas en Uruguay
-                  </p>
-                </div>
-              </div>
-
-              {/* Badge gratis */}
-              <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3 w-3 text-neon-green shrink-0" />
-                <span className="text-[10px] font-semibold text-neon-green">
-                  Gratis para eventos sin costo
-                </span>
-              </div>
-
-              {/* CTA button */}
-              <Link
-                href="/publicar"
-                className="btn-neon flex items-center justify-center gap-1.5 !py-2 !px-3 !text-[11px] !rounded-xl w-full"
-              >
-                <Sparkles className="h-3 w-3" />
-                Publicar evento
-              </Link>
-            </div>
-          </div>
-        </div>
+      <div className="sticky top-[60px] h-[calc(100vh-60px)] flex flex-col gap-3 overflow-y-auto overflow-x-hidden py-4 pr-1 scrollbar-none">
 
         {/* ── TRENDING HOY ── */}
         {trending.length > 0 && (
-          <div className="glass-card rounded-2xl p-4">
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.018) 100%)",
+              border: "1px solid rgba(255,255,255,0.09)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+            }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <Flame
-                className="h-3.5 w-3.5 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.6)]"
+                className="h-3.5 w-3.5 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.7)]"
                 strokeWidth={2.5}
               />
               <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400">
@@ -114,10 +75,10 @@ export async function DesktopSidebar() {
                   <li key={event.id}>
                     <Link
                       href={`/evento/${event.slug}`}
-                      className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.04]"
+                      className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.05]"
                     >
                       {/* Rank number */}
-                      <span className="shrink-0 mt-0.5 text-[10px] font-bold font-mono text-muted-foreground/50 w-3 text-right">
+                      <span className="shrink-0 mt-0.5 text-[10px] font-bold font-mono text-muted-foreground/40 w-3 text-right">
                         {i + 1}
                       </span>
                       <div className="flex flex-col gap-0.5 min-w-0">
@@ -127,12 +88,12 @@ export async function DesktopSidebar() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <EventTypeBadge type={event.eventType} size="sm" />
                           {time && (
-                            <span className="text-[9px] text-muted-foreground/70 font-mono">
+                            <span className="text-[9px] text-muted-foreground/60 font-mono">
                               {time}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground/60">
+                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50">
                           <MapPin className="h-2 w-2 shrink-0" strokeWidth={2} />
                           <span className="truncate">{event.venueName}</span>
                         </div>
@@ -146,7 +107,14 @@ export async function DesktopSidebar() {
         )}
 
         {/* ── CATEGORÍAS POPULARES ── */}
-        <div className="glass-card rounded-2xl p-4">
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.018) 100%)",
+            border: "1px solid rgba(255,255,255,0.09)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-3.5 w-3.5 text-neon-cyan" strokeWidth={2} />
             <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-cyan">
@@ -155,17 +123,18 @@ export async function DesktopSidebar() {
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {[
-              { label: "Música", icon: Music, color: "text-neon-violet", bg: "bg-neon-violet/10 hover:bg-neon-violet/15", href: "/?type=concierto" },
-              { label: "Teatro", icon: Theater, color: "text-neon-green", bg: "bg-neon-green/10 hover:bg-neon-green/15", href: "/?type=teatro" },
-              { label: "Fiestas", icon: PartyPopper, color: "text-neon-magenta", bg: "bg-neon-magenta/10 hover:bg-neon-magenta/15", href: "/?type=fiesta" },
-              { label: "Deporte", icon: Dumbbell, color: "text-neon-amber", bg: "bg-neon-amber/10 hover:bg-neon-amber/15", href: "/?type=deportivo" },
-              { label: "Cultural", icon: Palette, color: "text-neon-blue", bg: "bg-neon-blue/10 hover:bg-neon-blue/15", href: "/?type=cultural" },
-              { label: "Festivales", icon: Star, color: "text-orange-400", bg: "bg-orange-400/10 hover:bg-orange-400/15", href: "/?type=festival" },
-            ].map(({ label, icon: Icon, color, bg, href }) => (
+              { label: "Música", icon: Music, color: "text-neon-violet", bg: "bg-neon-violet/10 hover:bg-neon-violet/18", border: "border-neon-violet/20", href: "/?type=concierto" },
+              { label: "Teatro", icon: Theater, color: "text-neon-green", bg: "bg-neon-green/10 hover:bg-neon-green/18", border: "border-neon-green/20", href: "/?type=teatro" },
+              { label: "Fiestas", icon: PartyPopper, color: "text-neon-magenta", bg: "bg-neon-magenta/10 hover:bg-neon-magenta/18", border: "border-neon-magenta/20", href: "/?type=fiesta" },
+              { label: "Deporte", icon: Dumbbell, color: "text-neon-amber", bg: "bg-neon-amber/10 hover:bg-neon-amber/18", border: "border-neon-amber/20", href: "/?type=deportivo" },
+              { label: "Cultural", icon: Palette, color: "text-neon-blue", bg: "bg-neon-blue/10 hover:bg-neon-blue/18", border: "border-neon-blue/20", href: "/?type=cultural" },
+              { label: "Festivales", icon: Star, color: "text-orange-400", bg: "bg-orange-400/10 hover:bg-orange-400/18", border: "border-orange-400/20", href: "/?type=festival" },
+            ].map(({ label, icon: Icon, color, bg, border, href }) => (
               <Link
                 key={label}
                 href={href}
-                className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 transition-colors ${bg} border border-white/10`}
+                className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 transition-all ${bg} border ${border}`}
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
               >
                 <Icon className={`h-3 w-3 shrink-0 ${color}`} strokeWidth={2} />
                 <span className={`text-[10px] font-semibold ${color}`}>{label}</span>
@@ -176,7 +145,14 @@ export async function DesktopSidebar() {
 
         {/* ── PRÓXIMOS DESTACADOS ── */}
         {highlights.length > 0 && (
-          <div className="glass-card rounded-2xl p-4">
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.018) 100%)",
+              border: "1px solid rgba(255,255,255,0.09)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+            }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <CalendarCheck className="h-3.5 w-3.5 text-neon-magenta" strokeWidth={2} />
               <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-magenta">
@@ -191,7 +167,7 @@ export async function DesktopSidebar() {
                   <Link
                     key={event.id}
                     href={`/evento/${event.slug}`}
-                    className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.04]"
+                    className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.05]"
                   >
                     {/* Date pill */}
                     <div className={`shrink-0 flex flex-col items-center justify-center rounded-lg px-1.5 py-1 min-w-[36px] border ${
@@ -200,7 +176,9 @@ export async function DesktopSidebar() {
                         : isTomorrow
                         ? "bg-neon-cyan/12 border-neon-cyan/25 text-neon-cyan"
                         : "bg-white/[0.04] border-white/10 text-muted-foreground/70"
-                    }`}>
+                    }`}
+                    style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
+                    >
                       <span className="text-[8px] font-bold uppercase leading-none">
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
@@ -223,7 +201,7 @@ export async function DesktopSidebar() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground/60">
+                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50">
                         <MapPin className="h-2 w-2 shrink-0" strokeWidth={2} />
                         <span className="truncate">{event.venueName}</span>
                       </div>
@@ -242,9 +220,171 @@ export async function DesktopSidebar() {
           </div>
         )}
 
+        {/* ── PUBLICITAR TU EVENTO ── */}
+        <div
+          className="relative rounded-2xl overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(168,85,247,0.18) 0%, rgba(236,72,153,0.10) 60%, rgba(0,0,0,0.4) 100%)",
+            border: "1px solid rgba(168,85,247,0.35)",
+            boxShadow: "0 6px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(168,85,247,0.12), inset 0 1px 0 rgba(168,85,247,0.15)",
+          }}
+        >
+          {/* Glow accent top-right */}
+          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-neon-violet/20 blur-2xl pointer-events-none" />
+
+          <div className="relative p-4 flex flex-col gap-3">
+            {/* Header */}
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(236,72,153,0.25) 100%)",
+                  border: "1px solid rgba(168,85,247,0.35)",
+                  boxShadow: "0 2px 12px rgba(168,85,247,0.3)",
+                }}
+              >
+                <Rocket className="h-4 w-4 text-neon-violet" />
+              </div>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <p className="text-[13px] font-bold text-foreground leading-tight">
+                  ¿Tenés un evento?
+                </p>
+                <p className="text-[10px] text-muted-foreground/70 leading-snug">
+                  Publicalo gratis y llegá a miles
+                </p>
+              </div>
+            </div>
+
+            {/* Features */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <BadgeCheck className="h-3 w-3 text-neon-green shrink-0" />
+                <span className="text-[10px] text-neon-green font-semibold">Gratis para eventos sin costo</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <BadgeCheck className="h-3 w-3 text-neon-cyan shrink-0" />
+                <span className="text-[10px] text-muted-foreground/80">Aparecé en el mapa y en búsquedas</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <BadgeCheck className="h-3 w-3 text-neon-cyan shrink-0" />
+                <span className="text-[10px] text-muted-foreground/80">Llegá a toda Uruguay</span>
+              </div>
+            </div>
+
+            {/* CTA button */}
+            <Link
+              href="/publicar"
+              className="btn-neon flex items-center justify-center gap-1.5 !py-2.5 !px-3 !text-[11px] !rounded-xl w-full"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Publicar mi evento
+            </Link>
+          </div>
+        </div>
+
+        {/* ── ANUNCIOS ── */}
+        <div
+          className="rounded-2xl p-3.5"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.2) 100%)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}
+        >
+          {/* Label */}
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+              Publicidad
+            </span>
+            <Megaphone className="h-2.5 w-2.5 text-muted-foreground/30" />
+          </div>
+
+          {/* Ad 1 — Venue */}
+          <a
+            href="#"
+            className="group flex items-start gap-2.5 rounded-xl p-2.5 mb-2 transition-all hover:bg-white/[0.05] cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, rgba(34,211,238,0.08) 0%, rgba(0,0,0,0.3) 100%)",
+              border: "1px solid rgba(34,211,238,0.15)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            {/* Logo placeholder */}
+            <div
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[14px] font-black"
+              style={{
+                background: "linear-gradient(135deg, rgba(34,211,238,0.25) 0%, rgba(34,211,238,0.08) 100%)",
+                border: "1px solid rgba(34,211,238,0.25)",
+                color: "#22D3EE",
+              }}
+            >
+              MF
+            </div>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] font-bold text-foreground leading-tight">Magma Futura</span>
+                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />
+              </div>
+              <span className="text-[9px] text-muted-foreground/60 leading-snug">
+                El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
+              </span>
+              <span className="text-[8px] font-semibold text-neon-cyan/70 mt-0.5">magmafutura.com.uy →</span>
+            </div>
+          </a>
+
+          {/* Ad 2 — Ticketing */}
+          <a
+            href="#"
+            className="group flex items-start gap-2.5 rounded-xl p-2.5 transition-all hover:bg-white/[0.05] cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(0,0,0,0.3) 100%)",
+              border: "1px solid rgba(168,85,247,0.15)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            {/* Logo placeholder */}
+            <div
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[14px] font-black"
+              style={{
+                background: "linear-gradient(135deg, rgba(168,85,247,0.25) 0%, rgba(168,85,247,0.08) 100%)",
+                border: "1px solid rgba(168,85,247,0.25)",
+                color: "#A855F7",
+              }}
+            >
+              RT
+            </div>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] font-bold text-foreground leading-tight">RedTickets</span>
+                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />
+              </div>
+              <span className="text-[9px] text-muted-foreground/60 leading-snug">
+                Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
+              </span>
+              <span className="text-[8px] font-semibold text-neon-violet/70 mt-0.5">redtickets.com.uy →</span>
+            </div>
+          </a>
+
+          {/* CTA para anunciarse */}
+          <Link
+            href="/publicar#contacto"
+            className="mt-2.5 flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[9px] font-semibold text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors border border-white/[0.06] hover:border-white/[0.1]"
+          >
+            <Tag className="h-2.5 w-2.5" />
+            Anunciá tu negocio aquí
+          </Link>
+        </div>
+
         {/* ── ESTADÍSTICAS ── */}
         {(stats.todayCount > 0 || stats.weekCount > 0) && (
-          <div className="glass-card rounded-2xl p-4">
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.018) 100%)",
+              border: "1px solid rgba(255,255,255,0.09)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+            }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="h-3.5 w-3.5 text-neon-cyan" strokeWidth={2} />
               <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-cyan">
@@ -252,89 +392,65 @@ export async function DesktopSidebar() {
               </h2>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.03] border border-white/10 py-2.5 px-1">
-                <span className="text-[16px] font-bold text-foreground font-mono leading-none">
-                  {stats.todayCount}
-                </span>
-                <span className="text-[8px] text-muted-foreground/70 text-center leading-tight">
-                  hoy
-                </span>
-              </div>
-              <div className="flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.03] border border-white/10 py-2.5 px-1">
-                <span className="text-[16px] font-bold text-foreground font-mono leading-none">
-                  {stats.weekCount}
-                </span>
-                <span className="text-[8px] text-muted-foreground/70 text-center leading-tight">
-                  esta semana
-                </span>
-              </div>
-              <div className="flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.03] border border-white/10 py-2.5 px-1">
-                <span className="text-[16px] font-bold text-foreground font-mono leading-none">
-                  {stats.venuesCount}
-                </span>
-                <span className="text-[8px] text-muted-foreground/70 text-center leading-tight">
-                  venues
-                </span>
-              </div>
+              {[
+                { value: stats.todayCount, label: "hoy" },
+                { value: stats.weekCount, label: "esta semana" },
+                { value: stats.venuesCount, label: "venues" },
+              ].map(({ value, label }) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 px-1"
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <span className="text-[16px] font-bold text-foreground font-mono leading-none">
+                    {value}
+                  </span>
+                  <span className="text-[8px] text-muted-foreground/60 text-center leading-tight">
+                    {label}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* ── QUICK LINKS ── */}
-        <div className="glass-card rounded-2xl p-4">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70 mb-3">
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.15) 100%)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+          }}
+        >
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50 mb-3">
             Explorar
           </h2>
           <div className="space-y-0.5">
             <Link
               href="/"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
               <Zap className="h-3 w-3 text-neon-violet shrink-0" strokeWidth={2} />
               Eventos de hoy
             </Link>
             <Link
               href="/proximos"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
               <CalendarDays className="h-3 w-3 text-neon-cyan shrink-0" strokeWidth={2} />
               Próximos eventos
             </Link>
             <Link
               href="/mapa"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
               <MapPin className="h-3 w-3 text-neon-magenta shrink-0" strokeWidth={2} />
               Ver en el mapa
-            </Link>
-          </div>
-        </div>
-
-        {/* ── CTA ORGANIZADORES ── */}
-        <div className="glass-card relative rounded-2xl overflow-hidden border border-neon-cyan/20 bg-gradient-to-br from-neon-cyan/8 via-transparent to-neon-blue/5">
-          <div className="p-4 flex flex-col gap-3">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neon-cyan/60">
-              Patrocinado
-            </span>
-            <div className="flex items-start gap-2.5">
-              <div className="shrink-0 w-7 h-7 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 flex items-center justify-center">
-                <Mail className="h-3.5 w-3.5 text-neon-cyan" />
-              </div>
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <p className="text-[12px] font-bold text-foreground leading-tight">
-                  ¿Organizás eventos?
-                </p>
-                <p className="text-[10px] text-muted-foreground/60 leading-snug">
-                  Publicá y llegá a tu audiencia
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/publicar#contacto"
-              className="flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[10px] font-bold text-neon-cyan border border-neon-cyan/25 hover:border-neon-cyan/45 hover:bg-neon-cyan/8 transition-all"
-            >
-              <Mail className="h-3 w-3" />
-              Contactanos
             </Link>
           </div>
         </div>
@@ -343,11 +459,11 @@ export async function DesktopSidebar() {
         <div className="flex flex-col gap-1 px-2 pb-2">
           <div className="flex items-center gap-1.5">
             <span className="live-dot w-1.5 h-1.5" />
-            <p className="text-[9px] text-muted-foreground/60 leading-relaxed">
+            <p className="text-[9px] text-muted-foreground/50 leading-relaxed">
               Actualizado cada 5 minutos
             </p>
           </div>
-          <p className="text-[9px] text-muted-foreground/40 leading-relaxed">
+          <p className="text-[9px] text-muted-foreground/30 leading-relaxed">
             Eventos en Uruguay · ¿Dónde es Hoy?
           </p>
         </div>

@@ -3,10 +3,21 @@ import "server-only";
 import { Resend } from "resend";
 import type { NewEventSubmission } from "@/lib/db/schema";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const ADMIN_EMAIL = "hola@dondeeshoy.com";
 const FROM_EMAIL = "noreply@dondeeshoy.com";
+
+/** Lazy singleton — avoids crashing at import time when RESEND_API_KEY is unset */
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) {
+      throw new Error("RESEND_API_KEY is not configured — email notifications are disabled.");
+    }
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
 
 /**
  * Sends an email notification to the admin when a new event submission arrives.
@@ -62,7 +73,7 @@ export async function notifyNewSubmission(
 </html>
   `.trim();
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_EMAIL,
     to: ADMIN_EMAIL,
     subject: `[Nueva solicitud] ${submission.eventName} — ${submission.eventDate}`,
