@@ -1,27 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Music, CalendarDays, MapPin } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const NAV_ITEMS = [
-  {
-    label: "Hoy",
-    href: "/",
-    icon: Music,
-  },
-  {
-    label: "Mapa",
-    href: "/mapa",
-    icon: MapPin,
-  },
-  {
-    label: "Próximos",
-    href: "/proximos",
-    icon: CalendarDays,
-  },
-] as const;
+import { NAV_ITEMS } from "@/config/navigation";
 
 export function BottomNav() {
   const pathname = usePathname();

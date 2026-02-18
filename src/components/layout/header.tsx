@@ -1,16 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Search, X, Music, CalendarDays, MapPin } from "lucide-react";
+import { Search, X, Plus } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
-
-const NAV_ITEMS = [
-  { label: "Hoy", href: "/#top", icon: Music },
-  { label: "Próximos", href: "/proximos", icon: CalendarDays },
-  { label: "Mapa", href: "/mapa", icon: MapPin },
-] as const;
+import { HEADER_NAV_ITEMS } from "@/config/navigation";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -90,7 +85,7 @@ export function Header() {
         scrolled ? "py-2" : "py-3",
       )}
     >
-      <div className="mx-auto flex max-w-5xl items-center px-4 sm:px-5 gap-3">
+      <div className="mx-auto flex max-w-[1600px] items-center px-4 sm:px-5 gap-3">
 
         {/* ══════════════════════════════════════════
             MOBILE LAYOUT (< 640px)
@@ -171,7 +166,7 @@ export function Header() {
 
         {/* Desktop: Nav links — centered */}
         <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
-          {NAV_ITEMS.map((item) => {
+          {HEADER_NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/#top"
                 ? pathname === "/"
@@ -200,6 +195,15 @@ export function Header() {
             );
           })}
         </nav>
+
+        {/* Desktop: Publicar button — visible only on lg+ */}
+        <Link
+          href="/publicar"
+          className="hidden lg:flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold border border-white/[0.12] text-muted-foreground hover:text-foreground hover:border-neon-violet/30 hover:bg-neon-violet/8 transition-all duration-200 shrink-0"
+        >
+          <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+          Publicar
+        </Link>
 
         {/* Desktop: Search — right side */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">

@@ -15,6 +15,13 @@
       "when": 1739836800000,
       "tag": "0001_add_ticketfacil_source",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771363227031,
+      "tag": "0002_add_event_submissions",
+      "breakpoints": true
     }
   ]
 }

@@ -270,6 +270,62 @@ export async function getTrendingEvents(date: string, limit: number = 5) {
 }
 
 /**
+ * Get sidebar stats: event count today, this week, and active venues
+ */
+export async function getSidebarStats(today: string, weekEnd: string) {
+  const [todayResult, weekResult, venuesResult] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(events)
+      .where(and(eq(events.date, today), activeStatus)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(events)
+      .where(and(gte(events.date, today), lte(events.date, weekEnd), activeStatus)),
+    db
+      .select({ count: sql<number>`count(distinct ${events.venueName})` })
+      .from(events)
+      .where(and(eq(events.date, today), activeStatus)),
+  ]);
+
+  return {
+    todayCount: Number(todayResult[0]?.count ?? 0),
+    weekCount: Number(weekResult[0]?.count ?? 0),
+    venuesCount: Number(venuesResult[0]?.count ?? 0),
+  };
+}
+
+/**
+ * Get upcoming highlighted events (next 3 days, top by viewCount)
+ */
+export async function getUpcomingHighlights(today: string, limit: number = 3) {
+  const endDate = getOffsetDate(today, 3);
+  return db
+    .select({
+      id: events.id,
+      name: events.name,
+      slug: events.slug,
+      date: events.date,
+      startTime: events.startTime,
+      venueName: events.venueName,
+      eventType: events.eventType,
+      isFree: events.isFree,
+      imageUrl: events.imageUrl,
+    })
+    .from(events)
+    .where(
+      and(
+        gte(events.date, today),
+        lte(events.date, endDate),
+        activeStatus,
+        eq(events.isRecurring, false),
+      ),
+    )
+    .orderBy(desc(events.viewCount), asc(events.date), asc(events.startTime))
+    .limit(limit);
+}
+
+/**
  * Increment view count for an event
  */
 export async function incrementViewCount(eventId: string) {

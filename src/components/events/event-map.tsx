@@ -299,8 +299,8 @@ export function EventMap({
           ))}
       </div>
 
-      {/* Mobile legend (compact) */}
-      <div className="absolute bottom-4 left-4 z-[1000] flex lg:hidden flex-wrap gap-1.5 rounded-xl glass-card px-2.5 py-1.5 text-[9px] max-w-[200px]">
+      {/* Mobile legend (compact) — raised above bottom-nav (≈72px) */}
+      <div className="absolute bottom-[76px] sm:bottom-4 left-4 z-[1000] flex lg:hidden flex-wrap gap-1.5 rounded-xl glass-card px-2.5 py-1.5 text-[9px] max-w-[200px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .slice(0, 8)

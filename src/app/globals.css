@@ -600,29 +600,3 @@ body::after {
   }
 }
 
-/* ─── Mapbox Popup Overrides ─── */
-.event-map-popup .mapboxgl-popup-content {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  color: white;
-}
-
-.event-map-popup .mapboxgl-popup-tip {
-  border-top-color: var(--bg-elevated);
-}
-
-.event-map-popup .mapboxgl-popup-close-button {
-  color: var(--text-muted);
-  font-size: 16px;
-  padding: 4px 8px;
-  right: 2px;
-  top: 2px;
-}
-
-.event-map-popup .mapboxgl-popup-close-button:hover {
-  color: white;
-  background: transparent;
-}

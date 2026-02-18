@@ -473,6 +473,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         >
           <button
             type="button"
+            aria-label="Ver mapa"
             onClick={() => setMobileView("map")}
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all",
@@ -486,6 +487,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
           </button>
           <button
             type="button"
+            aria-label="Ver lista de eventos"
             onClick={() => setMobileView("list")}
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all",
@@ -560,7 +562,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             <div className="flex-1 overflow-y-auto scrollbar-none px-3 py-3 space-y-2">
               {filteredEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-center">
-                  <p className="text-3xl mb-2">📍</p>
+                  <MapPin className="h-8 w-8 text-[#475569] mb-2" strokeWidth={1.5} />
                   <p className="text-[13px] text-[#64748B]">No hay eventos con ubicación</p>
                 </div>
               ) : (
