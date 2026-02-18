@@ -278,6 +278,16 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
   };
 }
 
+// High-confidence types that don't need AI even when there are multiple matches.
+// These types have very specific keywords that rarely produce false positives.
+const HIGH_CONFIDENCE_TYPES = new Set<EventType>([
+  "festival",
+  "deportivo",
+  "teatro",
+  "gastronomico",
+  "familiar",
+]);
+
 /**
  * Keep AI usage intentionally low: only call it for edge/borderline classifications.
  */
@@ -290,8 +300,10 @@ export function shouldUseAiClassification(
     return true;
   }
 
-  // 2) Multiple matched rules can indicate ambiguity
-  if (heuristic.matchedTypes.length > 1) {
+  // 2) Multiple matched rules can indicate ambiguity — but skip if the primary
+  //    match is a high-confidence type (e.g. "festival de rock" matches festival+concierto
+  //    but festival is clearly correct and doesn't need AI confirmation).
+  if (heuristic.matchedTypes.length > 1 && !HIGH_CONFIDENCE_TYPES.has(heuristic.eventType)) {
     return true;
   }
 

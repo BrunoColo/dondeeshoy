@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/queries";
 import { EventDetail } from "@/components/events/event-detail";
 import { ViewTracker } from "@/components/events/view-tracker";
+import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 
 interface EventPageProps {
@@ -17,12 +18,18 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
     return { title: "Evento no encontrado" };
   }
 
+  const canonicalUrl = `${siteConfig.url}/evento/${slug}`;
+
   return {
     title: event.name,
     description: `${event.name} en ${event.venueName} — ${event.date}`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: event.name,
       description: `${event.name} en ${event.venueName}`,
+      url: canonicalUrl,
       ...(event.imageUrl && {
         images: [{ url: event.imageUrl, width: 1200, height: 630 }],
       }),

@@ -28,7 +28,7 @@
   /* Text */
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
-  --text-muted: #475569;
+  --text-muted: #64748B;
 
   /* Fonts */
   --font-display: var(--font-outfit);
@@ -159,6 +159,15 @@ body::after {
     radial-gradient(circle at 22% 68%, rgba(59, 130, 246, 0.62) 0%, transparent 42%),
     radial-gradient(circle at 84% 58%, rgba(16, 185, 129, 0.48) 0%, transparent 40%),
     radial-gradient(circle at 52% 12%, rgba(168, 85, 247, 0.55) 0%, transparent 46%);
+}
+
+/* ─── Scrollbar hide utility ─── */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* ─── Scrollbar ─── */
@@ -349,17 +358,27 @@ body::after {
   animation: card-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Stagger delays for list items */
-.card-animate:nth-child(1) { animation-delay: 0ms; }
-.card-animate:nth-child(2) { animation-delay: 60ms; }
-.card-animate:nth-child(3) { animation-delay: 120ms; }
-.card-animate:nth-child(4) { animation-delay: 180ms; }
-.card-animate:nth-child(5) { animation-delay: 240ms; }
-.card-animate:nth-child(6) { animation-delay: 300ms; }
-.card-animate:nth-child(7) { animation-delay: 360ms; }
-.card-animate:nth-child(8) { animation-delay: 420ms; }
-.card-animate:nth-child(9) { animation-delay: 480ms; }
+/* Stagger delays for list items (20 items) */
+.card-animate:nth-child(1)  { animation-delay: 0ms; }
+.card-animate:nth-child(2)  { animation-delay: 60ms; }
+.card-animate:nth-child(3)  { animation-delay: 120ms; }
+.card-animate:nth-child(4)  { animation-delay: 180ms; }
+.card-animate:nth-child(5)  { animation-delay: 240ms; }
+.card-animate:nth-child(6)  { animation-delay: 300ms; }
+.card-animate:nth-child(7)  { animation-delay: 360ms; }
+.card-animate:nth-child(8)  { animation-delay: 420ms; }
+.card-animate:nth-child(9)  { animation-delay: 480ms; }
 .card-animate:nth-child(10) { animation-delay: 540ms; }
+.card-animate:nth-child(11) { animation-delay: 600ms; }
+.card-animate:nth-child(12) { animation-delay: 650ms; }
+.card-animate:nth-child(13) { animation-delay: 700ms; }
+.card-animate:nth-child(14) { animation-delay: 750ms; }
+.card-animate:nth-child(15) { animation-delay: 800ms; }
+.card-animate:nth-child(16) { animation-delay: 840ms; }
+.card-animate:nth-child(17) { animation-delay: 880ms; }
+.card-animate:nth-child(18) { animation-delay: 920ms; }
+.card-animate:nth-child(19) { animation-delay: 960ms; }
+.card-animate:nth-child(20) { animation-delay: 1000ms; }
 
 /* ─── Fade in from bottom ─── */
 @keyframes fade-up {

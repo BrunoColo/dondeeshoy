@@ -72,6 +72,7 @@ export async function classifyEventWithAi(input: {
               "- 'deportivo' incluye carreras, trail, MTB, triatlón, travesías a nado, desafíos físicos, competencias amateur y eventos en estadio.",
               "- 'fiesta' incluye fiestas, boliches, line-up de DJs, dance, open bar, perreo/reggaetón y eventos que arrancan tarde (aprox. 22:00 o más).",
               "- Usá 'otro' solo cuando no encaje claramente en ningún tipo.",
+              "- IMPORTANTE: el campo Category y Genre vienen del sitio fuente y pueden estar mal. Si contradicen claramente el Nombre y Descripción, ignoralos y clasificá por el contenido real.",
               "- musicGenre puede ser null.",
               "- confidence debe ser número entre 0 y 1.",
               "Ejemplos:",

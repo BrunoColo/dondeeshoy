@@ -8,7 +8,7 @@ import { EventFilters } from "@/components/events/event-filters";
 import { Zap, Flame, RotateCw, Sparkles } from "lucide-react";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
-export const revalidate = 3600; // ISR: revalidate every hour
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 interface HomePageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -16,7 +16,7 @@ interface HomePageProps {
 
 export default function HomePage({ searchParams }: HomePageProps) {
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6">
+    <div id="top" className="mx-auto max-w-5xl px-4 sm:px-6">
       <Suspense fallback={<HomeLoading />}>
         <HomeContent searchParams={searchParams} />
       </Suspense>
@@ -36,8 +36,9 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
   if (typeof params.genre === "string") filters.genre = params.genre;
   if (typeof params.department === "string") filters.department = params.department;
   if (params.free === "true") filters.free = true;
+  if (params.night === "true") filters.night = true;
 
-  const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
+  const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free || filters.night);
 
   // Fetch events + filter options + trending in parallel (3 queries instead of 5)
   const [allEvents, filterOptions, trending] = await Promise.all([

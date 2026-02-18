@@ -72,7 +72,7 @@ export function EventDetail({ event }: EventDetailProps) {
       </div>
 
       {/* Content */}
-      <div className="relative -mt-6 rounded-t-3xl bg-background px-5 pb-32 pt-6">
+      <div className={cn("relative -mt-6 rounded-t-3xl bg-background px-5 pt-6", event.ticketUrl ? "pb-32" : "pb-8")}>
         {/* Type badge + genre */}
         <div className="flex items-center gap-3 mb-4">
           <EventTypeBadge type={event.eventType} size="md" />

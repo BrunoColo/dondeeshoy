@@ -89,5 +89,6 @@ export interface EventFilters {
   genre?: string;
   department?: string;
   free?: boolean;
+  night?: boolean;
   recurring?: boolean;
 }

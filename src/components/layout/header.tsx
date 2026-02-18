@@ -7,7 +7,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { label: "Hoy", href: "/", icon: Music },
+  { label: "Hoy", href: "/#top", icon: Music },
   { label: "Próximos", href: "/proximos", icon: CalendarDays },
   { label: "Mapa", href: "/mapa", icon: MapPin },
 ] as const;
@@ -105,7 +105,7 @@ export function Header() {
         <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
           {NAV_ITEMS.map((item) => {
             const isActive =
-              item.href === "/"
+              item.href === "/#top"
                 ? pathname === "/"
                 : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -135,7 +135,7 @@ export function Header() {
           {searchOpen ? (
             <div className="flex items-center gap-2">
               {/* On mobile the input is narrower so the logo stays visible */}
-              <div className="relative w-[130px] sm:w-[280px]">
+              <div className="relative flex-1 min-w-0 w-[130px] sm:w-[280px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
                 <input
                   ref={inputRef}

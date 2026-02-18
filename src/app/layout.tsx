@@ -26,6 +26,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dondeeshoy.com"),
   title: {
     default: siteConfig.name,
     template: `%s — ${siteConfig.name}`,
@@ -38,6 +39,26 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     type: "website",
     locale: siteConfig.locale,
+    images: [
+      {
+        url: "/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "¿Dónde es Hoy? — Eventos en Uruguay",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: ["/og-default.png"],
+  },
+  other: {
+    "geo.region": "UY",
+    "geo.placename": "Uruguay",
+    "geo.position": "-32.5228;-55.7658",
+    ICBM: "-32.5228, -55.7658",
   },
 };
 

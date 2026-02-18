@@ -28,7 +28,7 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
       .limit(batchSize),
   );
 
-  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "10", 10);
+  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "25", 10);
   let aiClassified = 0;
   const linkedRawEventIds: string[] = [];
 

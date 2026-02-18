@@ -15,7 +15,7 @@ export default function NotFound() {
         Página no encontrada
       </h1>
       <p className="max-w-sm text-sm leading-relaxed text-muted-foreground mb-8">
-        El evento que buscás no existe o fue removido. Volvé al inicio para ver qué hay esta noche.
+        La página que buscás no existe o fue removida. Volvé al inicio para ver qué hay hoy en Uruguay.
       </p>
 
       <Link

@@ -10,7 +10,7 @@ const VARIANTS = {
   today: {
     icon: Music,
     title: "No hay eventos hoy",
-    description: "Parece que hoy Montevideo descansa. Revisá los próximos días para planear tu salida.",
+    description: "Parece que hoy Uruguay descansa. Revisá los próximos días para planear tu salida.",
     accentColor: "text-neon-violet",
   },
   upcoming: {

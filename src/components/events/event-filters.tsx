@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";
-import { Ticket, X, Check } from "lucide-react";
+import { Ticket, X, Check, Moon } from "lucide-react";
 import type { EventType } from "@/types/events";
 import { EVENT_TYPE_LABELS } from "@/types/events";
 
@@ -53,9 +53,10 @@ export function EventFilters({
   const activeGenre = searchParams.get("genre");
   const activeDepartment = searchParams.get("department");
   const activeFree = searchParams.get("free") === "true";
+  const activeNight = searchParams.get("night") === "true";
   const activeSearch = searchParams.get("q");
 
-  const hasActiveFilters = !!(activeType || activeGenre || activeDepartment || activeFree || activeSearch);
+  const hasActiveFilters = !!(activeType || activeGenre || activeDepartment || activeFree || activeNight || activeSearch);
 
   const updateFilter = useCallback(
     (key: string, value: string | null) => {
@@ -95,6 +96,10 @@ export function EventFilters({
     updateFilter("free", activeFree ? null : "true");
   };
 
+  const toggleNight = () => {
+    updateFilter("night", activeNight ? null : "true");
+  };
+
   return (
     <div className={cn("space-y-3", isPending && "opacity-60 transition-opacity", className)}>
       {/* Type chips row */}
@@ -102,6 +107,7 @@ export function EventFilters({
         {/* Free chip */}
         <button
           onClick={toggleFree}
+          aria-pressed={activeFree}
           className={cn(
             "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
             activeFree
@@ -112,6 +118,22 @@ export function EventFilters({
           {activeFree && <Check className="h-3 w-3" strokeWidth={2.8} />}
           <Ticket className="h-3 w-3" strokeWidth={2.5} />
           Gratis
+        </button>
+
+        {/* Night chip */}
+        <button
+          onClick={toggleNight}
+          aria-pressed={activeNight}
+          className={cn(
+            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            activeNight
+              ? "bg-indigo-500/25 border-indigo-500/50 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400/35"
+              : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400/70 hover:border-indigo-500/30",
+          )}
+        >
+          {activeNight && <Check className="h-3 w-3" strokeWidth={2.8} />}
+          <Moon className="h-3 w-3" strokeWidth={2.5} />
+          Noche
         </button>
 
         {/* Divider */}
@@ -128,6 +150,7 @@ export function EventFilters({
             <button
               key={type}
               onClick={() => toggleType(type)}
+              aria-pressed={isActive}
               className={cn(
                 "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
                 isActive
@@ -151,6 +174,7 @@ export function EventFilters({
               <button
                 key={department}
                 onClick={() => toggleDepartment(department)}
+                aria-pressed={isActive}
                 className={cn(
                   "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200",
                   isActive

@@ -88,7 +88,7 @@ export function EventCard({
           <div className="img-overlay relative h-44 sm:h-52">
             <Image
               src={imageUrl}
-              alt=""
+              alt={name}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, 600px"
@@ -201,21 +201,21 @@ export function EventCard({
               </span>
             )}
           </div>
-          {price && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Ticket className="h-3 w-3 text-text-muted" strokeWidth={2} />
-              <span
-                className={cn(
-                  "text-[13px] font-semibold",
-                  isFree
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Ticket className={cn("h-3 w-3 shrink-0", price ? "text-text-muted" : "text-white/20")} strokeWidth={2} />
+            <span
+              className={cn(
+                "text-[13px] font-semibold",
+                price
+                  ? isFree
                     ? "text-neon-green"
-                    : "text-foreground",
-                )}
-              >
-                {price}
-              </span>
-            </div>
-          )}
+                    : "text-foreground"
+                  : "text-white/25 font-normal text-[11px]",
+              )}
+            >
+              {price ?? "Sin precio informado"}
+            </span>
+          </div>
         </div>
       </article>
     </Link>

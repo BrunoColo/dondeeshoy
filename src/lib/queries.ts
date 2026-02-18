@@ -57,6 +57,13 @@ function buildFilterConditions(filters?: EventFilters) {
   if (filters?.free) {
     conditions.push(eq(events.isFree, true));
   }
+  if (filters?.night) {
+    // Night events: startTime >= "20:00" or startTime is null (unknown hour, keep them)
+    // We use a raw SQL comparison since startTime is stored as text "HH:MM"
+    conditions.push(
+      sql`(${events.startTime} IS NULL OR ${events.startTime} >= '20:00')`,
+    );
+  }
   if (filters?.recurring === true) {
     conditions.push(eq(events.isRecurring, true));
   } else if (filters?.recurring === false) {
@@ -93,7 +100,8 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
   if (dateRange) {
     dateCondition = sql`${events.date} >= ${dateRange.start} AND ${events.date} <= ${dateRange.end}`;
   } else if (date) {
-    dateCondition = sql`${events.date} = ${date}`;
+    // Include events for this exact date OR recurring events (which appear every day)
+    dateCondition = sql`(${events.date} = ${date} OR ${events.isRecurring} = true)`;
   }
 
   const rows = await db.execute<{
@@ -128,16 +136,28 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
    ═══════════════════════════════════════════════════════════════════ */
 
 /**
- * Get all active events for a specific date, with optional filters
+ * Get all active events for a specific date, with optional filters.
+ * Always includes recurring events (they repeat regardless of their stored date).
  */
 export async function getEventsByDate(date: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
 
-  return db
+  // One-time events: match exact date
+  const oneTimeEvents = await db
     .select(listColumns)
     .from(events)
-    .where(and(eq(events.date, date), activeStatus, ...filterConditions))
+    .where(and(eq(events.date, date), activeStatus, eq(events.isRecurring, false), ...filterConditions))
     .orderBy(desc(events.viewCount), asc(events.startTime), asc(events.name));
+
+  // Recurring events: always show regardless of stored date
+  // (they were scraped on a specific day but repeat weekly/daily)
+  const recurringEvents = await db
+    .select(listColumns)
+    .from(events)
+    .where(and(activeStatus, eq(events.isRecurring, true), ...filterConditions))
+    .orderBy(desc(events.viewCount), asc(events.startTime), asc(events.name));
+
+  return [...oneTimeEvents, ...recurringEvents];
 }
 
 /**

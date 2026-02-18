@@ -10,7 +10,7 @@ import { CalendarDays } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
-export const revalidate = 3600;
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export const metadata: Metadata = {
   title: "Próximos eventos",
