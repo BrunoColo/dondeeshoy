@@ -12,10 +12,12 @@ export default function MainLayout({
       <Suspense fallback={<HeaderFallback />}>
         <Header />
       </Suspense>
-      <main className="safe-bottom pt-[60px]">
+      <main className="pt-[60px] safe-bottom">
         {children}
       </main>
-      <BottomNav />
+      <div className="sm:hidden">
+        <BottomNav />
+      </div>
     </div>
   );
 }

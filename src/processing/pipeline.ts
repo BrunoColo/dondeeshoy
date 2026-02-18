@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
@@ -28,8 +28,9 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
       .limit(batchSize),
   );
 
-  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "6", 10);
+  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "10", 10);
   let aiClassified = 0;
+  const linkedRawEventIds: string[] = [];
 
   const result: PipelineResult = {
     pending: pendingRawEvents.length,
@@ -50,10 +51,12 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
 
       if (output === "created") {
         result.created += 1;
+        linkedRawEventIds.push(rawEvent.id);
       }
 
       if (output === "merged") {
         result.merged += 1;
+        linkedRawEventIds.push(rawEvent.id);
       }
 
       if (output === "skipped") {
@@ -69,12 +72,14 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
         result.created += 1;
         aiClassified += 1;
         result.aiClassified = aiClassified;
+        linkedRawEventIds.push(rawEvent.id);
       }
 
       if (output === "merged+ai") {
         result.merged += 1;
         aiClassified += 1;
         result.aiClassified = aiClassified;
+        linkedRawEventIds.push(rawEvent.id);
       }
     } catch (error) {
       result.errors += 1;
@@ -91,6 +96,26 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
       console.error(`[pipeline] error procesando raw_event ${rawEvent.id}`, error);
     }
   }
+
+  const classifiedCount = result.created + result.merged;
+  const heuristicCount = Math.max(0, classifiedCount - result.aiClassified);
+
+  let remainingOtro = 0;
+  if (linkedRawEventIds.length > 0) {
+    const rows = await withTransientRetry("pipeline-remaining-otro", async () =>
+      db
+        .select({ count: sql<number>`count(distinct ${eventSources.rawEventId})` })
+        .from(eventSources)
+        .innerJoin(events, eq(eventSources.eventId, events.id))
+        .where(and(inArray(eventSources.rawEventId, linkedRawEventIds), eq(events.eventType, "otro"))),
+    );
+
+    remainingOtro = Number(rows[0]?.count ?? 0);
+  }
+
+  console.info(
+    `[pipeline] Clasificación: ${heuristicCount} heurística, ${result.aiClassified} IA, ${remainingOtro} quedó otro`,
+  );
 
   return result;
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatTime, formatDateES, getTimeStatus } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
+import { ShareButton } from "@/components/shared/share-button";
+import { VenueMiniMap } from "@/components/events/venue-mini-map";
 import {
   MapPin,
   Ticket,
@@ -24,6 +26,13 @@ export function EventDetail({ event }: EventDetailProps) {
   const endTime = formatTime(event.endTime);
   const dateLabel = formatDateES(event.date);
   const timeStatus = getTimeStatus(event.startTime, event.endTime, event.date);
+  const latitude = event.latitude ? Number.parseFloat(event.latitude) : null;
+  const longitude = event.longitude ? Number.parseFloat(event.longitude) : null;
+  const hasCoordinates =
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
 
   return (
     <div className="fade-up">
@@ -120,6 +129,16 @@ export function EventDetail({ event }: EventDetailProps) {
                 )}
               </div>
             </div>
+
+            {hasCoordinates && (
+              <div className="mt-3 sm:max-w-sm">
+                <VenueMiniMap
+                  lat={latitude}
+                  lng={longitude}
+                  venueName={event.venueName}
+                />
+              </div>
+            )}
           </div>
 
           {/* Price */}
@@ -183,6 +202,18 @@ export function EventDetail({ event }: EventDetailProps) {
               </p>
             </div>
           )}
+
+          {/* Share */}
+          <div className="mt-6">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Compartir
+            </h2>
+            <ShareButton
+              title={event.name}
+              path={`/evento/${event.slug}`}
+              variant="full"
+            />
+          </div>
         </div>
       </div>
 

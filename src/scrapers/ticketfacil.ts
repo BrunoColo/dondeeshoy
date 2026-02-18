@@ -4,65 +4,134 @@ import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { fetchHtml, normalizeWhitespace, unique } from "./utils";
+import { normalizeWhitespace, unique } from "./utils";
 
-/** Extracts the numeric event ID from accesofacil image URLs */
-const EVENT_ID_FROM_IMG = /\/images\/acceso\/events\/images\/(\d+)\//;
+// ────────────────────────────────────────────────────────────────────────────
+// Filters — aggressively exclude non-public, non-Uruguay, club/membership
+// entries and duplicate pricing tiers that TicketFácil/accesofacil publishes.
+// ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Title patterns that indicate this is NOT a real public event:
- * memberships, registrations, partial payments, private corporate events, etc.
+ * Title patterns that indicate this is NOT a real public event.
+ * Tested against both the API `name` and the scraped `<h1>`.
  */
 const EXCLUDED_TITLE_RE = [
-  /\bsocios\b/i,                          // club memberships
-  /\blicencia federativa\b/i,            // sports federation licenses
-  /\bsaldo de inscripci[oó]n\b/i,        // "balance of registration fee"
-  /\breserva de inscripci[oó]n\b/i,      // "registration reservation"
-  /\breserv[aá] tu carpa\b/i,            // "reserve your tent"
-  /\bcocktail party\b/i,                 // private corporate events
+  // ── Club memberships / socios ──
+  /\bsocios?\b/i,
+  /\bclub balneario\b/i,
+  /\bmembres[ií]a\b/i,
+  /\bafiliaci[oó]n\b/i,
+
+  // ── Registration fees / partial payments / pricing duplicates ──
+  /\blicencia federativa\b/i,
+  /\bsaldo de inscripci[oó]n\b/i,
+  /\breserva de inscripci[oó]n\b/i,
+  /\breserv[aá] tu carpa\b/i,
+  /\bextranjeros\b/i,
+
+  // ── Corporate / private events ──
+  /\bcocktail party\b/i,
   /\bseminario global de inversiones\b/i,
   /\bcongreso anacer\b/i,
-  /\bpodcast days\b/i,                   // held in Madrid
-  /\bfiesta del centenario.*publicis\b/i, // corporate party
-  /\bgala del tour\b/i,                  // by invitation only
-  /\bconferencia del tour\b/i,           // by invitation only
-  /\bexperiencia vip\b/i,               // VIP / by invitation
+  /\bfiesta del centenario.*publicis\b/i,
+  /\btendencias\s+\d{4}\b/i,
+
+  // ── Explicitly NOT in Uruguay ──
+  /\bpodcast days\b/i,
+
+  // ── By-invitation / VIP-only entries ──
+  /\bgala del tour\b/i,
+  /\bconferencia del tour\b/i,
+  /\bexperiencia vip\b/i,
+
+  // ── Online-only / not a gatherable event ──
   /\bwebinar\b/i,
-  /\bformaci[oó]n\b/i,
+
+  // ── Generic non-event keywords ──
+  /\bslarp\b/i,
 ];
 
 /**
- * Venue/location words that indicate the event is outside Uruguay.
- * TicketFácil sometimes lists Argentine or European events.
+ * Title keywords that strongly suggest the event is outside Uruguay.
+ * Checked against the combined title + organizer string, BUT only when the
+ * title does NOT look like a sports match ("Uruguay - <opponent>").
+ */
+const EXCLUDED_TITLE_LOCATION_RE = [
+  /\bargentina\b/i,
+  /\bmadrid\b/i,
+  /\bbarcelona\b/i,
+  /\bmallorca\b/i,
+  /\bpalma\b/i,
+  /\bbogot[aá]\b/i,
+  /\blima\b/i,
+  /\bsantiago de chile\b/i,
+];
+
+/** Matches sports-match titles like "Uruguay - Argentina", "Uruguay - Perú" */
+const SPORTS_MATCH_RE = /^uruguay\s*[-–—vs.]+\s*/i;
+
+/**
+ * Venue / location strings that indicate the event is outside Uruguay.
  */
 const EXCLUDED_VENUE_RE = [
-  /la rural/i,            // Buenos Aires expo venue
-  /four seasons/i,        // Buenos Aires hotel
-  /espacio movistar/i,    // Madrid arena
-  /hotel meli[aá]/i,      // Mallorca
-  /madrid/i,
+  /\bla rural\b/i,
+  /\bfour seasons\b/i,
+  /\bespacio movistar\b/i,
+  /\bhotel meli[aá]\b/i,
+  /\bmadrid\b/i,
   /\bargentina\b/i,
-  /buenos aires/i,
-  /rosario.*argentina/i,
+  /\bbuenos aires\b/i,
+  /\bcaba\b/i,
+  /\bpalma marina\b/i,
+  /\bpalma de mallorca\b/i,
+  /\boh my club\b/i,
 ];
 
-/** Spanish month abbreviation → zero-padded month number (used for date parsing) */
-const MONTH_ABBR: Record<string, string> = {
-  ene: "01", feb: "02", mar: "03", abr: "04", may: "05", jun: "06",
-  jul: "07", ago: "08", sep: "09", oct: "10", nov: "11", dic: "12",
+/**
+ * Organizer names that almost always produce non-public or non-Uruguay events.
+ */
+const EXCLUDED_ORGANIZER_RE = [
+  /\bpublicis groupe\b/i,
+  /\bcoca-cola argentina\b/i,
+  /\banacer\b/i,
+  /\bgrandstocker\b/i,
+];
+
+/** Spanish full month name → zero-padded month number */
+const MONTH_MAP: Record<string, string> = {
+  enero: "01",      febrero: "02",    marzo: "03",     abril: "04",
+  mayo: "05",       junio: "06",      julio: "07",     agosto: "08",
+  septiembre: "09", octubre: "10",    noviembre: "11", diciembre: "12",
 };
 
+/** Shape of each item returned by the accesofacil events search API */
+interface AccesofacilEvent {
+  id: string;
+  name: string;
+  location: string;
+  organizer: string;
+  link: string; // e.g. "Bienvenidos-a-SLARP/registerToEvent/"
+}
+
 /**
- * Scraper for ticketfacil.uy — Uruguay's sports & endurance events ticketing platform.
+ * Scraper for ticketfacil.uy — Uruguay's events ticketing platform.
  * Powered by accesofacil.com backend.
  *
  * Strategy:
- *  1. Discover event IDs from the listing page (image URL patterns + `<a>` hrefs).
- *  2. Scrape each individual event page for structured data.
- *  3. Filter hard to exclude: memberships, private events, non-Uruguay venues,
- *     "by invitation" events, and partial payment entries.
+ *  1. Discover events from the accesofacil REST API (`restApi/eventsForSearch/w`).
+ *     The listing page renders event cards client-side via JavaScript, so a plain
+ *     HTTP fetch returns an empty shell — the API is the reliable source.
+ *  2. **Pre-filter aggressively** at the API stage using title, location & organizer
+ *     to discard memberships, non-Uruguay events, corporate/private events and
+ *     duplicate pricing tiers before making any HTTP requests.
+ *  3. Scrape each event's `/info/` page (NOT `/registerToEvent/`) — the info page
+ *     consistently contains date, time, venue and description.
+ *  4. Apply secondary HTML-level filters (por invitación, missing dates, etc.).
  */
 export class TicketFacilScraper extends BaseScraper {
+  /** Cache API metadata keyed by the /info/ page URL we'll scrape */
+  private apiCache = new Map<string, AccesofacilEvent>();
+
   constructor() {
     super("ticketfacil");
   }
@@ -70,152 +139,282 @@ export class TicketFacilScraper extends BaseScraper {
   // ─── Discover ───────────────────────────────────────────────────────────────
 
   protected async discoverUrls(): Promise<string[]> {
-    const html = await fetchHtml(scraperConfig.ticketfacilListUrl);
-    const $ = cheerio.load(html);
+    const res = await fetch(
+      "https://accesofacil.com/restApi/eventsForSearch/w",
+      {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+          accept: "application/json",
+          referer: "https://ticketfacil.uy/eventos/",
+        },
+        signal: AbortSignal.timeout(scraperConfig.timeoutMs),
+        cache: "no-store",
+      },
+    );
 
-    const ids = new Set<string>();
+    if (!res.ok) {
+      throw new Error(`[ticketfacil] API returned HTTP ${res.status}`);
+    }
 
-    // Primary: event IDs embedded in accesofacil CDN image URLs
-    $("img[src*='accesofacil.com/images/acceso/events/images']").each((_, el) => {
-      const src = $(el).attr("src") ?? "";
-      const match = src.match(EVENT_ID_FROM_IMG);
-      if (match?.[1]) ids.add(match[1]);
-    });
+    const json = (await res.json()) as {
+      status: string;
+      events?: AccesofacilEvent[];
+    };
 
-    // Secondary: explicit `<a>` links (some layouts include these)
-    $("a[href]").each((_, el) => {
-      const href = $(el).attr("href") ?? "";
-      // Matches /eventos/123 or /eventos/e/123 style paths
-      const match = href.match(/\/eventos\/(?:e\/)?(\d+)/);
-      if (match?.[1]) ids.add(match[1]);
-    });
+    if (json.status !== "success" || !Array.isArray(json.events)) {
+      throw new Error(
+        `[ticketfacil] Unexpected API response: ${JSON.stringify(json).slice(0, 200)}`,
+      );
+    }
 
-    console.log(`[ticketfacil] Discovered ${ids.size} event IDs from listing`);
+    console.log(
+      `[ticketfacil] API returned ${json.events.length} raw events — pre-filtering…`,
+    );
 
-    // Try two common URL patterns for individual event pages on accesofacil platforms:
-    //   /eventos/{id}  and  /eventos/e/{id}
-    // We'll try the first; if it 404s, scrapeEvent returns null gracefully.
-    return unique([...ids].map((id) => `${scraperConfig.ticketfacilBaseUrl}/eventos/${id}`));
+    const urls: string[] = [];
+
+    for (const event of json.events) {
+      const name = normalizeWhitespace(event.name);
+      const location = normalizeWhitespace(event.location);
+      const organizer = normalizeWhitespace(event.organizer);
+
+      // ── Pre-filter: title ──
+      if (this.isExcludedTitle(name)) {
+        console.log(`[ticketfacil] PRE-SKIP (title): "${name}"`);
+        continue;
+      }
+
+      // ── Pre-filter: title + organizer → foreign location keywords ──
+      // Skip this check for sports-match titles like "Uruguay - Argentina"
+      const titleOrgCombo = `${name} ${organizer}`;
+      if (
+        !SPORTS_MATCH_RE.test(name) &&
+        EXCLUDED_TITLE_LOCATION_RE.some((re) => re.test(titleOrgCombo))
+      ) {
+        console.log(
+          `[ticketfacil] PRE-SKIP (foreign in title/org): "${name}" [${organizer}]`,
+        );
+        continue;
+      }
+
+      // ── Pre-filter: venue ──
+      if (this.isExcludedVenue(location)) {
+        console.log(
+          `[ticketfacil] PRE-SKIP (venue): "${name}" @ "${location}"`,
+        );
+        continue;
+      }
+
+      // ── Pre-filter: organizer ──
+      if (EXCLUDED_ORGANIZER_RE.some((re) => re.test(organizer))) {
+        console.log(
+          `[ticketfacil] PRE-SKIP (organizer): "${name}" by "${organizer}"`,
+        );
+        continue;
+      }
+
+      // Always use the /info/ page — it has date, time, venue and description.
+      // The API link can be either ".../registerToEvent/" or ".../info/".
+      const slug = event.link.replace(/\/(registerToEvent|info)\/?$/, "");
+      const infoUrl = `https://accesofacil.com/${slug}/info/`;
+      this.apiCache.set(infoUrl, event);
+      urls.push(infoUrl);
+    }
+
+    console.log(
+      `[ticketfacil] ${urls.length} events remain after pre-filtering`,
+    );
+    return unique(urls);
   }
 
   // ─── Scrape individual event ─────────────────────────────────────────────────
 
-  protected async scrapeEvent(sourceUrl: string): Promise<ScrapedRawEvent | null> {
-    const idMatch = sourceUrl.match(/\/eventos\/(?:e\/)?(\d+)$/);
-    if (!idMatch) return null;
-
-    const sourceId = idMatch[1];
+  protected async scrapeEvent(
+    sourceUrl: string,
+  ): Promise<ScrapedRawEvent | null> {
+    const apiEvent = this.apiCache.get(sourceUrl);
 
     let html: string;
     try {
-      html = await fetchHtml(sourceUrl);
+      const res = await fetch(sourceUrl, {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+          accept: "text/html,application/xhtml+xml",
+          referer: "https://accesofacil.com/",
+        },
+        signal: AbortSignal.timeout(scraperConfig.timeoutMs),
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        console.log(`[ticketfacil] SKIP (HTTP ${res.status}): ${sourceUrl}`);
+        return null;
+      }
+
+      html = await res.text();
     } catch {
-      // 404 or network error — this event page doesn't exist at this URL pattern
+      console.log(`[ticketfacil] SKIP (fetch error): ${sourceUrl}`);
       return null;
     }
 
     const $ = cheerio.load(html);
 
+    // ── Event ID — used for image URL and sourceId ──
+    const eventIdMatch = html.match(/let\s+eventId\s*=\s*(\d+)/);
+    const eventId = eventIdMatch?.[1] ?? apiEvent?.id ?? null;
+    if (!eventId) {
+      console.log(`[ticketfacil] SKIP (no eventId): ${sourceUrl}`);
+      return null;
+    }
+
+    const sourceId = eventId;
+
     // ── Title ──
     const title = normalizeWhitespace(
-      $("h1").first().text() ||
-      $("meta[property='og:title']").attr("content") ||
-      $("title").text().replace(/\s*[-|].+$/, "") ||
-      "",
+      $("h1.eventTitle").first().text() ||
+        $("h1").first().text() ||
+        apiEvent?.name ||
+        "",
     );
 
-    if (!title) return null;
+    if (!title || title === "Inscripción/Registro") {
+      console.log(`[ticketfacil] SKIP (no title): ${sourceUrl}`);
+      return null;
+    }
 
-    // ── Strict title filter ──
+    // ── Second-pass title filter (HTML title may differ from API name) ──
     if (this.isExcludedTitle(title)) {
       console.log(`[ticketfacil] SKIP (title filter): "${title}"`);
       return null;
     }
 
-    // ── "Por Invitación" filter — not open to the general public ──
+    // ── Full page text for keyword checks ──
     const fullPageText = normalizeWhitespace($.root().text());
-    if (/por invitaci[oó]n/i.test(fullPageText) && !/precio|entrada|comprar|gratis/i.test(fullPageText)) {
+
+    // ── "Por Invitación" — not open to the general public ──
+    if (
+      /por invitaci[oó]n/i.test(fullPageText) &&
+      !/precio|entrada|comprar|gratis|sin cargo/i.test(fullPageText)
+    ) {
       console.log(`[ticketfacil] SKIP (by-invitation): "${title}"`);
       return null;
     }
 
-    // ── Venue — several possible selectors ──
-    const rawVenueBlock = normalizeWhitespace(
-      $("[class*='venue']").first().text() ||
-      $("[class*='lugar']").first().text() ||
-      $("[class*='location']").first().text() ||
-      $("[itemprop='location']").first().text() ||
-      $("[class*='place']").first().text() ||
-      "",
-    );
+    // ── Date and Time ──
+    // The /info/ page has structured paragraphs with class "detailItem".
+    // Pattern 1: "📆 Fecha: 19 de febrero de 2026"
+    // Pattern 2: "📆 Fecha: 27 al 28 de febrero de 2026" (date range)
+    const detailTexts = $("p.detailItem")
+      .map((_, el) => normalizeWhitespace($(el).text()))
+      .get();
+    const dateTimeBlock = detailTexts.join(" ");
 
-    // ── Venue location filter — exclude non-Uruguay venues ──
-    if (this.isExcludedVenue(rawVenueBlock)) {
-      console.log(`[ticketfacil] SKIP (non-UY venue: "${rawVenueBlock}"): "${title}"`);
+    let rawDateText: string | null = null;
+
+    // Try range format first: "27 al 28 de febrero de 2026"
+    const rangeMatch = dateTimeBlock.match(
+      /Fecha:\s*(\d{1,2})\s+al\s+\d{1,2}\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+    );
+    if (rangeMatch) {
+      const [, day, monthName, year] = rangeMatch;
+      const month = MONTH_MAP[monthName.toLowerCase()];
+      if (month) {
+        rawDateText = `${year}-${month}-${day.padStart(2, "0")}`;
+      }
+    }
+
+    // Try single-date format: "19 de febrero de 2026"
+    if (!rawDateText) {
+      const singleMatch = dateTimeBlock.match(
+        /Fecha:\s*(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+      );
+      if (singleMatch) {
+        const [, day, monthName, year] = singleMatch;
+        const month = MONTH_MAP[monthName.toLowerCase()];
+        if (month) {
+          rawDateText = `${year}-${month}-${day.padStart(2, "0")}`;
+        }
+      }
+    }
+
+    const startTimeMatch = dateTimeBlock.match(
+      /Inicio\s+(\d{1,2}:\d{2})\s*hs/i,
+    );
+    const endTimeMatch = dateTimeBlock.match(/Fin\s+(\d{1,2}:\d{2})\s*hs/i);
+    const rawStartTime = startTimeMatch?.[1] ?? null;
+    const rawEndTime = endTimeMatch?.[1] ?? null;
+
+    // ── Venue — look for the 📍 detail item ──
+    const venueDetail = detailTexts.find((t) => /📍/.test(t) || /ubicaci[oó]n/i.test(t));
+    // Strip leading non-letter characters (emoji, whitespace)
+    const rawVenue =
+      venueDetail?.replace(/^[^\w\dA-Za-záéíóúüñÁÉÍÓÚÜÑ"'(]+/, "").trim() ||
+      apiEvent?.location ||
+      "";
+
+    if (this.isExcludedVenue(rawVenue)) {
+      console.log(
+        `[ticketfacil] SKIP (non-UY venue: "${rawVenue}"): "${title}"`,
+      );
       return null;
     }
 
-    // Split venue block into name + address if possible
-    const { venueName, venueAddress } = this.splitVenueBlock(rawVenueBlock);
+    // ── Image ──
+    const imageUrl = `https://accesofacil.com/images/acceso/events/images/${sourceId}/eventLittleImg.jpeg`;
 
-    // ── Date ──
-    const rawDateText = normalizeWhitespace(
-      $("[itemprop='startDate']").attr("content") ||
-      $("time[datetime]").first().attr("datetime") ||
-      $("time").first().text() ||
-      $("[class*='date']").first().text() ||
-      $("[class*='fecha']").first().text() ||
-      "",
-    );
-
-    // ── Time ──
-    const rawStartTime = normalizeWhitespace(
-      $("[itemprop='startDate']").attr("content")?.slice(11, 16) ||
-      $("[class*='time']").not("[class*='date']").first().text() ||
-      $("[class*='hora']").first().text() ||
-      "",
-    ) || null;
+    // ── Prices — fetch the /registerToEvent/ page for structured price data ──
+    // The /info/ page has no price table; prices live on the purchase page
+    // inside <span initPrice="NNN"> attributes.
+    const prices = await this.fetchPricesFromRegisterPage(sourceUrl);
+    const isFreeText = /gratis|entrada libre|free|sin cargo/i.test(fullPageText);
 
     // ── Description ──
-    const description = normalizeWhitespace(
-      $("meta[property='og:description']").attr("content") ||
-      $("[class*='description']").first().text() ||
-      $("[class*='desc']").first().text() ||
-      "",
-    ) || null;
-
-    // ── Image ──
-    const imageUrl =
-      $("meta[property='og:image']").attr("content") ??
-      $(`img[src*='/images/acceso/events/images/${sourceId}/']`)
-        .not("[src*='LittleImg']")
-        .first()
-        .attr("src") ??
-      // Fallback to the listing thumbnail — better than nothing
-      `https://accesofacil.com/images/acceso/events/images/${sourceId}/eventLittleImg.png`;
-
-    // ── Prices ──
-    const rawPriceText = normalizeWhitespace(
-      $("[class*='price']").text() ||
-      $("[class*='precio']").text() ||
-      $("[class*='ticket']").text() ||
-      "",
+    // The /info/ page has descriptive content after the detail items.
+    // Try multiple selectors; fall back to gathering text from body sections.
+    let rawDesc = normalizeWhitespace(
+      $("span.description").text() ||
+        $(".eventDescription").text() ||
+        "",
     );
-    const prices = this.extractPrices(rawPriceText);
-    const isFreeText = /gratis|entrada libre|free|sin cargo/i.test(rawPriceText + " " + fullPageText);
+    // If no explicit description container, grab body text after detail items
+    if (!rawDesc) {
+      const bodyParagraphs: string[] = [];
+      $("p, div")
+        .not(".detailItem")
+        .each((_, el) => {
+          const t = normalizeWhitespace($(el).text());
+          if (
+            t.length > 30 &&
+            !/Comenzar[aá]|Evento organizado|Contacto|Agregar Al Calendario|Logo|haz click/i.test(t)
+          ) {
+            bodyParagraphs.push(t);
+          }
+        });
+      if (bodyParagraphs.length > 0) {
+        rawDesc = bodyParagraphs.slice(0, 3).join(" ").slice(0, 500);
+      }
+    }
+    const description =
+      rawDesc && !rawDesc.toLowerCase().includes("haz click") ? rawDesc : null;
+
+    // Build the public-facing URL
+    const publicUrl = sourceUrl;
 
     return {
       source: "ticketfacil",
       sourceId,
-      sourceUrl,
+      sourceUrl: publicUrl,
       rawData: {
         title,
         description,
-        dateText: rawDateText || null,
+        dateText: rawDateText,
         startTime: rawStartTime,
-        venueName: venueName || null,
-        venueAddress: venueAddress || null,
-        imageUrl: imageUrl || null,
+        endTime: rawEndTime,
+        venueName: rawVenue || null,
+        venueAddress: null,
+        imageUrl,
         prices,
         isFreeText,
         extractedAt: new Date().toISOString(),
@@ -235,49 +434,46 @@ export class TicketFacilScraper extends BaseScraper {
   }
 
   /**
-   * Attempts to split a raw venue block like "Stadium XYZ — Av. 18 de Julio 999" into
-   * separate name and address parts.
+   * Fetch the /registerToEvent/ page and extract prices from the structured
+   * HTML `initPrice` attributes on ticket rows. This avoids the old approach
+   * of parsing `$('table').text()` which mixed in quantity dropdown values.
    */
-  private splitVenueBlock(raw: string): { venueName: string | null; venueAddress: string | null } {
-    if (!raw) return { venueName: null, venueAddress: null };
+  private async fetchPricesFromRegisterPage(
+    infoUrl: string,
+  ): Promise<number[]> {
+    // Convert /info/ URL → /registerToEvent/ URL
+    const registerUrl = infoUrl.replace(/\/info\/$/, "/registerToEvent/");
 
-    const separators = [" — ", " – ", " - ", " | "];
-    for (const sep of separators) {
-      const idx = raw.indexOf(sep);
-      if (idx > 0) {
-        return {
-          venueName: raw.slice(0, idx).trim() || null,
-          venueAddress: raw.slice(idx + sep.length).trim() || null,
-        };
+    try {
+      const res = await fetch(registerUrl, {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+          accept: "text/html,application/xhtml+xml",
+          referer: "https://accesofacil.com/",
+        },
+        signal: AbortSignal.timeout(scraperConfig.timeoutMs),
+        cache: "no-store",
+      });
+
+      if (!res.ok) return [];
+
+      const html = await res.text();
+
+      // Extract prices from initPrice="NNN" attributes on price spans
+      const prices: number[] = [];
+      const initPriceMatches = html.matchAll(/initPrice="(\d+)"/g);
+      for (const m of initPriceMatches) {
+        const v = parseInt(m[1], 10);
+        if (!isNaN(v) && v > 0 && v < 1_000_000) {
+          prices.push(v);
+        }
       }
+
+      return prices;
+    } catch {
+      console.log(`[ticketfacil] Could not fetch prices from ${registerUrl}`);
+      return [];
     }
-
-    return { venueName: raw, venueAddress: null };
-  }
-
-  /** Parses numeric price values from a mixed-currency price string. */
-  private extractPrices(priceText: string): number[] {
-    if (!priceText) return [];
-    const prices: number[] = [];
-    // Match numbers like "1.200", "1200", "120,50"
-    const matches = priceText.match(/[\d.,]+/g) ?? [];
-    for (const m of matches) {
-      // Disambiguate thousands separator vs decimal
-      const v = parseFloat(m.replace(/\.(?=\d{3})/g, "").replace(",", "."));
-      if (!isNaN(v) && v > 0 && v < 1_000_000) {
-        prices.push(v);
-      }
-    }
-    return prices;
-  }
-
-  // Kept here in case we want to parse listing-page dates in a future iteration
-  private _parseDateFromListing(dateStr: string): string | null {
-    // e.g. "19 FEB 2026" → "2026-02-19"
-    const m = dateStr.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
-    if (!m) return null;
-    const month = MONTH_ABBR[m[2].toLowerCase()];
-    if (!month) return null;
-    return `${m[3]}-${month}-${m[1].padStart(2, "0")}`;
   }
 }

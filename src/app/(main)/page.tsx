@@ -53,7 +53,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
   const { genres, types, departments } = filterOptions;
 
   // Build set of trending IDs for badge display
-  const trendingIds = new Set(trending.map((e) => e.id));
+  const trendingIds = trending.map((e) => e.id);
 
   return (
     <>

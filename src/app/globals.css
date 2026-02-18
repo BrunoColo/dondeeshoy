@@ -523,6 +523,12 @@ body::after {
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
+@media (min-width: 640px) {
+  .safe-bottom {
+    padding-bottom: 2rem;
+  }
+}
+
 /* ─── Focus visible ─── */
 :focus-visible {
   outline: 2px solid var(--neon-violet);

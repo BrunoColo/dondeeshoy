@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatPrice, formatTime } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { TimeBadge } from "@/components/shared/time-badge";
+import { ShareButton } from "@/components/shared/share-button";
 import { MapPin, Clock, Ticket, Music, Flame } from "lucide-react";
 import type { EventType } from "@/types/events";
 import { useState } from "react";
@@ -43,6 +44,7 @@ interface EventCardProps {
   currency?: string;
   musicGenre?: string | null;
   isTrending?: boolean;
+  distance?: number | null;
   className?: string;
 }
 
@@ -61,11 +63,13 @@ export function EventCard({
   currency = "UYU",
   musicGenre,
   isTrending,
+  distance,
   className,
 }: EventCardProps) {
   const price = formatPrice(priceMin, priceMax, isFree, currency);
   const timeLabel = formatTime(startTime);
   const [imgError, setImgError] = useState(false);
+  const eventPath = `/evento/${slug}`;
 
   const showImage = imageUrl && !imgError;
   const gradientClass = TYPE_GRADIENT[eventType] ?? TYPE_GRADIENT.otro;
@@ -91,7 +95,10 @@ export function EventCard({
             {/* Badges over image */}
             <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between">
               <EventTypeBadge type={eventType} />
-              <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+              <div className="flex items-center gap-1.5">
+                <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+                <ShareButton title={name} path={eventPath} variant="icon" stopPropagation />
+              </div>
             </div>
 
             {/* Content over image */}
@@ -104,6 +111,11 @@ export function EventCard({
                   <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={2} />
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
+                {distance != null && (
+                  <span className="text-[10px] font-semibold text-neon-cyan">
+                    📍 {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
+                  </span>
+                )}
                 {timeLabel && (
                   <div className="flex items-center gap-1.5 text-slate-400">
                     <Clock className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2} />
@@ -131,7 +143,10 @@ export function EventCard({
               {/* Top row: badges */}
               <div className="flex items-start justify-between mb-3">
                 <EventTypeBadge type={eventType} />
-                <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+                <div className="flex items-center gap-1.5">
+                  <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+                  <ShareButton title={name} path={eventPath} variant="icon" stopPropagation />
+                </div>
               </div>
 
               {/* Event name */}
@@ -145,6 +160,11 @@ export function EventCard({
                   <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={2} />
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
+                {distance != null && (
+                  <span className="text-[10px] font-semibold text-neon-cyan">
+                    📍 {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
+                  </span>
+                )}
                 {timeLabel && (
                   <div className="flex items-center gap-1.5 text-text-muted">
                     <Clock className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2} />

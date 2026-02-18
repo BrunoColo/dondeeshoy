@@ -166,30 +166,6 @@ export function EventFilters({
         </div>
       )}
 
-      {/* Genre chips row (only show if there are genres) */}
-      {availableGenres.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
-          {availableGenres.map((genre) => {
-            const isActive = activeGenre === genre;
-            return (
-              <button
-                key={genre}
-                onClick={() => toggleGenre(genre)}
-                className={cn(
-                  "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-medium capitalize tracking-wide transition-all duration-200",
-                  isActive
-                    ? "bg-neon-magenta/20 border-neon-magenta/40 text-neon-magenta shadow-[0_0_10px_rgba(236,72,153,0.2)] ring-1 ring-neon-magenta/20"
-                    : "bg-white/[0.03] border-white/[0.06] text-muted-foreground hover:border-white/[0.12] hover:text-foreground",
-                )}
-              >
-                {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
-                {genre}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Active filter indicator + clear */}
       {hasActiveFilters && (
         <div className="flex items-center justify-between pt-1">

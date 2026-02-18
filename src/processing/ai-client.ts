@@ -64,7 +64,21 @@ export async function classifyEventWithAi(input: {
         {
           role: "system",
           content:
-            "Sos un clasificador de eventos sociales en Uruguay. Respondé JSON puro con campos: eventType, musicGenre, confidence. eventType debe ser uno de esta lista exacta: fiesta, festival, concierto, recital, cultural, deportivo, gastronomico, familiar, feria, taller, club, bar, teatro, otro. 'fiesta' incluye fiestas, boliches, eventos nocturnos (desde las 23:00), dance, DJ, openbar, cloud sessions, reggaeton/reggeaton/reguetón. 'deportivo' incluye boxeo, veladas de box, MMA, torneos y partidos. Usá 'otro' solo cuando no encaje claramente en ningún tipo. musicGenre puede ser null. confidence debe ser un número entre 0 y 1.",
+            [
+              "Sos un clasificador de eventos sociales en Uruguay.",
+              "Respondé JSON puro con campos: eventType, musicGenre, confidence.",
+              "eventType debe ser uno de esta lista exacta: fiesta, festival, concierto, recital, cultural, deportivo, gastronomico, familiar, feria, taller, club, bar, teatro, otro.",
+              "Reglas importantes:",
+              "- 'deportivo' incluye carreras, trail, MTB, triatlón, travesías a nado, desafíos físicos, competencias amateur y eventos en estadio.",
+              "- 'fiesta' incluye fiestas, boliches, line-up de DJs, dance, open bar, perreo/reggaetón y eventos que arrancan tarde (aprox. 22:00 o más).",
+              "- Usá 'otro' solo cuando no encaje claramente en ningún tipo.",
+              "- musicGenre puede ser null.",
+              "- confidence debe ser número entre 0 y 1.",
+              "Ejemplos:",
+              "Entrada: 'Desafío MTB Sierras 40K' => { eventType: 'deportivo', musicGenre: null }",
+              "Entrada: 'Fiesta con line-up de DJs, open bar 23:30' => { eventType: 'fiesta', musicGenre: 'electrónica' }",
+              "Entrada: 'Visita guiada al museo + muestra fotográfica' => { eventType: 'cultural', musicGenre: null }",
+            ].join(" "),
         },
         {
           role: "user",

@@ -42,7 +42,7 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "deportivo",
     regex:
-      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b/i,
+      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b|\bdesaf[ií]o\b|\breto\b|\btraves[ií]a\b|\btriatl[oó]n\b|\btrail\b|\bmtb\b|\bgravel\b|\bnado\b|\bnataci[oó]n\b|\bciclismo\b|\bxcm\b|\bestadio\b|\b\d+\s*k(?:m)?\b|\bscott\s*marathon\b|\bvikingo\b|\ba\s*nado\b/i,
   },
   {
     type: "gastronomico",
@@ -62,7 +62,7 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "taller",
     regex:
-      /\btaller\b|\bworkshop\b|\bcharla\b|\bconferencia\b|\bseminario\b|\bcurso\b|\bmasterclass\b|\bcapacitaci[oó]n\b/i,
+      /\btaller\b|\bworkshop\b|\bcharla\b|\bconferencia\b|\bseminario\b|\bcurso\b|\bmasterclass\b|\bcapacitaci[oó]n\b|\britual\b|\bsanaci[oó]n\b|\bmeditaci[oó]n\b|\bcongreso\b|\bxperience\b/i,
   },
   // fiesta — includes nightlife / dance / baile keywords (unified type)
   {
@@ -77,11 +77,11 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
 const METADATA_HINT_RULES: Array<{ type: EventType; regex: RegExp }> = [
   { type: "teatro", regex: /teatro|artes\s*esc[eé]nicas|dramaturgia|obra/i },
   { type: "cultural", regex: /cultural|audiovisual|cine|literatura|artes\s*visuales|museo|exposici[oó]n/i },
-  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo/i },
+  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo|desaf[ií]o|reto|traves[ií]a|trail|mtb|triatl[oó]n|estadio|ciclismo|nado/i },
   { type: "fiesta", regex: /fiesta|dance|dj|electro|boliche|night|reggaeton|reggeaton|perreo/i },
   { type: "concierto", regex: /m[uú]sica|musica|concierto|recital|banda|tour/i },
   { type: "feria", regex: /feria|mercado|expo/i },
-  { type: "taller", regex: /taller|workshop|curso|seminario|charla/i },
+  { type: "taller", regex: /taller|workshop|curso|seminario|charla|congreso|ritual|meditaci[oó]n/i },
   { type: "gastronomico", regex: /gastron|food|cata|vino|cerveza|chef/i },
   { type: "familiar", regex: /familiar|infantil|niñ|kids/i },
   { type: "bar", regex: /bar|pub|cervecer/i },
@@ -208,7 +208,7 @@ function shouldReclassifyAsFiesta(
 
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
-  return hour >= 23 || hour === 0;
+  return hour >= 22 || hour === 0;
 }
 
 /**

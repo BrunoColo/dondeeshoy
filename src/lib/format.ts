@@ -53,6 +53,44 @@ export function getDateOffsetUY(days: number): string {
 }
 
 /**
+ * Get weekend date range in UY timezone (current or next weekend)
+ * Returns inclusive YYYY-MM-DD range: { start: Friday, end: Sunday }
+ */
+export function getWeekendDatesUY(): { start: string; end: string } {
+  const now = new Date();
+  const uyDate = new Date(now.toLocaleString("en-US", { timeZone: UY_TIMEZONE }));
+
+  const currentDay = uyDate.getDay(); // 0=Sun, 6=Sat
+
+  const start = new Date(uyDate);
+  const end = new Date(uyDate);
+
+  if (currentDay === 5) {
+    // Friday: today + weekend
+    end.setDate(end.getDate() + 2);
+  } else if (currentDay === 6) {
+    // Saturday: today + tomorrow
+    end.setDate(end.getDate() + 1);
+  } else if (currentDay === 0) {
+    // Sunday: only today
+  } else {
+    // Monday-Thursday: next Fri + Sat + Sun
+    const daysUntilFriday = 5 - currentDay;
+    start.setDate(start.getDate() + daysUntilFriday);
+    end.setDate(end.getDate() + daysUntilFriday + 2);
+  }
+
+  const format = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  return { start: format(start), end: format(end) };
+}
+
+/**
  * Get the current time in UY as { hours, minutes }
  */
 export function getNowUY(): { hours: number; minutes: number } {

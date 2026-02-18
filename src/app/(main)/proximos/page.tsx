@@ -1,11 +1,12 @@
 import { Suspense } from "react";
-import { getUpcomingEvents, getFilterOptions } from "@/lib/queries";
-import { getTomorrowUY, formatDateES, getDateLabel, getDateOffsetUY } from "@/lib/format";
-import { EventList } from "@/components/events/event-list";
+import { getUpcomingEvents, getFilterOptions, getEventsBetweenDates } from "@/lib/queries";
+import { getTomorrowUY, getDateOffsetUY, getWeekendDatesUY } from "@/lib/format";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
-import { CalendarDays, RotateCw } from "lucide-react";
+import { TimeFilter } from "@/components/events/time-filter";
+import { ProximosEventsClient } from "@/components/events/proximos-events-client";
+import { CalendarDays } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
@@ -32,6 +33,7 @@ export default function ProximosPage({ searchParams }: ProximosPageProps) {
 async function ProximosContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const tomorrow = getTomorrowUY();
+  const when = typeof params.when === "string" ? params.when : undefined;
 
   // Parse filters
   const filters: Filters = {};
@@ -43,11 +45,34 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
 
+  let grouped: Map<string, Awaited<ReturnType<typeof getEventsBetweenDates>>>;
+  let filterRange: { start: string; end: string };
+  let subtitle = "Eventos de los próximos días";
+
+  if (when === "manana") {
+    const tomorrowEvents = await getEventsBetweenDates(tomorrow, tomorrow, filters);
+    grouped = new Map(tomorrowEvents.length > 0 ? [[tomorrow, tomorrowEvents]] : []);
+    filterRange = { start: tomorrow, end: tomorrow };
+    subtitle = "Eventos de mañana";
+  } else if (when === "finde") {
+    const weekend = getWeekendDatesUY();
+    const weekendEvents = await getEventsBetweenDates(weekend.start, weekend.end, filters);
+
+    grouped = new Map<string, typeof weekendEvents>();
+    for (const event of weekendEvents) {
+      if (!grouped.has(event.date)) grouped.set(event.date, []);
+      grouped.get(event.date)!.push(event);
+    }
+
+    filterRange = { start: weekend.start, end: weekend.end };
+    subtitle = "Eventos de este fin de semana";
+  } else {
+    grouped = await getUpcomingEvents(tomorrow, 14, filters);
+    filterRange = { start: tomorrow, end: getDateOffsetUY(15) };
+  }
+
   // 2 queries instead of 4: events + combined filter options
-  const [grouped, filterOptions] = await Promise.all([
-    getUpcomingEvents(tomorrow, 14, filters),
-    getFilterOptions(undefined, { start: tomorrow, end: getDateOffsetUY(15) }),
-  ]);
+  const filterOptions = await getFilterOptions(undefined, filterRange);
 
   const { genres, types, departments } = filterOptions;
   const hasEvents = grouped.size > 0;
@@ -66,10 +91,15 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
               PRÓXIMOS
             </p>
             <p className="text-[13px] font-medium text-muted-foreground">
-              Eventos de los próximos días
+              {subtitle}
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Time quick filters */}
+      <div className="mb-3 fade-up">
+        <TimeFilter />
       </div>
 
       {/* Filters */}
@@ -83,54 +113,13 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
       </div>
 
       {hasEvents ? (
-        <div className="space-y-8">
-          {Array.from(grouped.entries()).map(([date, allDateEvents]) => {
-            const { label, isTomorrow } = getDateLabel(date);
-
-            // Separate recurring from unique events per date
-            const dateEvents = allDateEvents.filter((e) => !e.isRecurring);
-            const recurringDateEvents = allDateEvents.filter((e) => e.isRecurring);
-
-            if (dateEvents.length === 0 && recurringDateEvents.length === 0) return null;
-
-            return (
-              <section key={date} className="fade-up">
-                {/* Date group header */}
-                <div className="mb-3 flex items-center gap-2.5">
-                  {isTomorrow && (
-                    <span className="rounded-md bg-neon-amber/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neon-amber border border-neon-amber/20">
-                      Mañana
-                    </span>
-                  )}
-                  <h2 className="font-display text-sm font-semibold text-muted-foreground capitalize">
-                    {isTomorrow ? formatDateES(date) : label}
-                  </h2>
-                  <span className="text-[11px] text-text-muted">
-                    ({dateEvents.length > 0
-                      ? `${dateEvents.length}${recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""}`
-                      : `${recurringDateEvents.length} recurrentes`})
-                  </span>
-                </div>
-
-                {dateEvents.length > 0 && (
-                  <EventList events={dateEvents} />
-                )}
-
-                {recurringDateEvents.length > 0 && (
-                  <div className="mt-4">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <RotateCw className="h-3 w-3 text-text-muted" strokeWidth={2} />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                        Siempre disponible
-                      </span>
-                    </div>
-                    <EventList events={recurringDateEvents} />
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
+        <ProximosEventsClient
+          groups={Array.from(grouped.entries()).map(([date, allDateEvents]) => ({
+            date,
+            events: allDateEvents.filter((e) => !e.isRecurring),
+            recurringEvents: allDateEvents.filter((e) => e.isRecurring),
+          }))}
+        />
       ) : (
         <EmptyState variant={hasFilters ? "search" : "upcoming"} />
       )}
