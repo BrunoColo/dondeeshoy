@@ -4,7 +4,7 @@ import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { normalizeWhitespace, unique } from "./utils";
+import { extractBestImageUrl, extractMoneyValues, normalizeWhitespace, unique } from "./utils";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Filters — aggressively exclude non-public, non-Uruguay, club/membership
@@ -313,12 +313,34 @@ export class TicketFacilScraper extends BaseScraper {
 
     let rawDateText: string | null = null;
 
-    // Try range format first: "27 al 28 de febrero de 2026"
-    const rangeMatch = dateTimeBlock.match(
-      /Fecha:\s*(\d{1,2})\s+al\s+\d{1,2}\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+    // Try range formats first:
+    // 1) "27 al 28 de febrero de 2026"
+    // 2) "2 de enero al 28 de febrero de 2026"
+    // 3) "2 de enero de 2026 al 28 de febrero de 2026"
+    const rangeSameMonth = dateTimeBlock.match(
+      /Fecha:\s*(\d{1,2})\s+al\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i,
     );
-    if (rangeMatch) {
-      const [, day, monthName, year] = rangeMatch;
+    const rangeCrossMonth = dateTimeBlock.match(
+      /Fecha:\s*(\d{1,2})\s+de\s+(\w+)\s+al\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+    );
+    const rangeWithYearBoth = dateTimeBlock.match(
+      /Fecha:\s*(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})\s+al\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+    );
+
+    if (rangeWithYearBoth) {
+      const [, day, monthName, year] = rangeWithYearBoth;
+      const month = MONTH_MAP[monthName.toLowerCase()];
+      if (month) {
+        rawDateText = `${year}-${month}-${day.padStart(2, "0")}`;
+      }
+    } else if (rangeCrossMonth) {
+      const [, day, monthName, , , year] = rangeCrossMonth;
+      const month = MONTH_MAP[monthName.toLowerCase()];
+      if (month) {
+        rawDateText = `${year}-${month}-${day.padStart(2, "0")}`;
+      }
+    } else if (rangeSameMonth) {
+      const [, day, , monthName, year] = rangeSameMonth;
       const month = MONTH_MAP[monthName.toLowerCase()];
       if (month) {
         rawDateText = `${year}-${month}-${day.padStart(2, "0")}`;
@@ -362,7 +384,7 @@ export class TicketFacilScraper extends BaseScraper {
     }
 
     // ── Image ──
-    const imageUrl = `https://accesofacil.com/images/acceso/events/images/${sourceId}/eventLittleImg.jpeg`;
+    const imageUrl = this.extractImageUrl($, sourceUrl, sourceId);
 
     // ── Prices — fetch the /registerToEvent/ page for structured price data ──
     // The /info/ page has no price table; prices live on the purchase page
@@ -460,20 +482,63 @@ export class TicketFacilScraper extends BaseScraper {
 
       const html = await res.text();
 
-      // Extract prices from initPrice="NNN" attributes on price spans
       const prices: number[] = [];
-      const initPriceMatches = html.matchAll(/initPrice="(\d+)"/g);
+
+      // Extract prices from initPrice="NNN" attributes on price spans
+      const initPriceMatches = html.matchAll(/initPrice="(\d+(?:\.\d+)?)"/g);
       for (const m of initPriceMatches) {
-        const v = parseInt(m[1], 10);
-        if (!isNaN(v) && v > 0 && v < 1_000_000) {
-          prices.push(v);
+        const v = Number.parseFloat(m[1]);
+        if (Number.isFinite(v) && v > 0 && v < 1_000_000) {
+          prices.push(Math.round(v));
         }
       }
 
-      return prices;
+      // Extract prices from visible price cells (fallback for cases without initPrice)
+      const $ = cheerio.load(html);
+      $(".ticketTypeRowPrice, td.ticketTypeRowPrice").each((_, el) => {
+        const text = normalizeWhitespace($(el).text());
+        prices.push(...extractMoneyValues(text));
+      });
+
+      // Some pages include data-price attributes
+      $("[data-price]").each((_, el) => {
+        const raw = $(el).attr("data-price") ?? "";
+        const normalized = raw.replace(/[^\d]/g, "");
+        const v = Number.parseInt(normalized, 10);
+        if (Number.isFinite(v) && v > 0 && v < 1_000_000) {
+          prices.push(v);
+        }
+      });
+
+      const uniquePrices = unique(prices.filter((v) => Number.isFinite(v) && v > 0));
+      // Ticketfacil sometimes leaks the qty selector value ("1"). Treat it as noise.
+      const cleaned = uniquePrices.filter((v) => v > 1);
+
+      return cleaned;
     } catch {
       console.log(`[ticketfacil] Could not fetch prices from ${registerUrl}`);
       return [];
     }
+  }
+
+  private extractImageUrl(
+    $: cheerio.CheerioAPI,
+    baseUrl: string,
+    sourceId: string,
+  ): string {
+    const imageUrl = extractBestImageUrl($, baseUrl, [
+      "img[src*='eventLittleImg']",
+      "img[src*='eventBigImg']",
+      "img[src*='eventImg']",
+      "img[alt*='Imagen de portada']",
+      "img[src*='/images/acceso/events/images/']",
+      "img",
+    ]);
+
+    if (imageUrl) return imageUrl;
+
+    const base = `https://accesofacil.com/images/acceso/events/images/${sourceId}`;
+    // Fallback to known asset path (PNG is most common; JPEG is a backup)
+    return `${base}/eventLittleImg.png`;
   }
 }

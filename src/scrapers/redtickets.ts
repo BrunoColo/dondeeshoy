@@ -5,6 +5,7 @@ import { scraperConfig } from "@/config/scraper-config";
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
 import {
+  extractBestImageUrl,
   fetchHtml,
   normalizeWhitespace,
   toAbsoluteUrl,
@@ -64,10 +65,13 @@ export class RedTicketsScraper extends BaseScraper {
       return null;
     }
 
-    const imageUrl =
-      $("meta[property='og:image']").attr("content") ??
-      $("img[src*='files.redtickets.uy']").first().attr("src") ??
-      null;
+    const imageUrl = extractBestImageUrl($, url, [
+      "img[src*='files.redtickets.uy']",
+      "img[data-src*='files.redtickets.uy']",
+      ".event-image img",
+      ".evento img",
+      "img",
+    ]);
 
     const category = this.extractCategory($);
 

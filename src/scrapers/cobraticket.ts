@@ -4,7 +4,7 @@ import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { extractMoneyValues, fetchHtml, normalizeWhitespace, toAbsoluteUrl, unique } from "./utils";
+import { extractBestImageUrl, extractMoneyValues, fetchHtml, normalizeWhitespace, toAbsoluteUrl, unique } from "./utils";
 
 /**
  * Regex to extract the event slug + id from CobraTicket event URLs.
@@ -302,21 +302,17 @@ export class CobraTicketScraper extends BaseScraper {
   }
 
   private extractImage($: cheerio.CheerioAPI): string | null {
-    // og:image is usually the best quality
-    const ogImage = $("meta[property='og:image']").attr("content");
-    if (ogImage) return ogImage;
+    const imageUrl = extractBestImageUrl($, scraperConfig.cobraticketBaseUrl, [
+      "img[src*='img.cobraticket.uy']",
+      "img[data-src*='img.cobraticket.uy']",
+      "img",
+    ]);
 
-    // Fallback: first significant image from cobraticket CDN
-    const cdnImg = $("img[src*='img.cobraticket.uy']")
-      .filter((_, el) => {
-        const src = $(el).attr("src") ?? "";
-        // Skip tiny thumbnails (w-72 prefix)
-        return !src.includes("/w-72/");
-      })
-      .first()
-      .attr("src");
+    if (imageUrl?.includes("/w-72/")) {
+      return null;
+    }
 
-    return cdnImg ?? null;
+    return imageUrl ?? null;
   }
 
   /**

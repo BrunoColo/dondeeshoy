@@ -17,6 +17,7 @@ export interface NormalizedEventInput {
   ticketUrl: string;
   priceMin: number | null;
   priceMax: number | null;
+  currency: "UYU" | "USD";
   isFree: boolean;
   ageRestriction: number | null;
   latitude: number | null;
@@ -87,6 +88,12 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     prices.length === 0 &&
     /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
 
+  const hasUsdHint = /\b(usd|u\$s|us\$|d[oó]lar(?:es)?)\b/i.test(bodyText);
+  const currency =
+    hasUsdHint || (priceMax !== null && priceMax < 50)
+      ? "USD"
+      : "UYU";
+
   // Use pre-extracted coordinates from scrapers that provide them (e.g., CobraTicket)
   const rawLatitude = typeof rawData.latitude === "number" ? rawData.latitude : null;
   const rawLongitude = typeof rawData.longitude === "number" ? rawData.longitude : null;
@@ -117,6 +124,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     ticketUrl: rawEvent.sourceUrl,
     priceMin,
     priceMax,
+    currency,
     isFree,
     ageRestriction: typeof rawData.ageRestriction === "number" ? rawData.ageRestriction : null,
     latitude: rawLatitude,

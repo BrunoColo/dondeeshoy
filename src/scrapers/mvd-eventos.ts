@@ -4,7 +4,7 @@ import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { fetchHtml, normalizeWhitespace, unique } from "./utils";
+import { extractBestImageUrl, fetchHtml, normalizeWhitespace, unique } from "./utils";
 
 // Months mapping for future use in date parsing
 const _MONTHS: Record<string, string> = {
@@ -135,12 +135,13 @@ export class MvdEventosScraper extends BaseScraper {
     ) || null;
 
     // Image
-    const imageUrl =
-      $("meta[property='og:image']").attr("content") ??
-      $("[class*='field--name-field-imagen-miniatura-listados'] img").first().attr("src") ??
-      $("[class*='field--name-field-imagen'] img").first().attr("src") ??
-      $("[class*='field--name-field-media-image'] img").first().attr("src") ??
-      null;
+    const imageUrl = extractBestImageUrl($, url, [
+      "[class*='field--name-field-imagen-miniatura-listados'] img",
+      "[class*='field--name-field-imagen'] img",
+      "[class*='field--name-field-media-image'] img",
+      "picture source",
+      "img",
+    ]);
 
     // Dates from field--name-field-fechas
     const dateText = this.extractDates($);

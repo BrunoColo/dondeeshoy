@@ -1,444 +1,296 @@
-# ¿Dónde es Hoy? — Plan de Implementación (5 Features prioritarias)
+# ¿Dónde es Hoy? — Plan Maestro v2
 
-> Fecha: 17 de febrero de 2026
-> Foco: utilidad situacional — que la gente decida qué hacer AHORA, no solo que vea eventos.
-
----
-
-## Resumen de features
-
-| # | Feature | Impacto | Complejidad | Costo |
-|---|---------|---------|-------------|-------|
-| 1 | Filtro rápido "Mañana / Este finde" en `/proximos` | 🔴 Muy alto | Baja | $0 |
-| 2 | Compartir evento (Web Share API + WhatsApp) | 🟡 Medio-alto | Muy baja | $0 |
-| 3 | Mini-mapa Leaflet en detalle de evento | 🟠 Alto | Baja | $0 (Leaflet + OSM tiles son gratis) |
-| 4 | Mejorar clasificación con IA (reducir "otro") | 🟠 Alto | Media | ~$0.01/evento (gpt-4o-mini) |
-| 5 | "Cerca de mí" — ordenar por distancia | 🟠 Alto | Media | $0 |
+> Fecha: 18 de febrero de 2026
+> Autor del plan: Claude Opus
+> TL;DR — El proyecto está sólido en funcionalidad base pero tiene dead code, bugs críticos (geolocation bloqueada por headers), el clasificador AI apenas funciona para eventos edge-case, el layout desperdicia espacio en desktop, y no hay monetización ni SEO básico. Este plan cubre 40+ mejoras organizadas por prioridad y dificultad.
 
 ---
 
-## Feature 1 — Filtro rápido temporal en `/proximos`
+## Resumen por Dificultad
 
-**Estado actual:** ✅ Implementado (17/02/2026) — pendiente validación manual final en UI
-
-### Qué hace
-Agrega una fila de botones rápidos **"Mañana" / "Este finde"** encima del listado de `/proximos`. El usuario toca uno y ve solo los eventos de esa ventana temporal. Por defecto no hay ninguno seleccionado (se muestra todo como ahora).
-
-### Cómo implementarlo paso a paso
-
-#### Paso 1: Agregar helper de fechas de fin de semana
-**Archivo:** `src/lib/format.ts`
-
-Agregar una función `getWeekendDatesUY()` que devuelva un `{ start: string, end: string }` con el sábado y domingo del fin de semana actual o próximo. Usar la lógica existente de `getTodayUY()` como base:
-- Si hoy es viernes → `{ start: hoy, end: domingo }`
-- Si hoy es sábado → `{ start: hoy, end: mañana }`
-- Si hoy es domingo → `{ start: hoy, end: hoy }`
-- Cualquier otro día → `{ start: próximo viernes, end: próximo domingo }`
-
-También agregar `getTodayUY()` que ya existe, confirmar que se puede reutilizar.
-
-#### Paso 2: Agregar el param `when` a los search params
-**Archivo:** `src/app/(main)/proximos/page.tsx`
-
-En `ProximosContent`, leer `params.when` (valores posibles: `"manana"`, `"finde"`). Según el valor:
-- `"manana"` → llamar `getUpcomingEvents(tomorrowUY, 0, filters)` (solo mañana)
-- `"finde"` → calcular fechas con `getWeekendDatesUY()` y usar `getEventsBetweenDates(start, end, filters)` (viernes a domingo)
-- sin param → comportamiento actual (`getUpcomingEvents(tomorrow, 14, filters)`)
-
-La query `getUpcomingEvents` ya existe en `src/lib/queries.ts` y acepta `startDate` + `daysAhead`. Para "mañana" se puede pasar `daysAhead=0`.
-
-#### Paso 3: Crear componente de pills temporales
-**Archivo:** Nuevo → `src/components/events/time-filter.tsx`
-
-Componente client (`"use client"`) que renderiza 2 botones pill:
-- **Mañana** — `?when=manana`
-- **Este finde** — `?when=finde`
-
-Lógica igual que los chips de `event-filters.tsx`: lee `searchParams`, usa `useRouter` + `useTransition` para navegar con `?when=X`. Si ya está activo, al tocar de nuevo quita el param (vuelve a "todos").
-
-Estilo: usar los mismos `cn()` + estilos neon que los chips existentes. Ponerle un color diferenciador (ej. `neon-cyan` o `neon-amber`). Debe verse como una fila horizontal scroll en mobile.
-
-#### Paso 4: Montar en la página
-**Archivo:** `src/app/(main)/proximos/page.tsx`
-
-Renderizar `<TimeFilter />` justo antes de `<EventFilters />`. Pasarle `className="mb-3"`.
-
-#### Paso 5: Ajustar header según filtro activo
-Cambiar el subtítulo "Eventos de los próximos días" dinámicamente:
-- `when=manana` → "Eventos de mañana"
-- `when=finde` → "Eventos de este fin de semana"
-
-### Archivos a tocar
-- `src/lib/format.ts` — agregar `getWeekendDatesUY()`
-- `src/components/events/time-filter.tsx` — nuevo componente
-- `src/app/(main)/proximos/page.tsx` — leer `when`, ajustar query y header
-
-### Criterio de aceptación
-- Tocar "Mañana" muestra solo eventos de mañana, "Este finde" muestra viernes+sábado+domingo
-- Los filtros de tipo/género/departamento siguen funcionando combinados con el temporal
-- Sin filtro temporal seleccionado, se ve todo como antes (14 días)
-- Funciona en mobile con scroll horizontal
+| Dificultad | Ítems |
+|---|---|
+| 1/5 (< 30 min) | #1, #2, #4, #5, #7, #9, #11, #17, #18, #32, #33, #34, #35, #36, #39, #41, #42, #43, #44, #45, #46, #47, #48 |
+| 2/5 (1-3 horas) | #10, #12, #14, #16, #19, #24, #25, #27, #28, #31, #37, #38, #40 |
+| 3/5 (3-8 horas) | #3, #6, #13, #15, #20, #22, #26, #30 |
+| 4/5 (1-2 días) | #8, #23, #29 |
+| 5/5 (3+ días) | #21 |
 
 ---
 
-## Feature 3 — Mini-mapa Leaflet en detalle de evento
+## CRÍTICO — Arreglar YA
 
-**Estado actual:** ✅ Implementado (17/02/2026) — mini-mapa en detalle cuando hay coordenadas válidas
+### #1 — Geolocation bloqueada por security headers `[Dificultad: 1/5]`
 
-### Qué hace
-Cuando un evento tiene coordenadas (`latitude`/`longitude`), muestra un mapa estático pequeño (~200px de alto) con un pin en la ubicación del venue, dentro de la página de detalle del evento. Si no hay coordenadas, no se muestra nada.
+En `next.config.ts`, el header `Permissions-Policy: geolocation=()` bloquea completamente la geolocalización del browser. "Cerca de mí" está roto en producción. Cambiar a `geolocation=(self)`.
 
-### Costo: $0
-Leaflet ya está instalado (`leaflet@^1.9.4`, `react-leaflet@^5.0.0`). Los tiles de OpenStreetMap son gratuitos. No hay tokens ni API keys necesarios.
+### #2 — Branding desactualizado — sigue diciendo "nightlife Montevideo" `[Dificultad: 1/5]`
 
-### Cómo implementarlo paso a paso
+- `manifest.ts` dice "Eventos nightlife en Montevideo"
+- `empty-state.tsx` dice "Parece que hoy Montevideo descansa"
+- `not-found.tsx` dice "qué hay esta noche"
 
-#### Paso 1: Crear componente `VenueMiniMap`
-**Archivo:** Nuevo → `src/components/events/venue-mini-map.tsx`
-
-Componente client (`"use client"`) que recibe `{ lat: number, lng: number, venueName: string }`.
-
-Usar los mismos imports que ya usa `event-map.tsx`:
-```tsx
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-```
-
-Configuración del mapa:
-- `center={[lat, lng]}`, `zoom={15}`
-- `style={{ height: "200px", width: "100%" }}`, `className="rounded-xl overflow-hidden"`
-- `zoomControl={false}`, `scrollWheelZoom={false}`, `dragging={false}`, `attributionControl={true}`
-- Un solo `<Marker>` en `[lat, lng]` con `<Popup>{venueName}</Popup>`
-- Tile URL: `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
-- Crear el ícono del marker reutilizando `createMarkerIcon()` de `event-map.tsx` (copiar la función o exportarla)
-
-Envolver todo en un `dynamic(() => import(...), { ssr: false })` porque Leaflet no funciona en SSR. Exportar el componente dinámico directamente.
-
-#### Paso 2: Importar dinámicamente en `event-detail.tsx`
-**Archivo:** `src/components/events/event-detail.tsx`
-
-Usar `next/dynamic`:
-```tsx
-import dynamic from "next/dynamic";
-const VenueMiniMap = dynamic(() => import("./venue-mini-map"), { ssr: false });
-```
-
-#### Paso 3: Renderizar el mapa condicionalmente
-**Archivo:** `src/components/events/event-detail.tsx`
-
-Después del bloque del venue (la card con `<MapPin>`), agregar:
-```tsx
-{event.latitude && event.longitude && (
-  <div className="mt-2">
-    <VenueMiniMap
-      lat={parseFloat(event.latitude)}
-      lng={parseFloat(event.longitude)}
-      venueName={event.venueName}
-    />
-  </div>
-)}
-```
-
-Nota: `event.latitude` y `event.longitude` son `string | null` (tipo `decimal` de Drizzle), hay que parsearlos a `number`.
-
-### Archivos a tocar
-- `src/components/events/venue-mini-map.tsx` — nuevo componente
-- `src/components/events/event-detail.tsx` — importar y renderizar
-
-### Criterio de aceptación
-- El mapa se muestra solo si hay coordenadas
-- El pin está centrado en el venue
-- No se rompe el SSR (import dinámico con `ssr: false`)
-- El mapa tiene bordes redondeados y se ve bien en mobile
-- No requiere ningún token ni API key
+Actualizar todo a "eventos en Uruguay" / "¿Dónde es Hoy?".
 
 ---
 
-## Feature 5 — "Cerca de mí" (ordenar por distancia)
+## UI / RESPONSIVENESS
 
-**Estado actual:** ✅ Implementado (17/02/2026) — geolocalización client-side + orden por distancia + etiqueta km/m
+### #3 — Sidebar en desktop con contenido útil `[Dificultad: 3/5]`
 
-### Qué hace
-Un botón "Cerca de mí" que pide permiso de ubicación al usuario (Geolocation API del browser), y reordena los eventos por distancia al usuario. Sin registro, sin guardar datos. La ubicación se usa solo en memoria del client.
+Actualmente todo está en `max-w-5xl` (1024px), dejando ~200px vacíos por lado en pantallas 1440px+. Opciones para ese espacio:
+- Sidebar derecho fijo en `lg:` con: filtros verticales, trending events, "Próximos eventos cerca tuyo", o espacio de sponsor/ad
+- Cambiar layout de `(main)/layout.tsx` a `max-w-7xl` con `grid lg:grid-cols-[1fr_300px]`
+- En mobile se colapsa y los filtros quedan como están (chips horizontales)
 
-### Cómo implementarlo paso a paso
+### #4 — Agregar clase CSS `scrollbar-none` `[Dificultad: 1/5]`
 
-#### Paso 1: Crear hook `useGeolocation`
-**Archivo:** Nuevo → `src/hooks/use-geolocation.ts`
+Usada en `event-filters.tsx`, `time-filter.tsx` pero nunca definida en `globals.css`. Las filas de filtros muestran scrollbar feo en algunos browsers. Agregar:
 
-Hook que expone `{ latitude, longitude, loading, error, requestLocation }`:
-```ts
-export function useGeolocation() {
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError("Geolocalización no disponible");
-      return;
-    }
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLoading(false);
-      },
-      (err) => {
-        setError(err.message);
-        setLoading(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 }
-    );
-  }, []);
-
-  return { position, loading, error, requestLocation };
-}
+```css
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 ```
 
-#### Paso 2: Crear función de distancia haversine
-**Archivo:** `src/lib/utils.ts` (agregar al final)
+### #5 — Search input responsive en mobile `[Dificultad: 1/5]`
 
-```ts
-/** Distancia en km entre dos puntos (haversine) */
-export function haversineKm(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number
-): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 +
-            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-            Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-```
+En `header.tsx`, el input tiene `w-[130px]` hardcodeado. En pantallas de 320px queda apretado. Cambiar a `flex-1` con `min-w-0` cuando está expandido.
 
-#### Paso 3: Agregar botón "Cerca de mí" en la UI
-**Archivo:** `src/components/events/event-filters.tsx` o crear un componente separado `src/components/events/nearby-button.tsx`
+### #6 — Event detail — layout 2 columnas en desktop `[Dificultad: 3/5]`
 
-Un botón con icono `<Navigation />` (de lucide-react) que al tocarse llama a `requestLocation()`. Mientras carga muestra un spinner. Una vez obtenida la ubicación, se guarda en un state/context y se aplica al listado.
+En `evento/[slug]/page.tsx`, actualmente es full-width single column. En `md:` y arriba, usar grid de 2 columnas: imagen+info izquierda, mapa+tickets derecha.
 
-#### Paso 4: Reordenar eventos en el client
-**Opción recomendada:** hacer el sort en el client, no en el server.
+### #7 — Event detail — `pb-32` condicional `[Dificultad: 1/5]`
 
-En la página principal (`page.tsx`) o en `event-list.tsx`, envolver los eventos en un componente client que:
-1. Recibe los eventos como props (ya cargados del server)
-2. Si el usuario activó "cerca de mí", ordena por distancia haversine usando `event.latitude`/`event.longitude`
-3. Muestra la distancia en cada card ("a 2.3 km")
+`event-detail.tsx` siempre aplica `pb-32` (128px de padding inferior). Solo debería aplicarse cuando hay `ticketUrl` (el botón CTA flotante). Sin ticket → `pb-8` normal.
 
-Para esto, necesitar hacer que `page.tsx` (que es server component) pase los eventos a un wrapper client. La estructura sería:
+### #8 — Map page — sidebar con lista en desktop `[Dificultad: 4/5]`
 
-```
-page.tsx (server) → carga eventos → pasa a <ProximosClient events={...} />
-ProximosClient (client) → tiene el state de ubicación → ordena y renderiza
-```
+En `mapa/page.tsx`, en `lg:` mostrar un panel lateral scrolleable con la lista de eventos al lado del mapa (estilo Google Maps). En mobile queda solo el mapa.
 
-Alternativamente, se puede mantener la página server y solo envolver el `<EventList>` en un client component que reciba la ubicación del usuario y reordene.
+### #9 — Card animations stagger — extender a 20+ `[Dificultad: 1/5]`
 
-#### Paso 5: Mostrar distancia en la card
-**Archivo:** `src/components/events/event-card.tsx`
-
-Agregar prop opcional `distance?: number` (en km). Si existe, mostrar debajo del venue:
-```tsx
-{distance != null && (
-  <span className="text-[10px] text-neon-cyan">
-    📍 {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
-  </span>
-)}
-```
-
-### Archivos a tocar
-- `src/hooks/use-geolocation.ts` — nuevo hook
-- `src/lib/utils.ts` — agregar `haversineKm()`
-- `src/components/events/nearby-button.tsx` — nuevo componente (botón)
-- `src/components/events/event-card.tsx` — prop `distance` opcional
-- `src/app/(main)/proximos/page.tsx` — integrar con el listado (wrapper client o refactor parcial)
-
-### Criterio de aceptación
-- El botón pide permiso de ubicación (no se pide automáticamente)
-- Los eventos se reordenan por distancia, los más cercanos primero
-- Se muestra la distancia en cada card
-- Eventos sin coordenadas van al final
-- No se guarda ni envía la ubicación del usuario a ningún servidor
-- Si el usuario niega el permiso, se muestra un mensaje y todo sigue funcionando normal
+En `globals.css`, solo hay 10 `nth-child` delays para `.card-animate`. Los eventos del 11 en adelante se animan todos al mismo tiempo. Extender a 20 o usar CSS custom property con `calc()`.
 
 ---
 
-## Feature 2 — Compartir evento
+## CLASIFICADOR AI / CATEGORÍA "OTROS"
 
-**Estado actual:** ✅ Implementado (17/02/2026) — Web Share + fallback clipboard + botón WhatsApp
+### #10 — Expandir keywords del clasificador `[Dificultad: 2/5]`
 
-### Qué hace
-Agrega un botón de compartir en dos lugares:
-1. **En la card de evento** — ícono pequeño de share
-2. **En el detalle del evento** — botón más prominente
+En `classifier.ts`, agregar patrones faltantes:
+- Stand-up/humor: `stand.?up`, `humor`, `monologuista`, `impro`, `improvisación`, `comedy`
+- Yoga/bienestar: `yoga`, `pilates`, `crossfit`, `fitness`, `wellness`, `bienestar`
+- Tango/folklore: `milonga`, `tango`, `murga`, `candombe`, `folklore`, `chamam[eé]`
+- Libros: `presentaci[oó]n de libro`, `firma de libros`, `lanzamiento editorial`
+- Galas: `gala`, `premiaci[oó]n`, `ceremonia`
+- Bingo/social: `bingo`, `loter[ií]a`, `rifa`
 
-Usa la **Web Share API** nativa en mobile (abre el sheet nativo de compartir del OS). En desktop, fallback a copiar link al clipboard. También agrega un botón de **WhatsApp direct share** como alternativa siempre visible.
+Incorporar en las categorías existentes más cercanas (cultural para libros, taller para yoga, etc.)
 
-### Cómo implementarlo paso a paso
+### #11 — Aumentar budget de AI classification `[Dificultad: 1/5]`
 
-#### Paso 1: Crear componente `ShareButton`
-**Archivo:** Nuevo → `src/components/shared/share-button.tsx`
+En `pipeline.ts`, `AI_CLASSIFICATION_MAX_PER_BATCH` es 10. Si un batch tiene 50 eventos y 20 caen a "otro", solo 10 se reclasifican con AI. Subir a 25-30.
 
-Componente client que recibe `{ title: string, url: string, variant: "icon" | "full" }`.
+### #12 — Agregar géneros faltantes `[Dificultad: 2/5]`
 
-```tsx
-"use client";
+Géneros que faltan: folklore/candombe/murga, salsa/bachata/latina, reggae/ska, tango. Actualizar las regex de géneros en `classifier.ts`.
 
-function ShareButton({ title, url, variant = "icon" }: Props) {
-  const canShare = typeof navigator !== "undefined" && !!navigator.share;
+### #13 — Cron de reclasificación de "otros" `[Dificultad: 3/5]`
 
-  const handleShare = async () => {
-    if (canShare) {
-      await navigator.share({ title, url });
-    } else {
-      await navigator.clipboard.writeText(url);
-      // mostrar toast "Link copiado"
-    }
-  };
+El script `reclassify-otros.mjs` existe pero no corre automáticamente. Crear un endpoint API + cron job en `vercel.json` que reclasifique eventos "otro" periódicamente con AI.
 
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+### #14 — Agregar chips de género en la UI `[Dificultad: 2/5]`
 
-  return (
-    <div className="flex items-center gap-2">
-      <button onClick={handleShare}>
-        {/* icono Share2 de lucide-react */}
-      </button>
-      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-        {/* icono de WhatsApp (SVG inline sencillo) o texto "WhatsApp" */}
-      </a>
-    </div>
-  );
-}
-```
-
-Para el variant `"icon"`: solo muestra los iconos pequeños.
-Para el variant `"full"`: muestra botones con texto "Compartir" y "WhatsApp".
-
-#### Paso 2: Agregar en event-card.tsx
-**Archivo:** `src/components/events/event-card.tsx`
-
-Agregar `<ShareButton variant="icon" />` en la esquina superior derecha de la card (al lado del badge de tipo, o en un overlay sobre la imagen). El `url` se construye como:
-```ts
-const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/evento/${slug}`;
-```
-
-Usar `e.preventDefault()` y `e.stopPropagation()` en el botón de share para que no navegue al detalle del evento al tocar compartir.
-
-#### Paso 3: Agregar en event-detail.tsx
-**Archivo:** `src/components/events/event-detail.tsx`
-
-Agregar `<ShareButton variant="full" />` después de la descripción del evento, antes del CTA de tickets. Usar el título del evento y la URL canónica.
-
-### Archivos a tocar
-- `src/components/shared/share-button.tsx` — nuevo componente
-- `src/components/events/event-card.tsx` — agregar botón share
-- `src/components/events/event-detail.tsx` — agregar botón share
-
-### Criterio de aceptación
-- En mobile se abre el sheet nativo al compartir
-- En desktop se copia el link y se muestra feedback ("Copiado")
-- El botón de WhatsApp abre WhatsApp con el texto prellenado
-- En la card, el botón de share no navega al detalle del evento
-- Funciona sin JavaScript del server (todo client-side)
+`event-filters.tsx` acepta `availableGenres` como prop pero nunca renderiza los chips de género. Agregar una tercera fila de chips para filtrar por género musical.
 
 ---
 
-## Feature 4 — Mejorar clasificación con IA (reducir "otro")
+## NUEVAS FEATURES
 
-**Estado actual:** ✅ Implementado (17/02/2026) — prompt mejorado + budget por lote + métrica de clasificación + script de reclasificación
+### #15 — Favoritos / Guardar eventos `[Dificultad: 3/5]`
 
-### Qué hace
-Completa la integración de OpenAI como fallback de clasificación. El clasificador heurístico (regex en `classifier.ts`) ya cubre muchos casos, pero los eventos que caen en `"otro"` necesitan un pase extra por IA. El sistema ya tiene `ai-client.ts` con `classifyEventWithAi()` funcionando y `pipeline.ts` lo invoca, pero falta:
-1. Ampliar las reglas heurísticas para cubrir más casos sin IA
-2. Asegurar que el threshold de confianza y el budget de IA estén bien calibrados
-3. Reclasificar el backlog de eventos existentes marcados como "otro"
+Sin necesidad de auth: guardar favoritos en `localStorage`. Ícono de corazón en cada card. Página `/favoritos` o sección en sidebar.
+- Funciona offline, persiste entre sesiones.
 
-### Cómo implementarlo paso a paso
+### #16 — Sitemap.xml dinámico `[Dificultad: 2/5]`
 
-#### Paso 1: Auditar y ampliar reglas heurísticas
-**Archivo:** `src/processing/classifier.ts`
+Crear `src/app/sitemap.ts` que genere URLs para todos los eventos activos. Crucial para SEO.
 
-Ya se hicieron mejoras recientes (se agregaron keywords para deportivo, taller, etc). Seguir expandiendo:
+### #17 — robots.txt `[Dificultad: 1/5]`
 
-- Revisar los eventos activos en DB que están marcados como `"otro"` y buscar patrones comunes que se puedan agregar como regex. Correr una query:
-  ```sql
-  SELECT name, venue_name, description FROM events WHERE event_type = 'otro' AND status = 'active';
-  ```
-- Agregar los patrones que aparezcan (nombres de venues conocidos, palabras clave que se repiten).
+Crear `src/app/robots.ts` con directivas básicas de crawling.
 
-**Regla general:** si un patrón aparece en 3+ eventos, merece una regex. Si es un caso aislado, dejar que la IA lo resuelva.
+### #18 — PWA icons `[Dificultad: 1/5]`
 
-#### Paso 2: Calibrar el prompt de IA
-**Archivo:** `src/processing/ai-client.ts`
+`manifest.ts` no tiene iconos definidos. Agregar iconos 192x192 y 512x512 en `public/` para "Add to Home Screen".
 
-El prompt actual ya es bueno. Mejoras sugeridas:
-- Agregar al system prompt: `"Si el evento es una carrera, trail, MTB, triatlón, travesía a nado, desafío físico, o competencia deportiva amateur, clasificarlo como 'deportivo'."`
-- Agregar: `"Si el evento incluye DJ's, line-up, o empieza después de las 22:00, clasificar como 'fiesta'."`
-- Agregar ejemplos few-shot si hay budget de tokens (2-3 ejemplos con nombre→tipo esperado).
+### #19 — Open Graph image por defecto `[Dificultad: 2/5]`
 
-#### Paso 3: Verificar integración en pipeline
-**Archivo:** `src/processing/pipeline.ts`
+En `layout.tsx` no hay `og:image`. Crear una imagen OG estática o dinámica con `next/og` para que los shares en redes sociales se vean bien.
 
-El pipeline ya llama a `shouldUseAiClassification()` y si es true llama a `classifyEventWithAi()`. Verificar:
-- Que `AI_BUDGET_PER_BATCH` (actualmente 6) sea suficiente. Si hay muchos "otro" por batch, subir a 10-15.
-- Que el resultado de IA se guarde con `confidenceScore` en la DB.
-- Que si la IA también devuelve "otro" con baja confianza, el evento quede marcado pero no se reintente en cada scrape.
+### #20 — Marcar eventos pasados automáticamente `[Dificultad: 3/5]`
 
-#### Paso 4: Script de reclasificación de backlog
-**Archivo:** Nuevo → `scripts/reclassify-otros.mjs`
+Listado en PROGRESS.md como pendiente. Crear un cron que marque `status: 'past'` en eventos cuya fecha ya pasó. Evitar mostrar eventos viejos.
 
-Script Node.js que:
-1. Consulta todos los eventos con `event_type = 'otro'` y `status = 'active'`
-2. Para cada uno, corre `classifyEventWithAi()` con su nombre, descripción y venue
-3. Si IA devuelve un tipo con confidence >= 0.7, actualiza el registro en DB
-4. Loguea resultados: `"Evento X: otro → deportivo (0.92)"`
-5. Respeta rate limits de OpenAI (1-2 requests/segundo)
+### #21 — Notificaciones push para favoritos `[Dificultad: 5/5]`
 
-Costo estimado: con gpt-4o-mini a ~$0.15/1M input tokens, reclasificar 200 eventos cuesta menos de $0.01.
+"Tu evento guardado empieza en 1 hora". Requiere Service Worker, API de Push Notifications, y backend para enviar. Feature avanzada.
 
-#### Paso 5: Monitoreo continuo
-Agregar un log o métrica al final del pipeline que imprima:
-```
-[pipeline] Clasificación: 12 heurística, 4 IA, 1 quedó otro
-```
-Esto permite detectar si las reglas necesitan ajuste.
+### #22 — Compartir con imagen rica `[Dificultad: 3/5]`
 
-### Archivos a tocar
-- `src/processing/classifier.ts` — expandir reglas regex
-- `src/processing/ai-client.ts` — mejorar prompt
-- `src/processing/pipeline.ts` — verificar budget y logging
-- `scripts/reclassify-otros.mjs` — nuevo script de backlog
+Generar OG images dinámicas por evento usando `next/og` (ImageResponse API). Cada evento tendría su propia card visual al compartir en WhatsApp/Instagram.
 
-### Criterio de aceptación
-- Menos del 10% de eventos activos quedan como "otro"
-- Los filtros por tipo (deportivo, taller, etc.) muestran resultados reales y útiles
-- El costo de IA por batch de scraping es < $0.01
-- El script de reclasificación funciona sobre el backlog sin romper nada
+### #23 — Vista de calendario `[Dificultad: 4/5]`
+
+Agregar vista calendario mensual/semanal como alternativa a la lista en `/proximos`. Mostrar dots por día con eventos.
+
+### #24 — "Exportar a Google Calendar / Apple Calendar" `[Dificultad: 2/5]`
+
+Botón en event detail que genere un `.ics` file o link `calendar.google.com/calendar/render?...` para agregar el evento al calendario personal.
+
+### #25 — Dedup de views con sesión `[Dificultad: 2/5]`
+
+`view-tracker.tsx` no tiene dedup. Refrescar la página 100 veces = 100 views. Usar cookie o `sessionStorage` para contar max 1 view por sesión por evento.
 
 ---
 
-## Orden de implementación recomendado
+## MONETIZACIÓN
 
-| Orden | Feature | Motivo |
-|-------|---------|--------|
-| 1° | **Filtro temporal** (Hoy/Mañana/Finde) | Mayor impacto UX, menor complejidad |
-| 2° | **Compartir evento** | Muy sencillo, alto impacto social/viral |
-| 3° | **Mini-mapa en detalle** | Sencillo con Leaflet ya instalado, mejora decisión del usuario |
-| 4° | **Mejorar clasificación IA** | Base necesaria para que los filtros de tipo sean útiles |
-| 5° | **Cerca de mí** | Más complejo (requiere refactor parcial a client), dejarlo para el final |
+### #26 — Eventos destacados / Promoted events `[Dificultad: 3/5]`
+
+Modelo: organizadores pagan para que su evento aparezca primero, con badge "Destacado", borde dorado, y posición fija arriba del grid.
+- Agregar campo `promoted: boolean` y `promotedUntil: date` al schema de eventos.
+- Panel admin básico o formulario de contacto para contratar.
+
+### #27 — Banner ads en sidebar desktop `[Dificultad: 2/5]`
+
+El espacio lateral que sobra en desktop (punto #3) es perfecto para ads. Opciones:
+- Google AdSense
+- Ads directos de venues/productoras uruguayas (más $, menos molesto)
+- Affiliate links a ticket sellers (comisión por venta)
+
+### #28 — Affiliate links en tickets `[Dificultad: 2/5]`
+
+Los botones "Comprar entradas" ya llevan a RedTickets, Ticketfácil, etc. Negociar programa de afiliados con estas plataformas para ganar comisión por click/venta.
+
+### #29 — "Publicá tu evento" — formulario de submit `[Dificultad: 4/5]`
+
+Crear página `/publicar` donde organizadores independientes suban su evento manualmente (con review). Versión gratis = evento normal, versión paga = promoted.
+
+### #30 — Newsletter semanal `[Dificultad: 3/5]`
+
+"Los mejores eventos de esta semana" por email. Capturar emails con un CTA en la home. Monetizable con sponsors en el email.
+
+### #31 — Partnerships con venues `[Dificultad: 2/5]`
+
+Páginas de venue con branding propio, logo, info de contacto, todos sus eventos listados. Cobrar suscripción mensual a venues por "perfil verificado".
 
 ---
 
-## Dependencias entre features
+## LIMPIEZA / DEAD CODE
 
-- Feature 3 (Cerca de mí) necesita que los eventos tengan coordenadas — depende indirectamente de un buen geocoder
-- Feature 5 (Clasificación IA) mejora Feature 1 indirectamente (si los tipos son correctos, el filtro temporal por tipo funciona mejor)
-- Las demás son independientes entre sí
+### #32 — Borrar archivos muertos `[Dificultad: 1/5]`
+
+- `navigation.ts` — nunca importado, header y bottom-nav definen NAV_ITEMS inline
+- `api.ts` — `ApiResponse<T>` nunca usado
+- `admin.ts` — `getSupabaseAdmin()` nunca referenciado
+- `src/app/api/events/[id]/route.ts` — placeholder que retorna string estático
+- CSS de Mapbox en `globals.css` (`.mapboxgl-popup-content`) — migrado a Leaflet
+
+### #33 — Consolidar NAV_ITEMS `[Dificultad: 1/5]`
+
+`header.tsx` y `bottom-nav.tsx` definen arrays de navegación duplicados. Usar el ya existente `config/navigation.ts` como single source of truth (en vez de borrarlo, usarlo).
+
+### #34 — Limpiar scripts de debug `[Dificultad: 1/5]`
+
+Scripts como `check-cities.mjs`, `check-edge-cases.mjs`, `test-ticketfacil-raw.mjs` son herramientas de debugging one-off. Mover a carpeta `scripts/debug/` o borrar.
+
+### #35 — Reducir `listColumns` en queries `[Dificultad: 1/5]`
+
+`queries.ts` selecciona `description`, `ticketUrl`, `venueAddress`, `latitude`, `longitude` para la lista de cards, pero las cards nunca muestran `description`. Remover campos innecesarios para reducir payload JSON.
+
+### #36 — Tabla `venues` sin usar `[Dificultad: 1/5]`
+
+El schema define una tabla `venues` pero los eventos embeben venue data directamente. Decidir: implementar la relación o borrar el schema.
 
 ---
 
-**Última actualización:** 17 de febrero de 2026
+## PERFORMANCE
+
+### #37 — NeonParallax condicional `[Dificultad: 2/5]`
+
+`layout.tsx` renderiza 2 `motion.div` full-viewport en todas las páginas, incluyendo el mapa donde están tapados. Lazy-load o no renderizar en `/mapa`.
+
+### #38 — Reducir blur/noise en mobile `[Dificultad: 2/5]`
+
+`globals.css` tiene `body::before` con SVG noise filter y `body::after` con `blur(90px)` animado. Esto puede ser pesado en móviles gama baja. Simplificar o desactivar en `prefers-reduced-motion`.
+
+### #39 — ISR más corto `[Dificultad: 1/5]`
+
+Home y Próximos revalidan cada 3600s (1 hora). Para una plataforma de "hoy", un evento nuevo tarda hasta 1 hora en aparecer. Bajar a 300-600s.
+
+### #40 — Agregar `loading.tsx` a las rutas `[Dificultad: 2/5]`
+
+No hay archivos `loading.tsx` en las rutas del App Router. Agregar skeletons instantáneos para mejorar perceived performance durante navegación.
+
+---
+
+## ACCESIBILIDAD
+
+### #41 — `aria-pressed` en filtros `[Dificultad: 1/5]`
+
+Los botones de filtro en `event-filters.tsx` no comunican estado a screen readers. Agregar `aria-pressed={isActive}`.
+
+### #42 — Alt text en imágenes de cards `[Dificultad: 1/5]`
+
+`event-card.tsx` usa `alt=""` en las imágenes. Cambiar a `alt={event.name}`.
+
+### #43 — Skip-to-content link `[Dificultad: 1/5]`
+
+No existe. Agregar link invisible que aparece con focus para keyboard navigation.
+
+### #44 — Contraste de `text-muted` `[Dificultad: 1/5]`
+
+`--text-muted` (`#475569`) sobre fondo `#06060C` da ratio ~3.9:1, por debajo del mínimo WCAG AA (4.5:1). Subir a ~`#64748b`.
+
+---
+
+## SEO
+
+### #45 — Canonical URLs en eventos `[Dificultad: 1/5]`
+
+Páginas de eventos no setean `alternates.canonical`. Agregar para evitar contenido duplicado.
+
+### #46 — Geo meta tags `[Dificultad: 1/5]`
+
+Agregar `<meta name="geo.region" content="UY">` y `geo.placename` para mejorar búsqueda local.
+
+### #47 — JSON-LD `startDate` fallback `[Dificultad: 1/5]`
+
+En `evento/[slug]/page.tsx`, cuando no hay hora, el fallback es `T20:00:00`. Para eventos diurnos esto es incorrecto. Omitir el componente de hora o usar `T00:00:00`.
+
+### #48 — Richer `og:description` en eventos `[Dificultad: 1/5]`
+
+Actualmente es "Nombre en Venue — fecha". Incluir precio, tipo, y primera línea de descripción.
+
+---
+
+## Decisiones Tomadas
+
+- Sidebar desktop > ads genéricos (mejor UX y monetizable)
+- Favoritos en localStorage > auth obligatoria (barrera de entrada cero)
+- Expandir clasificador regex primero > depender 100% de AI (más barato y predecible)
+- `max-w-7xl` con sidebar > mantener `max-w-5xl` centrado (aprovecha espacio)
+
+## Verificación Post-Implementación
+
+Después de cada grupo de cambios:
+1. Correr `npm run build` para verificar que no hay errores de TypeScript.
+2. Testear en Chrome DevTools con device toolbar (320px, 375px, 768px, 1024px, 1440px).
+3. Verificar Lighthouse scores (Performance, SEO, Accessibility).
+4. Para el clasificador: correr `reclassify-otros.mjs` sobre datos reales y medir reducción de % de "otros".
+
+---
+
+**Última actualización:** 18 de febrero de 2026

@@ -1,133 +1,169 @@
-# ¿Dónde es Hoy? — PROGRESS (nuevo ciclo)
+# ¿Dónde es Hoy? — PROGRESS (Plan Maestro v2)
 
-> Tracker operativo del plan actualizado a eventos sociales.
-> Se limpia historial viejo y se prioriza lo que falta.
+> Tracker operativo del Plan Maestro v2 (18/02/2026).
+> Cada ítem referencia el número del plan. Marcar ✅ al completar.
 
 ---
 
 ## Estado General
 
-- **Fecha de corte:** 17/02/2026
-- **Fase activa:** Reenfoque social + filtros + IA + mapa estable
-- **Estado global:** 🟡 En progreso
-- **Bloqueador principal de UX:** mapa no confiable en producción con setup actual
+- **Fecha de corte:** 18/02/2026
+- **Fase activa:** Plan Maestro v2 — ejecución por prioridad
+- **Estado global:** ��� Iniciando
+- **Referencia:** Ver `PLAN.md` para descripción completa de cada ítem
 
 ---
 
-## Qué ya está sólido (base existente)
+## Base Consolidada (pre-v2)
 
-- ✅ Scraping multi-fuente funcionando (`redtickets`, `entraste`, `cartelera`, `mvd_eventos`)
-- ✅ Pipeline base (normalización, geocoder lookup, dedup, clasificación heurística)
+Lo siguiente ya estaba funcionando antes de este plan y no se re-trackea:
+
+- ✅ Scraping multi-fuente (`redtickets`, `entraste`, `cartelera`, `mvd_eventos`, `ticketfacil`, `cobraticket`)
+- ✅ Pipeline base (normalización, geocoder, dedup, clasificación heurística + AI fallback)
 - ✅ Frontend funcional (`/`, `/proximos`, `/evento/[slug]`, `/mapa`)
-- ✅ Filtros y búsqueda operativos
-- ✅ SEO base, JSON-LD y manifest PWA
-- ✅ Seguridad base para cron + locking
-
-> Nota: esto queda como base consolidada; no se vuelve a trackear granularmente.
-
----
-
-## Objetivos Activos (Sprint Grande)
-
-## 1) Reenfoque a eventos sociales
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Actualizar narrativa/descripcion global | ⬜ | Quitar enfoque exclusivamente nocturno |
-| Hero/tagline en home | ⬜ | Frase corta cerca del buscador |
-| Ajustes de metadata y manifest | ⬜ | Coherencia de marca |
-
-## 2) Tipos y filtros sociales
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Definir nueva taxonomía de tipos | ⬜ | concierto/cultural/deportivo/familiar/etc. |
-| Migrar enums y tipos TS/DB | ⬜ | Compatibilidad con data actual |
-| Actualizar badges/chips/colores | ⬜ | UI de filtros y cards |
-| Agregar filtros por ventana temporal | ⬜ | finde/semana/mes |
-| Agregar filtro por franja horaria | ⬜ | tarde/noche/todo el día |
-
-## 3) OpenAI en clasificación (completar)
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Fallback IA cuando regex falla | ⬜ | Especialmente en `otro` |
-| Estructura JSON con confidence | ⬜ | eventType + genre + confidence |
-| Integración en pipeline | ⬜ | Guardado y uso de confianza |
-| Script de reclasificación histórica | ⬜ | Reprocesar backlog `otro` |
-
-## 4) Mapa estable en Vercel
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Migrar a Leaflet + OSM | ⬜ | Eliminar dependencia de token Mapbox |
-| Rehacer componente de mapa | ⬜ | Tiles + markers + popup |
-| Limpiar lógica de fallback por token | ⬜ | `/mapa` siempre disponible |
-| Mini-mapa en detalle de evento | ⬜ | Si hay coordenadas |
-
-## 5) Geocoding y cobertura geográfica
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Fallback geocoder gratuito | ⬜ | Nominatim como respaldo |
-| Dejar de hardcodear Montevideo | ⬜ | Inferir ciudad/departamento |
-| Re-geocode de eventos sin coordenadas | ⬜ | Script de mantenimiento |
-
-## 6) Hardening técnico
-
-| Ítem | Estado | Notas |
-|---|---|---|
-| Validar params en API de eventos | ⬜ | Evitar valores inválidos |
-| Anti-inflado en views | ⬜ | rate limit + dedup por sesión |
-| Marcar eventos pasados automáticamente | ⬜ | `status = past` |
-| Reducir payload innecesario de listados | ⬜ | Optimización queries |
-| Ajuste accesibilidad viewport (zoom) | ⬜ | Mejor UX mobile |
+- ✅ Filtros por tipo, departamento y búsqueda de texto
+- ✅ Filtro temporal (Mañana / Este finde) en `/proximos`
+- ✅ Compartir evento (Web Share API + WhatsApp)
+- ✅ Mini-mapa Leaflet en detalle de evento
+- ✅ "Cerca de mí" — ordenar por distancia
+- ✅ Mapa principal con Leaflet + OSM (sin Mapbox)
+- ✅ Cron jobs de scraping en Vercel
+- ✅ Redis locking para evitar scrapes concurrentes
+- ✅ JSON-LD y metadata básica
 
 ---
 
-## Prioridad de Ejecución (acordada)
+## CRÍTICO
 
-1. 🔴 Tipos + filtros sociales
-2. 🔴 OpenAI clasificación
-3. 🔴 Mapa estable sin token
-4. 🟠 Geocoding/cobertura nacional
-5. 🟡 Rebranding visual/copy
-6. 🟡 Hardening técnico final
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 1 | Geolocation bloqueada por `Permissions-Policy` header | 1/5 | ⬜ | `next.config.ts` → `geolocation=(self)` |
+| 2 | Branding desactualizado ("nightlife Montevideo") | 1/5 | ⬜ | `manifest.ts`, `empty-state.tsx`, `not-found.tsx` |
 
 ---
 
-## Riesgos Activos
+## UI / Responsiveness
 
-| Riesgo | Impacto | Mitigación | Estado |
-|---|---|---|---|
-| Migración de enums de evento en DB | Medio | migración gradual + compatibilidad temporal | 🟡 |
-| Costo por uso IA si se dispara | Medio | fallback selectivo + batch + cache | 🟡 |
-| Calidad geocoder gratuito (rate limit) | Medio | lookup local + cola + cache | 🟡 |
-| Cambios de estructura en sitios scrapeados | Alto | monitoreo y mantenimiento por fuente | 🟡 |
-
----
-
-## Definición de Hecho (DoD) de este ciclo
-
-Se considera completado cuando:
-
-- Nuevos tipos sociales están activos en DB + frontend
-- La mayoría de `otro` queda reclasificada con IA o reglas
-- El mapa funciona en Vercel mostrando calles y marcadores
-- Los filtros reflejan eventos sociales y no solo nocturnos
-- Home comunica claramente el nuevo posicionamiento
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 3 | Sidebar desktop con contenido útil | 3/5 | ⬜ | `max-w-7xl` + `grid lg:grid-cols-[1fr_300px]` |
+| 4 | Clase CSS `scrollbar-none` en globals.css | 1/5 | ⬜ | Usada pero nunca definida |
+| 5 | Search input responsive en mobile | 1/5 | ⬜ | `w-[130px]` → `flex-1 min-w-0` |
+| 6 | Event detail — layout 2 columnas en desktop | 3/5 | ⬜ | Grid `md:grid-cols-2` |
+| 7 | Event detail — `pb-32` condicional | 1/5 | ⬜ | Solo si hay `ticketUrl` |
+| 8 | Map page — sidebar con lista en desktop | 4/5 | ⬜ | Estilo Google Maps en `lg:` |
+| 9 | Card animations stagger — extender a 20+ | 1/5 | ⬜ | `globals.css` nth-child delays |
 
 ---
 
-## Próximos Pasos Inmediatos
+## Clasificador AI / Categoría "Otros"
 
-1. Diseñar taxonomía final de tipos y mapping con tipos viejos.
-2. Implementar cambios de enums/types/filtros.
-3. Integrar fallback OpenAI en clasificación.
-4. Migrar mapa a Leaflet + OpenStreetMap.
-5. Ejecutar reclasificación y regeocode de backlog.
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 10 | Expandir keywords del clasificador | 2/5 | ⬜ | Stand-up, yoga, tango, libros, galas, bingo |
+| 11 | Aumentar budget AI classification | 1/5 | ⬜ | `AI_CLASSIFICATION_MAX_PER_BATCH` → 25-30 |
+| 12 | Agregar géneros faltantes | 2/5 | ⬜ | Folklore, salsa, reggae, tango |
+| 13 | Cron de reclasificación de "otros" | 3/5 | ⬜ | Endpoint API + cron en `vercel.json` |
+| 14 | Chips de género en la UI | 2/5 | ⬜ | Tercera fila en `event-filters.tsx` |
 
 ---
 
-**Última actualización:** 17/02/2026
-**Modo:** Ejecución de plan grande
+## Nuevas Features
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 15 | Favoritos / Guardar eventos | 3/5 | ⬜ | `localStorage`, corazón en cards, `/favoritos` |
+| 16 | Sitemap.xml dinámico | 2/5 | ⬜ | `src/app/sitemap.ts` |
+| 17 | robots.txt | 1/5 | ⬜ | `src/app/robots.ts` |
+| 18 | PWA icons | 1/5 | ⬜ | 192x192 y 512x512 en `public/` |
+| 19 | Open Graph image por defecto | 2/5 | ⬜ | `next/og` o imagen estática |
+| 20 | Marcar eventos pasados automáticamente | 3/5 | ⬜ | Cron → `status: 'past'` |
+| 21 | Notificaciones push para favoritos | 5/5 | ⬜ | Service Worker + Push API (avanzado) |
+| 22 | Compartir con imagen rica (OG dinámica) | 3/5 | ⬜ | `next/og` ImageResponse por evento |
+| 23 | Vista de calendario | 4/5 | ⬜ | Alternativa a lista en `/proximos` |
+| 24 | Exportar a Google/Apple Calendar | 2/5 | ⬜ | `.ics` o link `calendar.google.com` |
+| 25 | Dedup de views con sesión | 2/5 | ⬜ | `sessionStorage` en `view-tracker.tsx` |
+
+---
+
+## Monetización
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 26 | Eventos destacados / Promoted | 3/5 | ⬜ | Campo `promoted` + badge dorado |
+| 27 | Banner ads en sidebar desktop | 2/5 | ⬜ | Depende de #3 (sidebar) |
+| 28 | Affiliate links en tickets | 2/5 | ⬜ | Negociar con RedTickets, Ticketfácil |
+| 29 | "Publicá tu evento" — formulario | 4/5 | ⬜ | Página `/publicar` con review |
+| 30 | Newsletter semanal | 3/5 | ⬜ | Captura de email + envío semanal |
+| 31 | Partnerships con venues | 2/5 | ⬜ | Páginas de venue con perfil verificado |
+
+---
+
+## Limpieza / Dead Code
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 32 | Borrar archivos muertos | 1/5 | ⬜ | `navigation.ts`, `api.ts`, `admin.ts`, route placeholder, CSS Mapbox |
+| 33 | Consolidar NAV_ITEMS | 1/5 | ⬜ | Usar `config/navigation.ts` como source of truth |
+| 34 | Limpiar scripts de debug | 1/5 | ⬜ | Mover a `scripts/debug/` o borrar |
+| 35 | Reducir `listColumns` en queries | 1/5 | ⬜ | Quitar `description` del select de lista |
+| 36 | Tabla `venues` sin usar | 1/5 | ⬜ | Implementar relación o borrar schema |
+
+---
+
+## Performance
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 37 | NeonParallax condicional | 2/5 | ⬜ | No renderizar en `/mapa` |
+| 38 | Reducir blur/noise en mobile | 2/5 | ⬜ | `prefers-reduced-motion` |
+| 39 | ISR más corto | 1/5 | ⬜ | 3600s → 300-600s |
+| 40 | Agregar `loading.tsx` a las rutas | 2/5 | ⬜ | Skeletons en App Router |
+
+---
+
+## Accesibilidad
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 41 | `aria-pressed` en filtros | 1/5 | ⬜ | `event-filters.tsx` |
+| 42 | Alt text en imágenes de cards | 1/5 | ⬜ | `alt=""` → `alt={event.name}` |
+| 43 | Skip-to-content link | 1/5 | ⬜ | Link invisible con focus |
+| 44 | Contraste de `text-muted` | 1/5 | ⬜ | `#475569` → `#64748b` |
+
+---
+
+## SEO
+
+| # | Ítem | Dificultad | Estado | Notas |
+|---|------|-----------|--------|-------|
+| 45 | Canonical URLs en eventos | 1/5 | ⬜ | `alternates.canonical` |
+| 46 | Geo meta tags | 1/5 | ⬜ | `geo.region`, `geo.placename` |
+| 47 | JSON-LD `startDate` fallback | 1/5 | ⬜ | `T20:00:00` → omitir o `T00:00:00` |
+| 48 | Richer `og:description` en eventos | 1/5 | ⬜ | Incluir precio, tipo, descripción |
+
+---
+
+## Progreso Global
+
+```
+Completados:  0 / 48
+En progreso:  0 / 48
+Pendientes:  48 / 48
+```
+
+---
+
+## Orden de Ejecución Sugerido
+
+1. ��� **Críticos primero** — #1, #2 (bugs que rompen features en producción)
+2. ��� **Quick wins dificultad 1/5** — #4, #5, #7, #9, #11, #17, #39, #41, #42, #43, #44, #45, #46, #47, #48
+3. ��� **Limpieza** — #32, #33, #34, #35 (reduce deuda técnica)
+4. ��� **Features de impacto medio** — #10, #12, #14, #16, #19, #24, #25
+5. ��� **Features grandes** — #3, #6, #8, #15, #20, #22, #26
+6. ⚪ **Monetización y features avanzadas** — #13, #21, #23, #27-#31
+
+---
+
+**Última actualización:** 18/02/2026
+**Plan de referencia:** `PLAN.md`

@@ -192,6 +192,10 @@ async function processRawEvent(
 
   const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore, isRecurring));
 
+  if (duplicateEventId) {
+    await mergeEventData(duplicateEventId, enriched);
+  }
+
   const alreadyLinked = await withTransientRetry("already-linked", async () =>
     db
       .select({ id: eventSources.id })
@@ -265,7 +269,7 @@ async function createEvent(
             ticketUrl: normalized.ticketUrl,
             priceMin: normalized.priceMin,
             priceMax: normalized.priceMax,
-            currency: "UYU",
+            currency: normalized.currency,
             isFree: normalized.isFree,
             ageRestriction: normalized.ageRestriction,
             isRecurring,
@@ -293,6 +297,79 @@ async function createEvent(
   }
 
   throw new Error(`[pipeline] no se pudo generar slug único para ${normalized.name}`);
+}
+
+async function mergeEventData(
+  eventId: string,
+  normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
+): Promise<void> {
+  const existingRows = await withTransientRetry("load-existing-event", async () =>
+    db
+      .select({
+        priceMin: events.priceMin,
+        priceMax: events.priceMax,
+        currency: events.currency,
+        imageUrl: events.imageUrl,
+        venueName: events.venueName,
+        venueAddress: events.venueAddress,
+        startTime: events.startTime,
+        endTime: events.endTime,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1),
+  );
+
+  const existing = existingRows[0];
+  if (!existing) return;
+
+  const updates: Partial<typeof events.$inferInsert> = {};
+
+  const existingPriceMin = existing.priceMin ?? null;
+  const existingCurrency = existing.currency ?? "UYU";
+
+  if (normalized.priceMin != null && (existingPriceMin == null || existingPriceMin <= 1)) {
+    updates.priceMin = normalized.priceMin;
+    updates.priceMax = normalized.priceMax ?? normalized.priceMin;
+  }
+
+  if (normalized.currency === "USD" && existingCurrency !== "USD") {
+    updates.currency = "USD";
+  }
+
+  if (!existing.imageUrl && normalized.imageUrl) {
+    updates.imageUrl = normalized.imageUrl;
+  }
+
+  if (isPlaceholderVenue(existing.venueName) && normalized.venueName) {
+    updates.venueName = normalized.venueName;
+  }
+
+  if (!existing.venueAddress && normalized.venueAddress) {
+    updates.venueAddress = normalized.venueAddress;
+  }
+
+  if (!existing.startTime && normalized.startTime) {
+    updates.startTime = normalized.startTime;
+  }
+
+  if (!existing.endTime && normalized.endTime) {
+    updates.endTime = normalized.endTime;
+  }
+
+  if (Object.keys(updates).length === 0) return;
+
+  updates.updatedAt = new Date();
+
+  await withTransientRetry("update-merged-event", async () =>
+    db.update(events).set(updates).where(eq(events.id, eventId)),
+  );
+}
+
+function isPlaceholderVenue(value: string | null): boolean {
+  if (!value) return true;
+  const v = value.toLowerCase().trim();
+  return v === "venue por confirmar" || v === "por confirmar" || v === "tba" || v === "";
 }
 
 async function withTransientRetry<T>(

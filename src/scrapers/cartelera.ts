@@ -4,7 +4,7 @@ import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { fetchHtml, normalizeWhitespace, unique } from "./utils";
+import { extractBestImageUrl, fetchHtml, normalizeWhitespace, unique } from "./utils";
 
 const SHOW_PATH_REGEX = /averespectaculo\.aspx\?(\d+)/i;
 
@@ -91,10 +91,13 @@ export class CarteleraScraper extends BaseScraper {
     const { venueName, venueAddress } = this.extractVenueData($);
 
     // Image
-    const imageUrl =
-      $("meta[property='og:image']").attr("content") ??
-      $(".poster img").first().attr("src") ??
-      null;
+    const imageUrl = extractBestImageUrl($, url, [
+      ".poster img",
+      ".poster",
+      "img[itemprop='image']",
+      ".galeria img",
+      "img",
+    ]);
 
     // Description
     const description = normalizeWhitespace(

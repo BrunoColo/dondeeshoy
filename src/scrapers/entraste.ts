@@ -6,6 +6,7 @@ import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
 import {
   extractMoneyValues,
+  extractBestImageUrl,
   fetchHtml,
   normalizeWhitespace,
   toAbsoluteUrl,
@@ -71,10 +72,15 @@ export class EntrasteScraper extends BaseScraper {
     const dateText = this.extractDateText(bodyText);
 
     // Prefer full-resolution img tags over og:image (which uses relative paths)
+    const ogImage = this.resolveImageUrl($("meta[property='og:image']").attr("content"));
     const imageUrl =
-      $("img[src*='api.entraste.com']").first().attr("src") ??
-      this.resolveImageUrl($("meta[property='og:image']").attr("content")) ??
-      null;
+      extractBestImageUrl($, url, [
+        "img[src*='api.entraste.com']",
+        "img[data-src*='api.entraste.com']",
+        ".event img",
+        "img",
+      ]) ??
+      ogImage;
 
     // Extract prices from .price elements instead of full body text
     const prices = this.extractPricesFromHtml($, bodyText);

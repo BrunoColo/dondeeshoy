@@ -1,4 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
+import type { CheerioAPI } from "cheerio";
 
 import { scraperConfig } from "@/config/scraper-config";
 import { redis } from "@/lib/redis";
@@ -88,6 +89,150 @@ export function extractMoneyValues(text: string): number[] {
 
 export function toAbsoluteUrl(baseUrl: string, href: string): string {
   return new URL(href, baseUrl).toString();
+}
+
+function normalizeImageUrl(baseUrl: string, rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed || trimmed.startsWith("data:")) return null;
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+
+  try {
+    return toAbsoluteUrl(baseUrl, trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function pickBestFromSrcset(srcset: string | null | undefined): string | null {
+  if (!srcset) return null;
+
+  const entries = srcset
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const [url, size] = part.split(/\s+/);
+      const numeric = size ? Number.parseFloat(size) : Number.NaN;
+      return { url, score: Number.isNaN(numeric) ? 0 : numeric };
+    });
+
+  if (entries.length === 0) return null;
+
+  const best = entries.reduce((acc, cur) => (cur.score >= acc.score ? cur : acc));
+  return best.url ?? null;
+}
+
+function extractJsonLdImages($: CheerioAPI): string[] {
+  const images: string[] = [];
+
+  $("script[type='application/ld+json']").each((_, el) => {
+    const raw = $(el).contents().text();
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+      const stack = Array.isArray(parsed) ? parsed : [parsed];
+
+      while (stack.length > 0) {
+        const node = stack.pop();
+        if (!node || typeof node !== "object") continue;
+
+        const imageField = (node as { image?: unknown }).image;
+        if (typeof imageField === "string") {
+          images.push(imageField);
+        } else if (Array.isArray(imageField)) {
+          for (const img of imageField) {
+            if (typeof img === "string") images.push(img);
+            if (img && typeof img === "object" && "url" in img && typeof img.url === "string") {
+              images.push(img.url);
+            }
+          }
+        } else if (imageField && typeof imageField === "object" && "url" in imageField) {
+          const url = (imageField as { url?: unknown }).url;
+          if (typeof url === "string") images.push(url);
+        }
+
+        for (const value of Object.values(node)) {
+          if (value && typeof value === "object") {
+            stack.push(value);
+          }
+        }
+      }
+    } catch {
+      // ignore invalid JSON-LD
+    }
+  });
+
+  return images;
+}
+
+export function extractBestImageUrl(
+  $: CheerioAPI,
+  baseUrl: string,
+  selectors: string[] = ["img"],
+): string | null {
+  const candidates: string[] = [];
+
+  const metaCandidates = [
+    $("meta[property='og:image']").attr("content"),
+    $("meta[property='og:image:url']").attr("content"),
+    $("meta[property='og:image:secure_url']").attr("content"),
+    $("meta[name='twitter:image']").attr("content"),
+    $("meta[name='twitter:image:src']").attr("content"),
+  ];
+
+  for (const value of metaCandidates) {
+    if (value) candidates.push(value);
+  }
+
+  candidates.push(...extractJsonLdImages($));
+
+  for (const selector of selectors) {
+    $(selector).each((_, el) => {
+      const srcset = $(el).attr("srcset") ?? $(el).attr("data-srcset");
+      const bestFromSrcset = pickBestFromSrcset(srcset);
+      if (bestFromSrcset) candidates.push(bestFromSrcset);
+
+      const dataSrc = $(el).attr("data-src") ?? $(el).attr("data-original") ?? $(el).attr("data-lazy");
+      if (dataSrc) candidates.push(dataSrc);
+
+      const src = $(el).attr("src");
+      if (src) candidates.push(src);
+
+      const style = $(el).attr("style") ?? "";
+      const match = style.match(/url\((['"]?)(.*?)\1\)/i);
+      if (match?.[2]) {
+        candidates.push(match[2]);
+      }
+    });
+  }
+
+  $("[style*='background-image'], [style*='background:']").each((_, el) => {
+    const style = $(el).attr("style") ?? "";
+    const match = style.match(/url\((['"]?)(.*?)\1\)/i);
+    if (match?.[2]) {
+      candidates.push(match[2]);
+    }
+  });
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = normalizeImageUrl(baseUrl, candidate);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    return normalized;
+  }
+
+  return null;
 }
 
 export function unique<T>(values: T[]): T[] {
