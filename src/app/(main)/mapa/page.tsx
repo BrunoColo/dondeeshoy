@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { getEventsWithCoordinates } from "@/lib/queries";
-import { getTodayUY } from "@/lib/format";
+import { getEventsWithCoordinates, getEventsBetweenDates } from "@/lib/queries";
+import { getTodayUY, getTomorrowUY, getWeekendDatesUY } from "@/lib/format";
 import type { Metadata } from "next";
 import type { MapEvent } from "@/components/events/event-map";
 import { EventMapWrapper } from "@/components/events/event-map-wrapper";
@@ -20,11 +20,8 @@ export default function MapaPage() {
   );
 }
 
-async function MapContent() {
-  const today = getTodayUY();
-  const rawEvents = await getEventsWithCoordinates(today);
-
-  const events: MapEvent[] = rawEvents
+function toMapEvents(rawEvents: Awaited<ReturnType<typeof getEventsWithCoordinates>>): MapEvent[] {
+  return rawEvents
     .filter((e) => e.latitude && e.longitude)
     .map((e) => ({
       id: e.id,
@@ -42,8 +39,44 @@ async function MapContent() {
       imageUrl: e.imageUrl,
       isRecurring: e.isRecurring ?? false,
     }));
+}
 
-  if (events.length === 0) {
+async function MapContent() {
+  const today = getTodayUY();
+  const tomorrow = getTomorrowUY();
+  const weekend = getWeekendDatesUY();
+
+  const [todayRaw, tomorrowRaw, weekendRaw] = await Promise.all([
+    getEventsWithCoordinates(today),
+    getEventsWithCoordinates(tomorrow),
+    getEventsBetweenDates(weekend.start, weekend.end),
+  ]);
+
+  const todayEvents = toMapEvents(todayRaw);
+  const tomorrowEvents = toMapEvents(tomorrowRaw);
+  // getEventsBetweenDates returns same shape, filter coords
+  const weekendEvents = weekendRaw
+    .filter((e) => e.latitude && e.longitude)
+    .map((e) => ({
+      id: e.id,
+      slug: e.slug,
+      name: e.name,
+      date: e.date,
+      startTime: e.startTime,
+      venueName: e.venueName,
+      eventType: e.eventType,
+      latitude: parseFloat(e.latitude!),
+      longitude: parseFloat(e.longitude!),
+      priceMin: e.priceMin,
+      isFree: e.isFree,
+      currency: e.currency ?? undefined,
+      imageUrl: e.imageUrl,
+      isRecurring: e.isRecurring ?? false,
+    })) as MapEvent[];
+
+  const hasAnyEvents = todayEvents.length > 0 || tomorrowEvents.length > 0 || weekendEvents.length > 0;
+
+  if (!hasAnyEvents) {
     return (
       <div className="flex h-[calc(100dvh-8rem)] items-center justify-center px-4">
         <div className="glass-card rounded-2xl p-8 text-center max-w-sm">
@@ -61,7 +94,11 @@ async function MapContent() {
 
   return (
     <div className="h-[calc(100dvh-8rem)]">
-      <EventMapWrapper events={events} />
+      <EventMapWrapper
+        todayEvents={todayEvents}
+        tomorrowEvents={tomorrowEvents}
+        weekendEvents={weekendEvents}
+      />
     </div>
   );
 }

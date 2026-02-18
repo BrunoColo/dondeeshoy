@@ -88,14 +88,12 @@ export function Header() {
       )}
     >
       <div className="mx-auto flex max-w-5xl items-center px-5 gap-4">
-        {/* Logo — hidden when search is open on mobile */}
-        <div className={cn(
-          "flex items-center shrink-0 transition-all duration-200",
-          searchOpen && "hidden sm:flex"
-        )}>
-          <Link href="/" className="flex items-center gap-0">
-            <span className="font-display text-[17px] font-extrabold tracking-tight text-foreground">
-              ¿Dónde es{" "}
+
+        {/* Logo — always visible, never hidden */}
+        <div className="flex items-center shrink-0">
+          <Link href="/" className="flex items-center gap-[3px]">
+            <span className="font-display text-[17px] font-extrabold tracking-tight text-[#CBD5E1]">
+              ¿Dónde es
             </span>
             <span className="font-display text-[17px] font-extrabold tracking-tight bg-gradient-to-r from-neon-violet via-neon-magenta to-neon-cyan bg-clip-text text-transparent">
               hoy?
@@ -103,42 +101,41 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Desktop nav links — center */}
-        {!searchOpen && (
-          <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
-            {NAV_ITEMS.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200",
-                    isActive
-                      ? "bg-neon-violet/15 border border-neon-violet/30 text-neon-violet shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05] border border-transparent",
-                  )}
-                >
-                  <Icon
-                    className={cn("h-3.5 w-3.5 shrink-0", isActive && "drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]")}
-                    strokeWidth={isActive ? 2.2 : 1.8}
-                  />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
+        {/* Desktop nav links — center, always visible on sm+ */}
+        <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200",
+                  isActive
+                    ? "bg-neon-violet/15 border border-neon-violet/30 text-neon-violet shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05] border border-transparent",
+                )}
+              >
+                <Icon
+                  className={cn("h-3.5 w-3.5 shrink-0", isActive && "drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]")}
+                  strokeWidth={isActive ? 2.2 : 1.8}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Right side */}
-        <div className="ml-auto flex items-center gap-2 shrink-0">
+        <div className="ml-auto sm:ml-0 flex items-center gap-2 shrink-0">
           {searchOpen ? (
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="relative w-[220px] sm:w-[280px]">
+            <div className="flex items-center gap-2">
+              {/* On mobile the input is narrower so the logo stays visible */}
+              <div className="relative w-[130px] sm:w-[280px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
                 <input
                   ref={inputRef}
@@ -146,7 +143,7 @@ export function Header() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Buscar evento, venue…"
+                  placeholder="Buscar…"
                   className="w-full rounded-full bg-white/[0.08] border border-white/[0.14] pl-9 pr-10 py-2 text-[13px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-neon-violet/45 focus:shadow-[0_0_14px_rgba(168,85,247,0.2)] transition-all duration-200"
                 />
                 {searchValue.trim().length > 0 && (

@@ -62,8 +62,12 @@ export interface MapEvent {
 }
 
 interface EventMapProps {
-  events: MapEvent[];
+  todayEvents: MapEvent[];
+  tomorrowEvents: MapEvent[];
+  weekendEvents: MapEvent[];
 }
+
+type DateFilter = "hoy" | "manana" | "finde";
 
 const TILE_LAYERS = {
   calles: {
@@ -89,15 +93,22 @@ function TileSwitch({ tileKey }: { tileKey: TileLayerKey }) {
   return <TileLayer key={tileKey} url={tile.url} attribution={tile.attribution} />;
 }
 
-export function EventMap({ events }: EventMapProps) {
+export function EventMap({ todayEvents, tomorrowEvents, weekendEvents }: EventMapProps) {
   const [selected, setSelected] = useState<MapEvent | null>(null);
   const [tileKey, setTileKey] = useState<TileLayerKey>("calles");
   const [hideRecurring, setHideRecurring] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
 
-  const recurringCount = useMemo(() => events.filter((e) => e.isRecurring).length, [events]);
+  const activeEvents = useMemo(() => {
+    if (dateFilter === "manana") return tomorrowEvents;
+    if (dateFilter === "finde") return weekendEvents;
+    return todayEvents;
+  }, [dateFilter, todayEvents, tomorrowEvents, weekendEvents]);
+
+  const recurringCount = useMemo(() => activeEvents.filter((e: MapEvent) => e.isRecurring).length, [activeEvents]);
   const visibleEvents = useMemo(
-    () => (hideRecurring ? events.filter((e) => !e.isRecurring) : events),
-    [events, hideRecurring],
+    () => (hideRecurring ? activeEvents.filter((e: MapEvent) => !e.isRecurring) : activeEvents),
+    [activeEvents, hideRecurring],
   );
 
   // Pre-build marker icons (memoized per event type)
@@ -209,52 +220,87 @@ export function EventMap({ events }: EventMapProps) {
           ))}
       </div>
 
-      {/* Event count + recurring toggle */}
-      <div className="absolute top-4 left-4 z-[1000] flex items-center gap-2">
-        <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
-          {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
+      {/* Top controls — stacked on mobile, row on desktop */}
+      <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        {/* Left: date filter + count + recurring toggle */}
+        <div className="flex flex-col gap-2">
+          {/* Date filter pills */}
+          <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1 self-start">
+            {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
+              const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
+              const counts: Record<DateFilter, number> = {
+                hoy: todayEvents.length,
+                manana: tomorrowEvents.length,
+                finde: weekendEvents.length,
+              };
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => { setDateFilter(f); setSelected(null); }}
+                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all ${
+                    dateFilter === f
+                      ? "bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan shadow-sm"
+                      : "text-white/50 hover:text-white"
+                  }`}
+                >
+                  {labels[f]}
+                  <span className={`text-[9px] font-semibold ${dateFilter === f ? "text-neon-cyan/70" : "text-white/30"}`}>
+                    {counts[f]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Count + recurring toggle */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm whitespace-nowrap">
+              {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
+            </div>
+            {recurringCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setHideRecurring((v) => !v)}
+                title={hideRecurring ? "Mostrar eventos recurrentes" : "Ocultar eventos recurrentes"}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-all shadow-lg backdrop-blur-sm whitespace-nowrap ${
+                  hideRecurring
+                    ? "bg-neon-violet/25 border border-neon-violet/50 text-neon-violet"
+                    : "bg-black/80 border border-white/20 text-white/70 hover:text-white hover:border-white/40"
+                }`}
+              >
+                <RotateCw className="h-3 w-3 shrink-0" />
+                {hideRecurring ? "Recurrentes ocultos" : "Ocultar recurrentes"}
+              </button>
+            )}
+          </div>
         </div>
-        {recurringCount > 0 && (
+
+        {/* Right: style switcher */}
+        <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1 self-start">
           <button
             type="button"
-            onClick={() => setHideRecurring((v) => !v)}
-            title={hideRecurring ? "Mostrar eventos recurrentes" : "Ocultar eventos recurrentes"}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-all shadow-lg backdrop-blur-sm ${
-              hideRecurring
-                ? "bg-amber-500/20 border border-amber-400/60 text-amber-300 shadow-amber-900/30"
-                : "bg-black/80 border border-white/20 text-white/80 hover:text-amber-300 hover:border-amber-400/40"
+            onClick={() => setTileKey("calles")}
+            className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              tileKey === "calles"
+                ? "bg-white/20 text-white shadow-sm"
+                : "text-white/50 hover:text-white"
             }`}
           >
-            <RotateCw className="h-3 w-3" />
-            {hideRecurring ? "Recurrentes ocultos" : "Ocultar recurrentes"}
+            Calles
           </button>
-        )}
-      </div>
-
-      {/* Style switcher */}
-      <div className="absolute top-4 right-4 z-[1000] flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1">
-        <button
-          type="button"
-          onClick={() => setTileKey("calles")}
-          className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-            tileKey === "calles"
-              ? "bg-white/20 text-white shadow-sm"
-              : "text-white/50 hover:text-white"
-          }`}
-        >
-          Calles
-        </button>
-        <button
-          type="button"
-          onClick={() => setTileKey("oscuro")}
-          className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-            tileKey === "oscuro"
-              ? "bg-white/20 text-white shadow-sm"
-              : "text-white/50 hover:text-white"
-          }`}
-        >
-          Noche
-        </button>
+          <button
+            type="button"
+            onClick={() => setTileKey("oscuro")}
+            className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              tileKey === "oscuro"
+                ? "bg-white/20 text-white shadow-sm"
+                : "text-white/50 hover:text-white"
+            }`}
+          >
+            Noche
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -50,7 +50,9 @@ function buildFilterConditions(filters?: EventFilters) {
     conditions.push(eq(events.musicGenre, filters.genre));
   }
   if (filters?.department && filters.department.trim().length > 0) {
-    conditions.push(eq(events.city, filters.department.trim()));
+    // Use ilike for case-insensitive matching to handle accent/case variations
+    // stored in the DB (e.g. "San José" vs "San Jose")
+    conditions.push(ilike(events.city, filters.department.trim()));
   }
   if (filters?.free) {
     conditions.push(eq(events.isFree, true));

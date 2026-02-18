@@ -17,8 +17,16 @@
       "schedule": "45 15 * * *"
     },
     {
-      "path": "/api/scrape/process",
+      "path": "/api/scrape/cartelera",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/scrape/mvd-eventos",
+      "schedule": "15 16 * * *"
+    },
+    {
+      "path": "/api/scrape/process",
+      "schedule": "0 17 * * *"
     }
   ]
 }

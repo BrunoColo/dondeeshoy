@@ -100,6 +100,7 @@ export function EventList({ events, trendingIds, enableNearby = false, geoState,
             startTime={event.startTime}
             endTime={event.endTime}
             venueName={event.venueName}
+            city={event.city}
             eventType={event.eventType}
             imageUrl={event.imageUrl}
             priceMin={event.priceMin}

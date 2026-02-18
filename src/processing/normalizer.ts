@@ -1,5 +1,6 @@
 import type { RawEvent } from "@/lib/db/schema";
 import { getOpenAIClient } from "./ai-client";
+import { detectDepartment } from "./department-detector";
 
 export interface NormalizedEventInput {
   name: string;
@@ -90,6 +91,17 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   const rawLatitude = typeof rawData.latitude === "number" ? rawData.latitude : null;
   const rawLongitude = typeof rawData.longitude === "number" ? rawData.longitude : null;
 
+  // Detect the Uruguay department from venue/address/city/name data.
+  // CobraTicket provides a `city` field (e.g. "Punta del Este, Maldonado"),
+  // other scrapers rely on venue name + address detection.
+  const scraperCity = sanitizeText((rawData.city as string) ?? "") || null;
+  const department = detectDepartment(
+    venueName !== "Venue por confirmar" ? venueName : null,
+    venueAddress,
+    scraperCity,
+    name,
+  );
+
   return {
     name,
     slug: slugify(name),
@@ -100,7 +112,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     endTime,
     venueName,
     venueAddress,
-    city: "Montevideo",
+    city: department,
     imageUrl: sanitizeText((rawData.imageUrl as string) ?? "") || null,
     ticketUrl: rawEvent.sourceUrl,
     priceMin,

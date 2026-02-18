@@ -19,9 +19,17 @@ const EventMapLazy = dynamic(
 );
 
 interface EventMapWrapperProps {
-  events: MapEvent[];
+  todayEvents: MapEvent[];
+  tomorrowEvents: MapEvent[];
+  weekendEvents: MapEvent[];
 }
 
-export function EventMapWrapper({ events }: EventMapWrapperProps) {
-  return <EventMapLazy events={events} />;
+export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: EventMapWrapperProps) {
+  return (
+    <EventMapLazy
+      todayEvents={todayEvents}
+      tomorrowEvents={tomorrowEvents}
+      weekendEvents={weekendEvents}
+    />
+  );
 }

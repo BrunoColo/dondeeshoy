@@ -36,6 +36,8 @@ interface EventCardProps {
   startTime: string | null;
   endTime: string | null;
   venueName: string;
+  /** Uruguay department — shown as a badge when not Montevideo */
+  city?: string | null;
   eventType: EventType;
   imageUrl: string | null;
   priceMin: number | null;
@@ -55,6 +57,7 @@ export function EventCard({
   startTime,
   endTime,
   venueName,
+  city,
   eventType,
   imageUrl,
   priceMin,
@@ -178,21 +181,28 @@ export function EventCard({
 
         {/* Bottom info bar */}
         <div className="flex items-center justify-between border-t border-white/[0.05] px-4 py-2.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {isTrending && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-400 shrink-0">
                 <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
                 Popular
               </span>
             )}
+            {/* Department badge — only shown for events outside Montevideo */}
+            {city && city !== "Montevideo" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 px-2 py-0.5 text-[10px] font-semibold text-neon-cyan/80 shrink-0">
+                <MapPin className="h-2.5 w-2.5" strokeWidth={2.5} />
+                {city}
+              </span>
+            )}
             {musicGenre && (
-              <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted truncate">
                 {musicGenre}
               </span>
             )}
           </div>
           {price && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <Ticket className="h-3 w-3 text-text-muted" strokeWidth={2} />
               <span
                 className={cn(
