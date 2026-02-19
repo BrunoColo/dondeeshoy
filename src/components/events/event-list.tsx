@@ -110,6 +110,7 @@ export function EventList({ events, trendingIds, enableNearby = false, geoState,
             musicGenre={event.musicGenre}
             isTrending={trendingSet.has(event.id)}
             distance={distance}
+            ticketUrl={event.ticketUrl}
           />
         ))}
       </div>

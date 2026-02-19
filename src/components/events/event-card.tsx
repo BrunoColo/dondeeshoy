@@ -47,6 +47,7 @@ interface EventCardProps {
   musicGenre?: string | null;
   isTrending?: boolean;
   distance?: number | null;
+  ticketUrl?: string | null;
   className?: string;
 }
 
@@ -67,6 +68,7 @@ export function EventCard({
   musicGenre,
   isTrending,
   distance,
+  ticketUrl,
   className,
 }: EventCardProps) {
   const price = formatPrice(priceMin, priceMax, isFree, currency);
@@ -210,10 +212,12 @@ export function EventCard({
                   ? isFree
                     ? "text-neon-green"
                     : "text-foreground"
-                  : "text-white/25 font-normal text-[11px]",
+                  : ticketUrl
+                    ? "text-amber-400"
+                    : "text-white/25 font-normal text-[11px]",
               )}
             >
-              {price ?? "Sin precio informado"}
+              {price ?? (ticketUrl ? "Ver precios" : "—")}
             </span>
           </div>
         </div>
