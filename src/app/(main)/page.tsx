@@ -147,7 +147,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           </div>
 
           {events.length > 0 ? (
-            <EventList events={events} trendingIds={trendingIds} />
+            <EventList events={events} trendingIds={trendingIds} enableNearby />
           ) : (
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[12px] text-muted-foreground">
               No hay eventos únicos para hoy con los filtros actuales.

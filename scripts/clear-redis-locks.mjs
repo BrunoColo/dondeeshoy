@@ -4,7 +4,7 @@ import 'dotenv/config';
 const url = process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const lockKeys = ['lock:cron:process', 'lock:cron:ticketfacil'];
+const lockKeys = ['lock:cron:process', 'lock:cron:ticketfacil', 'lock:cron:redtickets'];
 
 for (const key of lockKeys) {
   const checkRes = await fetch(`${url}/get/${encodeURIComponent(key)}`, {

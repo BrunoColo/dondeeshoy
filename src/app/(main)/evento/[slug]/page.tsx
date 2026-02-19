@@ -106,19 +106,21 @@ async function EventDetailContent({ slug }: { slug: string }) {
 function EventDetailLoading() {
   return (
     <div className="fade-up">
-      {/* Hero skeleton */}
-      <div className="skeleton h-64 sm:h-80 rounded-none" />
+      <div className="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-white/[0.06]">
+        {/* Hero skeleton */}
+        <div className="skeleton h-48 sm:h-64 md:h-80 lg:h-96" />
 
-      {/* Content skeleton */}
-      <div className="relative -mt-6 rounded-t-3xl bg-background px-5 pt-6 pb-32">
-        <div className="skeleton mb-4 h-6 w-20 rounded-full" />
-        <div className="skeleton mb-2 h-7 w-4/5 rounded" />
-        <div className="skeleton mb-6 h-7 w-3/5 rounded" />
+        {/* Content skeleton */}
+        <div className="relative -mt-6 rounded-t-3xl lg:rounded-t-none bg-background px-5 pt-6 pb-8">
+          <div className="skeleton mb-4 h-6 w-20 rounded-full" />
+          <div className="skeleton mb-2 h-7 w-4/5 rounded" />
+          <div className="skeleton mb-6 h-7 w-3/5 rounded" />
 
-        <div className="space-y-4">
-          <div className="skeleton h-[72px] w-full rounded-xl" />
-          <div className="skeleton h-[72px] w-full rounded-xl" />
-          <div className="skeleton h-[72px] w-full rounded-xl" />
+          <div className="space-y-4">
+            <div className="skeleton h-[72px] w-full rounded-xl" />
+            <div className="skeleton h-[72px] w-full rounded-xl" />
+            <div className="skeleton h-[72px] w-full rounded-xl" />
+          </div>
         </div>
       </div>
     </div>

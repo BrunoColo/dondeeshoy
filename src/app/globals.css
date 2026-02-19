@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../src";
 
 /* ─── Design Tokens ─── */
 :root {
@@ -266,35 +267,10 @@ body::after {
   border-bottom: 1px solid rgba(168, 85, 247, 0.08);
 }
 
-/* ─── Neon glow utilities ─── */
-.glow-violet {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2),
-    0 0 60px rgba(168, 85, 247, 0.08);
-}
-
-.glow-cyan {
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.2),
-    0 0 60px rgba(34, 211, 238, 0.08);
-}
-
-.glow-magenta {
-  box-shadow: 0 0 20px rgba(236, 72, 153, 0.2),
-    0 0 60px rgba(236, 72, 153, 0.08);
-}
-
-.glow-green {
-  box-shadow: 0 0 20px rgba(52, 211, 153, 0.2),
-    0 0 60px rgba(52, 211, 153, 0.08);
-}
-
 /* ─── Pulse animation ─── */
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ─── Live dot ─── */
@@ -564,23 +540,24 @@ body::after {
   .live-dot {
     animation: none !important;
   }
+
+  body::after {
+    filter: blur(50px) !important;
+  }
 }
 
 /* ─── Mobile performance: simplify heavy visual effects ─── */
 @media (max-width: 639px) {
-  /* Reduce noise overlay opacity — SVG filter is expensive on low-end GPUs */
   body::before {
     opacity: 0.015;
   }
 
-  /* Reduce ambient gradient blur — blur(90px) is costly on mobile */
   body::after {
     filter: blur(50px);
     opacity: 0.12;
     animation: none;
   }
 
-  /* Reduce neon layer blur and opacity */
   .neon-web-bg {
     filter: blur(48px) saturate(110%);
     opacity: 0.14;
@@ -589,14 +566,6 @@ body::after {
   .neon-web-bg--alt {
     filter: blur(60px) saturate(105%);
     opacity: 0.10;
-  }
-}
-
-/* Disable all heavy animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  body::after {
-    animation: none !important;
-    filter: blur(50px) !important;
   }
 }
 

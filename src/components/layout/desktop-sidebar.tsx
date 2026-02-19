@@ -45,9 +45,9 @@ export async function DesktopSidebar() {
   ]);
 
   return (
-    <aside className="hidden lg:flex flex-col w-[260px] xl:w-[280px] shrink-0">
-      {/* Sticky container que ocupa todo el alto visible */}
-      <div className="sticky top-[60px] h-[calc(100vh-60px)] flex flex-col gap-3 overflow-y-auto overflow-x-hidden py-4 pr-1 scrollbar-none">
+    <aside className="flex flex-col w-full">
+      {/* Container que fluye hacia abajo sin límite de altura ni scroll */}
+      <div className="sticky top-[60px] flex flex-col gap-3 overflow-x-hidden py-4 pr-1">
 
         {/* ── TRENDING HOY ── */}
         {trending.length > 0 && (
@@ -284,84 +284,86 @@ export async function DesktopSidebar() {
 
         {/* ── ANUNCIOS ── */}
         <div
-          className="rounded-2xl p-3.5"
+          className="rounded-2xl p-4"
           style={{
-            background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.2) 100%)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
+            background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.45) 100%)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            boxShadow: "0 4px 28px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)",
           }}
         >
           {/* Label */}
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
               Publicidad
             </span>
-            <Megaphone className="h-2.5 w-2.5 text-muted-foreground/30" />
+            <Megaphone className="h-3 w-3 text-muted-foreground/40" />
           </div>
 
           {/* Ad 1 — Venue */}
           <a
             href="#"
-            className="group flex items-start gap-2.5 rounded-xl p-2.5 mb-2 transition-all hover:bg-white/[0.05] cursor-pointer"
+            className="group flex items-start gap-3 rounded-xl p-3 mb-2 transition-all cursor-pointer"
             style={{
-              background: "linear-gradient(135deg, rgba(34,211,238,0.08) 0%, rgba(0,0,0,0.3) 100%)",
-              border: "1px solid rgba(34,211,238,0.15)",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+              background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(0,0,0,0.55) 100%)",
+              border: "1px solid rgba(34,211,238,0.25)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(34,211,238,0.08)",
             }}
           >
             {/* Logo placeholder */}
             <div
-              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[14px] font-black"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[15px] font-black"
               style={{
-                background: "linear-gradient(135deg, rgba(34,211,238,0.25) 0%, rgba(34,211,238,0.08) 100%)",
-                border: "1px solid rgba(34,211,238,0.25)",
+                background: "linear-gradient(135deg, rgba(34,211,238,0.3) 0%, rgba(34,211,238,0.10) 100%)",
+                border: "1px solid rgba(34,211,238,0.35)",
                 color: "#22D3EE",
+                boxShadow: "0 2px 10px rgba(34,211,238,0.2)",
               }}
             >
               MF
             </div>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] font-bold text-foreground leading-tight">Magma Futura</span>
-                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />
+                <span className="text-[12px] font-bold text-white leading-tight">Magma Futura</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground/50 shrink-0" />
               </div>
-              <span className="text-[9px] text-muted-foreground/60 leading-snug">
+              <span className="text-[10px] text-foreground/75 leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
               </span>
-              <span className="text-[8px] font-semibold text-neon-cyan/70 mt-0.5">magmafutura.com.uy →</span>
+              <span className="text-[9px] font-semibold text-neon-cyan mt-0.5">magmafutura.com.uy →</span>
             </div>
           </a>
 
           {/* Ad 2 — Ticketing */}
           <a
             href="#"
-            className="group flex items-start gap-2.5 rounded-xl p-2.5 transition-all hover:bg-white/[0.05] cursor-pointer"
+            className="group flex items-start gap-3 rounded-xl p-3 transition-all cursor-pointer"
             style={{
-              background: "linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(0,0,0,0.3) 100%)",
-              border: "1px solid rgba(168,85,247,0.15)",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+              background: "linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(0,0,0,0.55) 100%)",
+              border: "1px solid rgba(168,85,247,0.25)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(168,85,247,0.08)",
             }}
           >
             {/* Logo placeholder */}
             <div
-              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[14px] font-black"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[15px] font-black"
               style={{
-                background: "linear-gradient(135deg, rgba(168,85,247,0.25) 0%, rgba(168,85,247,0.08) 100%)",
-                border: "1px solid rgba(168,85,247,0.25)",
+                background: "linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(168,85,247,0.10) 100%)",
+                border: "1px solid rgba(168,85,247,0.35)",
                 color: "#A855F7",
+                boxShadow: "0 2px 10px rgba(168,85,247,0.2)",
               }}
             >
               RT
             </div>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] font-bold text-foreground leading-tight">RedTickets</span>
-                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />
+                <span className="text-[12px] font-bold text-white leading-tight">RedTickets</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground/50 shrink-0" />
               </div>
-              <span className="text-[9px] text-muted-foreground/60 leading-snug">
+              <span className="text-[10px] text-foreground/75 leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
               </span>
-              <span className="text-[8px] font-semibold text-neon-violet/70 mt-0.5">redtickets.com.uy →</span>
+              <span className="text-[9px] font-semibold text-neon-violet mt-0.5">redtickets.com.uy →</span>
             </div>
           </a>
 

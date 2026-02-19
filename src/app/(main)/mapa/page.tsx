@@ -99,7 +99,7 @@ async function MapContent() {
      * lg:-mr-0 lg:-ml-0 is handled by the lg:flex layout below.
      * Height = 100dvh minus the 60px header.
      */
-    <div className="-mx-4 sm:-mx-6 lg:-mx-6 h-[calc(100dvh-60px)]">
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-10 h-[calc(100dvh-60px)]">
       <EventMapWrapper
         todayEvents={todayEvents}
         tomorrowEvents={tomorrowEvents}

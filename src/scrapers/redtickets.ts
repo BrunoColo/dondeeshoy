@@ -351,9 +351,14 @@ export class RedTicketsScraper extends BaseScraper {
   }
 
   /**
-   * Attempt to extract prices from JSON-LD structured data or meta tags.
-   * RedTickets may include Schema.org Event → offers → Offer → price,
-   * or meta tags like product:price:amount.
+   * Attempt to extract prices from multiple sources on the page.
+   *
+   * Strategy (in order):
+   *   1. JSON-LD structured data (Schema.org Event → offers)
+   *   2. Meta tags (product:price:amount / og:price:amount)
+   *   3. Text-based extraction from og:description and page body
+   *      Patterns: "USD 190", "US$ 800", "U$S 1.500", "$ 500", "Precio: 190"
+   *
    * Returns sorted unique prices, or empty array if none found.
    */
   private extractPrices($: cheerio.CheerioAPI): number[] {
@@ -394,7 +399,84 @@ export class RedTicketsScraper extends BaseScraper {
       }
     }
 
+    if (prices.length > 0) {
+      return uniqueNumbers(prices);
+    }
+
+    // 3. Text-based extraction from og:description + page body
+    const ogDesc = $("meta[property='og:description']").attr("content") ?? "";
+    const bodyText = $("body").text();
+
+    // Use all patterns on og:description (structured, low noise)
+    this.extractPricesFromText(ogDesc, prices, true);
+    // Use only explicit patterns on body text (avoid $ false positives from JS code)
+    this.extractPricesFromText(bodyText, prices, false);
+
     return uniqueNumbers(prices);
+  }
+
+  /**
+   * Extract prices from free text using common Uruguayan price patterns.
+   * Handles: "USD 190", "US$ 800", "U$S 1.500", "$ 500", "Precio: $190", etc.
+   * Filters out $0 values and amounts < 10 (likely false positives).
+   * @param includeDollarSign - whether to match bare `$` + number (safe for og:description, noisy in body text)
+   */
+  private extractPricesFromText(text: string, prices: number[], includeDollarSign: boolean): void {
+    const MIN_PRICE = 10; // Filter out small false positives
+
+    // Pattern 1: USD / US$ / U$S followed by amount
+    const usdPattern = /(?:USD|US\$|U\$S)\s*([\d]+(?:[.,]\d{3})*(?:[.,]\d{1,2})?)/gi;
+    let match: RegExpExecArray | null;
+    while ((match = usdPattern.exec(text)) !== null) {
+      const amount = this.parseFormattedNumber(match[1]);
+      if (amount !== null && amount >= MIN_PRICE) {
+        prices.push(amount);
+      }
+    }
+
+    // Pattern 2: "Precio:" followed by a number (with optional currency)
+    const precioPattern = /Precio\s*:?\s*(?:USD|US\$|U\$S|UYU|\$)?\s*([\d]+(?:[.,]\d{3})*(?:[.,]\d{1,2})?)/gi;
+    while ((match = precioPattern.exec(text)) !== null) {
+      const amount = this.parseFormattedNumber(match[1]);
+      if (amount !== null && amount >= MIN_PRICE) {
+        prices.push(amount);
+      }
+    }
+
+    // Pattern 3: $ followed by amount — only used on structured text (og:description)
+    // to avoid false positives from JS code in body
+    if (includeDollarSign) {
+      const pesoPattern = /\$\s*([\d]+(?:[.,]\d{3})*(?:[.,]\d{1,2})?)/gi;
+      while ((match = pesoPattern.exec(text)) !== null) {
+        const amount = this.parseFormattedNumber(match[1]);
+        if (amount !== null && amount >= MIN_PRICE) {
+          prices.push(amount);
+        }
+      }
+    }
+  }
+
+  /**
+   * Parse a formatted number string that may use dots as thousands separators
+   * and commas as decimal separators (or vice versa).
+   * Examples: "1.500" → 1500, "190" → 190, "1,500" → 1500, "29.99" → 29.99
+   */
+  private parseFormattedNumber(raw: string): number | null {
+    if (!raw) return null;
+
+    let cleaned = raw.trim();
+
+    // If matches pattern like "1.500" or "1.500.000" (dots as thousands sep)
+    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/\./g, "");
+    }
+    // If matches pattern like "1,500" or "1,500,000" (commas as thousands sep)
+    else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/,/g, "");
+    }
+
+    const num = Number.parseFloat(cleaned);
+    return Number.isNaN(num) ? null : num;
   }
 
   /**

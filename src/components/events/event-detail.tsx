@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatTime, formatDateES, getTimeStatus } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { ShareButton } from "@/components/shared/share-button";
 import { VenueMiniMap } from "@/components/events/venue-mini-map";
+import { HeroImage } from "@/components/events/hero-image";
 import {
   MapPin,
   Ticket,
@@ -36,43 +36,35 @@ export function EventDetail({ event }: EventDetailProps) {
 
   return (
     <div className="fade-up">
-      {/* Hero image */}
-      <div className="relative">
-        {event.imageUrl ? (
-          <div className="img-overlay relative h-64 sm:h-80 md:h-96">
-            <Image
-              src={event.imageUrl}
-              alt={event.name}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-              unoptimized
-            />
-          </div>
-        ) : (
-          <div className="h-32 bg-gradient-to-br from-elevated to-surface" />
-        )}
+      {/* Card container — clips the hero image on desktop */}
+      <div className="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-white/[0.06]">
+        {/* Hero image */}
+        <div className="relative">
+          <HeroImage
+            imageUrl={event.imageUrl}
+            alt={event.name}
+            eventType={event.eventType}
+          />
 
-        {/* Back button */}
-        <Link
-          href="/"
-          className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white transition-colors hover:bg-black/60"
-        >
-          <ArrowLeft className="h-5 w-5" strokeWidth={2} />
-        </Link>
+          {/* Back button */}
+          <Link
+            href="/"
+            className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white transition-colors hover:bg-black/60"
+          >
+            <ArrowLeft className="h-5 w-5" strokeWidth={2} />
+          </Link>
 
-        {/* Now indicator */}
-        {timeStatus.type === "now" && (
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-3 py-1.5">
-            <span className="live-dot" />
-            <span className="text-xs font-semibold text-emerald-300">EN VIVO</span>
-          </div>
-        )}
-      </div>
+          {/* Now indicator */}
+          {timeStatus.type === "now" && (
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-3 py-1.5">
+              <span className="live-dot" />
+              <span className="text-xs font-semibold text-emerald-300">EN VIVO</span>
+            </div>
+          )}
+        </div>
 
-      {/* Content */}
-      <div className={cn("relative -mt-6 rounded-t-3xl bg-background px-5 pt-6", event.ticketUrl ? "pb-32" : "pb-8")}>
+        {/* Content */}
+        <div className={cn("relative z-10 -mt-8 rounded-t-3xl lg:rounded-t-none bg-background px-5 pt-6", event.ticketUrl ? "pb-32 lg:pb-8" : "pb-8")}>
         {/* Type badge + genre */}
         <div className="flex items-center gap-3 mb-4">
           <EventTypeBadge type={event.eventType} size="md" />
@@ -85,7 +77,7 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         {/* Event name */}
-        <h1 className="font-display text-2xl sm:text-3xl font-extrabold leading-tight text-foreground">
+        <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight text-foreground">
           {event.name}
         </h1>
 
@@ -214,12 +206,20 @@ export function EventDetail({ event }: EventDetailProps) {
               variant="full"
             />
           </div>
+
+          {/* Inline CTA for desktop */}
+          {event.ticketUrl && (
+            <div className="hidden lg:block mt-6">
+              <TicketButton ticketUrl={event.ticketUrl} />
+            </div>
+          )}
         </div>
       </div>
+      </div>
 
-      {/* Fixed CTA button */}
+      {/* Fixed CTA button — mobile only */}
       {event.ticketUrl && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]"
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] lg:hidden"
           style={{ background: "linear-gradient(to top, rgba(6,6,12,0.95) 60%, transparent)" }}
         >
           <div className="mx-auto max-w-2xl">
