@@ -25,7 +25,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-col items-center gap-1 px-6 py-1.5 transition-colors duration-200",
+                "relative flex flex-col items-center justify-center gap-1 px-4 py-1.5 transition-colors duration-200 min-w-[80px]",
                 isActive
                   ? "text-neon-violet"
                   : "text-text-muted hover:text-muted-foreground",
@@ -40,7 +40,7 @@ export function BottomNav() {
               />
               <span
                 className={cn(
-                  "text-[10px] font-semibold uppercase tracking-widest transition-colors duration-200",
+                  "text-[10px] font-semibold uppercase tracking-widest transition-colors duration-200 whitespace-nowrap",
                   isActive ? "text-neon-violet" : "text-text-muted",
                 )}
               >

@@ -90,8 +90,8 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             </div>
           </div>
 
-          {allEvents.length > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
+{allEvents.length > 0 && (
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 whitespace-nowrap">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
               <span className="text-[11px] font-bold text-emerald-400">
                 {events.length > 0 ? (
