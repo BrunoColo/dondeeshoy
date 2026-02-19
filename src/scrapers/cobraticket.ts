@@ -1,10 +1,11 @@
 import * as cheerio from "cheerio";
+import { decode } from "html-entities";
 
 import { scraperConfig } from "@/config/scraper-config";
 
 import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
-import { extractBestImageUrl, extractMoneyValues, fetchHtml, normalizeWhitespace, toAbsoluteUrl, unique } from "./utils";
+import { extractMoneyValues, fetchHtml, normalizeWhitespace, toAbsoluteUrl, unique } from "./utils";
 
 /**
  * Regex to extract the event slug + id from CobraTicket event URLs.
@@ -13,8 +14,7 @@ import { extractBestImageUrl, extractMoneyValues, fetchHtml, normalizeWhitespace
 const EVENT_PATH_REGEX = /\/e\/([\w-]+-\d+)\/?$/i;
 
 /**
- * Known CobraTicket category labels that appear as badges on event pages.
- * Used for exact matching against badge text, not body scanning.
+ * Known CobraTicket category labels.
  */
 const KNOWN_CATEGORIES = [
   "Fiestas",
@@ -28,91 +28,227 @@ const KNOWN_CATEGORIES = [
 ] as const;
 
 /**
+ * Shape of the structured event data embedded by the SvelteKit SSR.
+ * Extracted from the `const data = [...]` block in the page's script tag.
+ */
+interface CobraEventProps {
+  id?: string;
+  code?: string;
+  name?: string;
+  description?: string | null;
+  startAt?: string;
+  endAt?: string;
+  minAge?: number | null;
+  slug?: string;
+  status?: string;
+  account?: {
+    name?: string;
+    slug?: string;
+    logo?: { urlThumb?: string };
+  };
+  category?: {
+    name?: string;
+  };
+  image?: {
+    url?: string;
+  };
+  imageCover?: {
+    url?: string;
+  };
+  location?: {
+    name?: string;
+    address?: string;
+    region?: string;
+    locality?: string;
+    latlng?: {
+      lat?: number;
+      lng?: number;
+    };
+  };
+  ctaButton?: {
+    text?: string;
+    link?: string | null;
+    action?: string;
+  };
+}
+
+/**
  * Scraper for cobraticket.uy — Uruguayan ticketing platform.
  *
- * Discovery: Fetches the main /eventos page (upcoming events only).
- * Detail page: Server-rendered HTML with structured sections for
- *   title, description, date/time, venue, address, city, category,
- *   organizer, image, and a Google Maps link with lat/lng.
+ * Discovery: Fetches the /eventos page and collects event links
+ *   that appear BEFORE the "Eventos pasados" divider (upcoming only).
+ *
+ * Detail page: Extracts the rich SvelteKit SSR JSON payload embedded
+ *   in the page <script> tag, which contains: name, description, dates,
+ *   venue (name/address/region/locality), lat/lng, category, organizer,
+ *   image, minAge, and more.
+ *
+ * Prices: Extracted from the event description text, since actual ticket
+ *   types are loaded client-side via Firebase and not available in SSR HTML.
  */
 export class CobraTicketScraper extends BaseScraper {
   constructor() {
     super("cobraticket");
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Discovery                                                          */
+  /* ------------------------------------------------------------------ */
+
   protected async discoverUrls(): Promise<string[]> {
-    const allLinks: string[] = [];
     const base = scraperConfig.cobraticketBaseUrl;
 
-    // Fetch the first 3 pages of upcoming events to get a good coverage
-    for (let page = 1; page <= 3; page++) {
-      try {
-        const html = await fetchHtml(`${base}/eventos?page=${page}`);
-        const $ = cheerio.load(html);
+    console.log(`[cobraticket] fetching listing: ${base}`);
+    const html = await fetchHtml(base);
 
-        $("a[href]").each((_, el) => {
-          const href = $(el).attr("href");
-          if (!href) return;
-          if (!EVENT_PATH_REGEX.test(href)) return;
+    const upcomingLinks: string[] = [];
 
-          allLinks.push(toAbsoluteUrl(base, href));
-        });
-      } catch (error) {
-        console.error(`[cobraticket] error descubriendo page=${page}`, error);
-      }
+    // The page has cards in <a href="/e/..."> elements.
+    // After the "Eventos pasados" divider everything is past events.
+    // Strategy: only parse the HTML that comes BEFORE the divider.
+    const markerIndex = html.indexOf("Eventos pasados");
+
+    if (markerIndex === -1) {
+      // No divider found — treat the whole page as upcoming
+      console.warn("[cobraticket] 'Eventos pasados' divider not found, scraping all links");
+      const $ = cheerio.load(html);
+      $("a[href]").each((_, el) => {
+        const href = $(el).attr("href");
+        if (href && EVENT_PATH_REGEX.test(href)) {
+          upcomingLinks.push(toAbsoluteUrl(base, href));
+        }
+      });
+    } else {
+      // Only parse the HTML before the marker
+      const upcomingHtml = html.substring(0, markerIndex);
+      const $ = cheerio.load(upcomingHtml);
+
+      $("a[href]").each((_, el) => {
+        const href = $(el).attr("href");
+        if (href && EVENT_PATH_REGEX.test(href)) {
+          upcomingLinks.push(toAbsoluteUrl(base, href));
+        }
+      });
     }
 
-    return unique(allLinks);
+    const uniqueLinks = unique(upcomingLinks);
+    console.log(`[cobraticket] discovered ${uniqueLinks.length} upcoming events`);
+    return uniqueLinks;
   }
+
+  /* ------------------------------------------------------------------ */
+  /*  Scrape single event                                                */
+  /* ------------------------------------------------------------------ */
 
   protected async scrapeEvent(url: string): Promise<ScrapedRawEvent | null> {
     const sourceId = this.extractSourceId(url);
     if (!sourceId) return null;
 
     const html = await fetchHtml(url);
-    const $ = cheerio.load(html);
 
-    // Title — main h1, fallback to og:title, then <title>
-    const title = normalizeWhitespace(
-      $("h1").first().text() ||
-        $("meta[property='og:title']").attr("content") ||
-        $("title").text().replace(/\s*[|\-–].*$/, "") ||
-        "",
-    );
+    // ---- Try to extract the structured SvelteKit data payload ----
+    const props = this.extractSvelteKitProps(html);
 
+    if (props) {
+      return this.buildEventFromProps(props, url, sourceId);
+    }
+
+    // ---- Fallback: parse DOM if SvelteKit data is not available ----
+    console.warn(`[cobraticket] SvelteKit data not found for ${url}, falling back to DOM parsing`);
+    return this.scrapeEventFromDom(url, sourceId, html);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Extract SvelteKit JSON payload                                     */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * The SvelteKit SSR injects a block like:
+   *   const data = [null, {...}, {"type":"data","data":{props:{...}}}];
+   *
+   * The data uses JS object notation (some keys are unquoted), so we
+   * cannot use JSON.parse directly. We use `new Function()` to evaluate
+   * the literal safely on the server side.
+   */
+  private extractSvelteKitProps(html: string): CobraEventProps | null {
+    try {
+      // Match the data assignment in the script block.
+      const dataMatch = html.match(
+        /const\s+data\s*=\s*(\[[\s\S]*?\])\s*;\s*(?:\r?\n|\s*Promise)/,
+      );
+      if (!dataMatch?.[1]) return null;
+
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const dataArray = new Function("return " + dataMatch[1])() as unknown[];
+      if (!Array.isArray(dataArray)) return null;
+
+      // Walk the array to find the element with props
+      for (const item of dataArray) {
+        if (!item || typeof item !== "object") continue;
+
+        const record = item as Record<string, unknown>;
+        // SvelteKit data node: { type: "data", data: { props: { ... } } }
+        if (record.type === "data") {
+          const data = record.data as Record<string, unknown> | undefined;
+          if (data?.props) {
+            return data.props as CobraEventProps;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("[cobraticket] Error parsing SvelteKit data:", error);
+      return null;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Build event from structured props                                  */
+  /* ------------------------------------------------------------------ */
+
+  private buildEventFromProps(
+    props: CobraEventProps,
+    url: string,
+    sourceId: string,
+  ): ScrapedRawEvent | null {
+    const title = normalizeWhitespace(props.name ?? "");
     if (!title) return null;
 
-    // Description from "Acerca del evento" section
-    const description = this.extractDescription($);
+    // Clean description: the description field contains HTML entities
+    const rawDesc = props.description ?? null;
+    const description = rawDesc ? this.cleanDescription(rawDesc) : null;
 
-    // Category badge (e.g., "Fiestas", "Deportes", "Música")
-    const category = this.extractCategory($);
+    // Category
+    const category = props.category?.name ?? null;
 
-    // Date and time
-    const { dateText, startTime, endTime } = this.extractDateTime($);
+    // Dates
+    const dateText = props.startAt ?? null;
+    const { startTime, endTime } = this.parseStartEndTimes(props.startAt, props.endAt);
 
-    // Venue info
-    const { venueName, venueAddress, city } = this.extractVenue($);
+    // Venue
+    const venueName = props.location?.name ?? null;
+    const venueAddress = props.location?.address?.trim() ?? null;
+    const city = props.location?.region?.trim() ?? props.location?.locality?.trim() ?? null;
 
-    // Coordinates from Google Maps link
-    const { latitude, longitude } = this.extractCoordinates($);
+    // Coordinates
+    const latitude = props.location?.latlng?.lat ?? null;
+    const longitude = props.location?.latlng?.lng ?? null;
 
-    // Image
-    const imageUrl = this.extractImage($);
+    // Image — prefer cover image, fallback to square image
+    const imageUrl = props.imageCover?.url ?? props.image?.url ?? null;
 
-    // Age restriction — CobraTicket shows "+18" as a badge
-    const ageRestriction = this.extractAgeRestriction($);
+    // Age restriction
+    const ageRestriction = props.minAge ?? this.extractAgeFromText(description);
 
-    // Check if free from title + description text
-    const bodyText = `${title} ${description ?? ""}`.toLowerCase();
+    // Organizer
+    const organizer = props.account?.name ?? null;
+
+    // Prices from description text
+    const bodyText = `${title} ${description ?? ""}`;
     const isFree =
       /\b(gratis|gratuito|entrada libre|free|sin cargo|sin costo|evento gratuito)\b/i.test(bodyText);
-
-    // Extract prices — prefer structured data, then fallback to body text
-    const prices = this.extractPrices($, bodyText);
-
-    // Organizer — found in the "Organiza:" section
-    const organizer = this.extractOrganizer($);
+    const prices = extractMoneyValues(bodyText);
 
     return {
       source: "cobraticket",
@@ -140,22 +276,170 @@ export class CobraTicketScraper extends BaseScraper {
     };
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Fallback DOM-based scraping                                        */
+  /* ------------------------------------------------------------------ */
+
+  private scrapeEventFromDom(
+    url: string,
+    sourceId: string,
+    html: string,
+  ): ScrapedRawEvent | null {
+    const $ = cheerio.load(html);
+
+    // Title
+    const title = normalizeWhitespace(
+      $("h1").first().text() ||
+        $("meta[property='og:title']").attr("content") ||
+        $("title").text().replace(/\s*[|\-–].*$/, "") ||
+        "",
+    );
+    if (!title) return null;
+
+    // Description — "Acerca del evento" section
+    const description = this.extractDescriptionFromDom($);
+
+    // Category badge
+    const category = this.extractCategoryFromDom($);
+
+    // Date/time from <time> elements
+    const { dateText, startTime, endTime } = this.extractDateTimeFromDom($);
+
+    // Venue info from the location section (map-pin icon + h3s)
+    const { venueName, venueAddress, city } = this.extractVenueFromDom($);
+
+    // Coordinates from Google Maps link
+    const { latitude, longitude } = this.extractCoordinatesFromDom($);
+
+    // Image
+    const imageUrl = this.extractImageFromDom($);
+
+    // Age restriction
+    const ageRestriction = this.extractAgeFromText($("body").text());
+
+    // Organizer
+    const organizer = this.extractOrganizerFromDom($);
+
+    // Prices
+    const bodyText = `${title} ${description ?? ""}`;
+    const isFree =
+      /\b(gratis|gratuito|entrada libre|free|sin cargo|sin costo|evento gratuito)\b/i.test(bodyText);
+    const prices = extractMoneyValues(bodyText);
+
+    return {
+      source: "cobraticket",
+      sourceId,
+      sourceUrl: url,
+      rawData: {
+        title,
+        description,
+        category,
+        dateText,
+        startTime,
+        endTime,
+        venueText: venueName,
+        venueAddress,
+        city,
+        latitude,
+        longitude,
+        imageUrl,
+        isFree,
+        prices: prices.length > 0 ? prices : undefined,
+        ageRestriction,
+        organizer,
+        extractedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Helper methods                                                     */
+  /* ------------------------------------------------------------------ */
+
   private extractSourceId(url: string): string | null {
     const match = url.match(EVENT_PATH_REGEX);
     return match?.[1] ?? null;
   }
 
-  private extractDescription($: cheerio.CheerioAPI): string | null {
-    // Look for the "Acerca del evento" section content
+  /**
+   * Clean HTML-encoded description: strip tags, decode entities,
+   * normalize whitespace.
+   */
+  private cleanDescription(raw: string): string {
+    // Replace HTML tags with newlines/spaces
+    let text = raw
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, " ");
+
+    // Decode HTML entities like &aacute; &nbsp; etc.
+    text = decode(text);
+
+    // Normalize whitespace
+    text = text
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+
+    return text.substring(0, 1500) || "";
+  }
+
+  /**
+   * Parse start/end times from ISO-like strings like "2026-02-19 23:59:00".
+   */
+  private parseStartEndTimes(
+    startAt?: string,
+    endAt?: string,
+  ): { startTime: string | null; endTime: string | null } {
+    let startTime: string | null = null;
+    let endTime: string | null = null;
+
+    if (startAt) {
+      const match = startAt.match(/(\d{2}:\d{2}):\d{2}$/);
+      if (match) startTime = match[1];
+    }
+    if (endAt) {
+      const match = endAt.match(/(\d{2}:\d{2}):\d{2}$/);
+      if (match) endTime = match[1];
+    }
+
+    return { startTime, endTime };
+  }
+
+  /**
+   * Extract age restriction from text ("+18", "mayores de 18").
+   */
+  private extractAgeFromText(text: string | null): number | null {
+    if (!text) return null;
+
+    const match = text.match(/\+(\d{2})\b/) ??
+      text.match(/mayores\s+de\s+(\d{2})/i);
+
+    if (match?.[1]) {
+      const age = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(age) && age >= 16 && age <= 25) {
+        return age;
+      }
+    }
+
+    return null;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  DOM fallback helpers                                               */
+  /* ------------------------------------------------------------------ */
+
+  private extractDescriptionFromDom($: cheerio.CheerioAPI): string | null {
     const aboutSection = $("h3").filter((_, el) =>
       $(el).text().toLowerCase().includes("acerca del evento"),
     );
 
     if (aboutSection.length > 0) {
-      // Get the parent container and extract text content after the heading
       const parent = aboutSection.closest("div");
       if (parent.length > 0) {
-        // Remove the heading itself, then get the remaining text
         const clone = parent.clone();
         clone.find("h3").remove();
         const text = normalizeWhitespace(clone.text());
@@ -163,22 +447,30 @@ export class CobraTicketScraper extends BaseScraper {
       }
     }
 
-    // Fallback: og:description
     const ogDesc = $("meta[property='og:description']").attr("content");
     if (ogDesc) return normalizeWhitespace(ogDesc).substring(0, 1500);
 
     return null;
   }
 
-  private extractCategory($: cheerio.CheerioAPI): string | null {
-    // CobraTicket renders the category as a small text label/badge near the title.
-    // We look for known category names in span/div/small elements that are short
-    // (badge-like) rather than scanning the entire page text.
-    const candidates: string[] = [];
-
-    $("span, div, small, p").each((_, el) => {
+  private extractCategoryFromDom($: cheerio.CheerioAPI): string | null {
+    // Look for the category badge — a small bordered div with class border-primary
+    const categoryBadge = $("div.rounded-full").filter((_, el) => {
       const text = normalizeWhitespace($(el).text());
-      // Badges are short — typically just the category word
+      return text.length > 0 && text.length <= 20;
+    });
+
+    for (let i = 0; i < categoryBadge.length; i++) {
+      const text = normalizeWhitespace(categoryBadge.eq(i).text());
+      for (const known of KNOWN_CATEGORIES) {
+        if (text.toLowerCase() === known.toLowerCase()) return known;
+      }
+    }
+
+    // Fallback: scan short text elements
+    const candidates: string[] = [];
+    $("span, div, small, p, h4").each((_, el) => {
+      const text = normalizeWhitespace($(el).text());
       if (text.length > 0 && text.length <= 20) {
         candidates.push(text);
       }
@@ -186,16 +478,14 @@ export class CobraTicketScraper extends BaseScraper {
 
     for (const text of candidates) {
       for (const known of KNOWN_CATEGORIES) {
-        if (text.toLowerCase() === known.toLowerCase()) {
-          return known;
-        }
+        if (text.toLowerCase() === known.toLowerCase()) return known;
       }
     }
 
     return null;
   }
 
-  private extractDateTime($: cheerio.CheerioAPI): {
+  private extractDateTimeFromDom($: cheerio.CheerioAPI): {
     dateText: string | null;
     startTime: string | null;
     endTime: string | null;
@@ -204,34 +494,28 @@ export class CobraTicketScraper extends BaseScraper {
     let startTime: string | null = null;
     let endTime: string | null = null;
 
-    // CobraTicket has an h3 with the date like "20 febrero, 2026"
-    // and another h3 with time like "viernes, 23:50 - 06:00"
-    const h3Elements: string[] = [];
-    $("h3").each((_, el) => {
-      h3Elements.push(normalizeWhitespace($(el).text()));
+    // CobraTicket uses <time datetime="2026-02-19 23:59:00"> elements
+    const timeEls: string[] = [];
+    $("time[datetime]").each((_, el) => {
+      const dt = $(el).attr("datetime");
+      if (dt) timeEls.push(dt);
     });
 
-    for (const text of h3Elements) {
-      // Match date pattern: "20 febrero, 2026" or "17 febrero, 2026"
-      const dateMatch = text.match(
-        /(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre),?\s*(\d{4})/i,
-      );
-      if (dateMatch) {
-        dateText = text;
-      }
-
-      // Match time pattern: "viernes, 23:50 - 06:00" or "martes, 21:30 - 01:00"
-      const timeMatch = text.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-      if (timeMatch) {
-        startTime = timeMatch[1];
-        endTime = timeMatch[2];
-      }
+    const uniqueTimes = [...new Set(timeEls)];
+    if (uniqueTimes.length >= 1) {
+      dateText = uniqueTimes[0];
+      const match1 = uniqueTimes[0].match(/(\d{2}:\d{2}):\d{2}$/);
+      if (match1) startTime = match1[1];
+    }
+    if (uniqueTimes.length >= 2) {
+      const match2 = uniqueTimes[1].match(/(\d{2}:\d{2}):\d{2}$/);
+      if (match2) endTime = match2[1];
     }
 
     return { dateText, startTime, endTime };
   }
 
-  private extractVenue($: cheerio.CheerioAPI): {
+  private extractVenueFromDom($: cheerio.CheerioAPI): {
     venueName: string | null;
     venueAddress: string | null;
     city: string | null;
@@ -240,51 +524,28 @@ export class CobraTicketScraper extends BaseScraper {
     let venueAddress: string | null = null;
     let city: string | null = null;
 
-    // CobraTicket has venue info in h3 elements after "Ubicación" section
-    // Pattern: h3 with venue name, h3 with address, h3 with "City, Department"
-    const locationSection = $("h3").filter((_, el) =>
-      $(el).text().toLowerCase().includes("ubicación"),
-    );
-
-    if (locationSection.length > 0) {
-      // The venue data appears as h3 siblings after the "Ubicación" heading
-      const parent = locationSection.closest("div");
-      if (parent.length > 0) {
-        const allH3: string[] = [];
-        parent.find("h3").each((_, el) => {
-          const text = normalizeWhitespace($(el).text());
-          if (text && !text.toLowerCase().includes("ubicación")) {
-            allH3.push(text);
-          }
-        });
-
-        // Usually: [venueName, address, "City, Department"]
-        if (allH3.length >= 1) venueName = allH3[0];
-        if (allH3.length >= 2) venueAddress = allH3[1];
-        if (allH3.length >= 3) city = allH3[2];
+    // The venue section has a map-pin SVG icon followed by h3 elements:
+    //   h3.text-sm.font-semibold = venue name
+    //   h3.text-sm = address
+    //   h3.text-xs.font-light.opacity-70 = city/region
+    const mapPinSvg = $("svg.icon-tabler-map-pin");
+    if (mapPinSvg.length > 0) {
+      const container = mapPinSvg.first().closest("div.flex");
+      if (container.length > 0) {
+        const h3s = container.find("h3");
+        if (h3s.length >= 1) venueName = normalizeWhitespace(h3s.eq(0).text()) || null;
+        if (h3s.length >= 2) venueAddress = normalizeWhitespace(h3s.eq(1).text()) || null;
+        if (h3s.length >= 3) city = normalizeWhitespace(h3s.eq(2).text()) || null;
       }
-    }
-
-    // Fallback: scan all h3s looking for patterns
-    if (!venueName) {
-      $("h3").each((_, el) => {
-        const text = normalizeWhitespace($(el).text());
-        // Montevideo city pattern
-        if (/montevideo/i.test(text) && !city) {
-          city = text;
-        }
-      });
     }
 
     return { venueName, venueAddress, city };
   }
 
-  private extractCoordinates($: cheerio.CheerioAPI): {
+  private extractCoordinatesFromDom($: cheerio.CheerioAPI): {
     latitude: number | null;
     longitude: number | null;
   } {
-    // CobraTicket includes a Google Maps link with coordinates:
-    // https://www.google.com/maps/dir/?api=1&travelmode=driving&layer=traffic&destination=-34.9095744,-56.1679561
     const mapsLink = $('a[href*="google.com/maps"]').attr("href");
 
     if (mapsLink) {
@@ -301,68 +562,25 @@ export class CobraTicketScraper extends BaseScraper {
     return { latitude: null, longitude: null };
   }
 
-  private extractImage($: cheerio.CheerioAPI): string | null {
-    const imageUrl = extractBestImageUrl($, scraperConfig.cobraticketBaseUrl, [
-      "img[src*='img.cobraticket.uy']",
-      "img[data-src*='img.cobraticket.uy']",
-      "img",
-    ]);
+  private extractImageFromDom($: cheerio.CheerioAPI): string | null {
+    // Prefer data-src pointing to img.cobraticket.uy (high-res, not thumbnail)
+    let best: string | null = null;
 
-    if (imageUrl?.includes("/w-72/")) {
-      return null;
-    }
-
-    return imageUrl ?? null;
-  }
-
-  /**
-   * Extract age restriction from badge elements.
-   * CobraTicket renders "+18" as a small badge on the event page.
-   */
-  private extractAgeRestriction($: cheerio.CheerioAPI): number | null {
-    const pageText = $("body").text();
-
-    // Match patterns like "+18", "+21", "mayores de 18"
-    const match = pageText.match(/\+(\d{2})\b/) ??
-      pageText.match(/mayores\s+de\s+(\d{2})/i);
-
-    if (match?.[1]) {
-      const age = Number.parseInt(match[1], 10);
-      if (!Number.isNaN(age) && age >= 16 && age <= 25) {
-        return age;
+    $("img[data-src*='img.cobraticket.uy']").each((_, el) => {
+      const src = $(el).attr("data-src");
+      if (src && !src.includes("/w-72/")) {
+        if (!best) best = src;
       }
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract prices from structured elements first, then fallback to body text.
-   * Similar approach to Entraste's extractPricesFromHtml.
-   */
-  private extractPrices($: cheerio.CheerioAPI, bodyText: string): number[] {
-    // Look for price-like elements (CobraTicket sometimes shows ticket tiers)
-    const priceEls = $(".price, .precio, [class*='price'], [class*='precio']");
-    const prices: number[] = [];
-
-    priceEls.each((_, el) => {
-      const text = $(el).text().trim();
-      const extracted = extractMoneyValues(text);
-      prices.push(...extracted);
     });
 
-    if (prices.length > 0) return prices;
+    if (best) return best;
 
-    // Fallback to extracting from combined text
-    return extractMoneyValues(bodyText);
+    // Fallback to og:image
+    const ogImage = $("meta[property='og:image']").attr("content");
+    return ogImage ?? null;
   }
 
-  /**
-   * Extract organizer name from the "Organiza:" section.
-   * CobraTicket shows organizer with an avatar image and an h4 name.
-   */
-  private extractOrganizer($: cheerio.CheerioAPI): string | null {
-    // Look for "Organiza:" heading and get the following h4
+  private extractOrganizerFromDom($: cheerio.CheerioAPI): string | null {
     const organizaSection = $("h3").filter((_, el) =>
       $(el).text().toLowerCase().includes("organiza"),
     );
@@ -375,11 +593,6 @@ export class CobraTicketScraper extends BaseScraper {
       }
     }
 
-    // Fallback: h4 that is near an organizer image
-    const h4WithImg = $("h4").filter((_, el) =>
-      $(el).parent().find("img").length > 0,
-    );
-    const name = normalizeWhitespace(h4WithImg.first().text());
-    return name || null;
+    return null;
   }
 }

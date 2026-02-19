@@ -51,7 +51,25 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   }
 
   const dateText = sanitizeText((rawData.dateText as string) ?? "");
-  const parsedDate = parseUruguayDateTime(dateText);
+  
+  // Always try to parse date from the event title/name - many scrapers put the date in the title
+  // like "EVENT NAME - Viernes 20/02/26" but only put generic text in dateText like "VIERNES DE EVENT"
+  const dateFromName = parseUruguayDateTime(name);
+  
+  // Try to parse date from dateText first
+  let parsedDate = parseUruguayDateTime(dateText);
+  
+  // If dateText didn't have a valid date OR if the name has a better date, use that
+  if (dateFromName.wasFallback === false && parsedDate.wasFallback === true) {
+    // Name has a valid date but dateText doesn't - use name's date
+    parsedDate = dateFromName;
+    console.log('[NORMALIZER] Using date from name:', parsedDate.date);
+  } else if (!dateFromName.wasFallback && !parsedDate.wasFallback) {
+    // Both have dates - prefer the one from name if it's more specific (has actual numbers)
+    // This is a heuristic: title dates like "20/02/26" are usually more accurate than scraped dateText
+    parsedDate = dateFromName;
+  }
+  
   const aiResolvedDate =
     parsedDate.wasFallback && dateText
       ? await resolveDateWithAi(dateText)

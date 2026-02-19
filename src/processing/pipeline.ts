@@ -314,6 +314,7 @@ async function mergeEventData(
         venueAddress: events.venueAddress,
         startTime: events.startTime,
         endTime: events.endTime,
+        date: events.date,
       })
       .from(events)
       .where(eq(events.id, eventId))
@@ -327,6 +328,19 @@ async function mergeEventData(
 
   const existingPriceMin = existing.priceMin ?? null;
   const existingCurrency = existing.currency ?? "UYU";
+
+  // Update date if we have a valid new date and the existing one is different
+  // This handles cases where the old date was wrong
+  if (normalized.date) {
+    const existingDateStr = existing.date ? existing.date.split('T')[0] : null;
+    const newDateStr = normalized.date.split('T')[0];
+    // Update if dates are different (fixing wrong date)
+    if (existingDateStr && existingDateStr !== newDateStr) {
+      updates.date = normalized.date;
+    } else if (!existingDateStr) {
+      updates.date = normalized.date;
+    }
+  }
 
   if (normalized.priceMin != null && (existingPriceMin == null || existingPriceMin <= 1)) {
     updates.priceMin = normalized.priceMin;

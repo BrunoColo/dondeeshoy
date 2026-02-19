@@ -63,18 +63,8 @@ export class RedTicketsScraper extends BaseScraper {
   protected async discoverUrls(): Promise<string[]> {
     const allLinks: string[] = [];
 
-    // ── Source 1: Homepage ──
-    try {
-      const homeLinks = await this.discoverLinksFromPage(
-        scraperConfig.redticketsBaseUrl,
-      );
-      allLinks.push(...homeLinks);
-      console.log(`[redtickets] homepage: ${homeLinks.length} event links`);
-    } catch (error) {
-      console.error("[redtickets] error discovering from homepage", error);
-    }
-
-    // ── Source 2: Search / busqueda pages (paginated) ──
+    // ── Source: Search / busqueda pages (paginated) ──
+    // Note: Homepage discovery was removed as /busqueda already contains all events
     try {
       const searchLinks = await this.discoverFromSearchPages();
       allLinks.push(...searchLinks);

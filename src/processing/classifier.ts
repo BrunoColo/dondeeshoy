@@ -75,18 +75,18 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
 ];
 
 const METADATA_HINT_RULES: Array<{ type: EventType; regex: RegExp }> = [
-  { type: "teatro", regex: /teatro|artes\s*esc[eé]nicas|dramaturgia|obra/i },
-  { type: "cultural", regex: /cultural|audiovisual|cine|literatura|artes\s*visuales|museo|exposici[oó]n/i },
-  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo|desaf[ií]o|reto|traves[ií]a|trail|mtb|triatl[oó]n|estadio|ciclismo|nado/i },
-  { type: "fiesta", regex: /fiesta|dance|dj|electro|boliche|night|reggaeton|reggeaton|perreo/i },
-  { type: "concierto", regex: /m[uú]sica|musica|concierto|recital|banda|tour/i },
-  { type: "feria", regex: /feria|mercado|expo/i },
-  { type: "taller", regex: /taller|workshop|curso|seminario|charla|congreso|ritual|meditaci[oó]n/i },
-  { type: "gastronomico", regex: /gastron|food|cata|vino|cerveza|chef/i },
-  { type: "familiar", regex: /familiar|infantil|niñ|kids/i },
-  { type: "bar", regex: /bar|pub|cervecer/i },
-  { type: "club", regex: /club|session|after/i },
-  { type: "festival", regex: /festival|fest|carnaval/i },
+  { type: "teatro", regex: /teatro|artes\s*esc[eé]nicas|dramaturgia|obra\s+de|funci[oó]n\s+de|actuaci[oó]n|elenco|obra\s+teatral|presentaci[oó]n\s+esc[é]nica|piezas?\s+teatrales?|sala\s+de\s+espect[áé]culos/i },
+  { type: "cultural", regex: /cultural|audiovisual|cine|literatura|artes\s*visuales|museo|exposici[oó]n|galer[ií]a|presentaci[oó]n\s+de\s+libro|charla\s+cultural|encuentro\s+literario|muestra\s+art[í]stica/i },
+  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo|desaf[ií]o|reto|traves[ií]a|trail|mtb|triatl[oó]n|estadio|ciclismo|nado|marat[oó]n|carrera\s+de|liga|deporte|competici[oó]n|torneo\s+de|challenge|copa|selecci[oó]n/i },
+  { type: "fiesta", regex: /fiesta|dance|dj|electro|boliche|night|reggaeton|reggeaton|perreo|party|after\s*party|open\s*bar|discoteca|clandestino|bailable|baile\s+de|kermesse|celebraci[oó]n|festejo/i },
+  { type: "concierto", regex: /m[uú]sica|musica|concierto|recital|banda|tour|vivo|show\s+musical|presentaci[oó]n\s+musical|actuaci[oó]n\s+musical|gira\s+musical/i },
+  { type: "festival", regex: /festival|fest|carnaval|encuentro\s+de\s+m[ú]sica|marat[oó]n\s+musical/i },
+  { type: "feria", regex: /feria|mercado|expo|feria\s+de|mercado\s+de|exposici[oó]n\s+comercial/i },
+  { type: "taller", regex: /taller|workshop|curso|seminario|charla|congreso|ritual|meditaci[oó]n|sanaci[oó]n|encuentro\s+de|conferencia|presentaci[oó]n|simposio|jornada/i },
+  { type: "gastronomico", regex: /gastron|food|cata|vino|cerveza|chef|cocina|restaurante|men[uú]|degustaci[oó]n|comida\s+de|gourmet/i },
+  { type: "familiar", regex: /familiar|infantil|niñ|kids|para\s+niños|con\s+niños| familia|nenes|chicos/i },
+  { type: "bar", regex: /bar|pub|cervecer|pubs?|happy\s*hour|tragos?|bebidas?\s+artesianales?|cervecer[ií]a\s+artesianal/i },
+  { type: "club", regex: /club|nocturno|after\s*hours|sessions?|noche\s+de/i },
 ];
 
 const GENRE_RULES: Array<{ genre: string; regex: RegExp }> = [
@@ -96,6 +96,26 @@ const GENRE_RULES: Array<{ genre: string; regex: RegExp }> = [
   { genre: "urbano", regex: /trap|reggaeton|reggeaton|reguet[oó]n|urbano|hip hop/i },
   { genre: "pop", regex: /pop/i },
   { genre: "jazz", regex: /jazz|blues/i },
+];
+
+/* ─── Known theater venues in Uruguay ─── */
+const KNOWN_THEATER_VENUES = [
+  /el\s+tinglado/i,
+  /el\s+galp[oó]n/i,
+  /sala\s+zavala\s+muniz/i,
+  /auditorio\s+vaz\s+ferreira/i,
+  /teatro\s+sol[ií]s/i,
+  /teatro\s+el\s+picadero/i,
+  /teatro\s+de\s+la\s+ciudad/i,
+  /espacio\s+palermo/i,
+  /la\s+cretina/i,
+  /asociaci[oó]n\s+cristiana\s+de\s+j[oó]venes/i,
+  /castillo\s+pittamiglio/i,
+  /la\s+colmena/i,
+  /teatro\s+florencio\s+sanchez/i,
+  /teatro\s+gran\s+retton/i,
+  /sala\s+del\s+museo/i,
+  /peña\s+blanca/i,
 ];
 
 /* ─── Recurrence detection ─── */
@@ -249,14 +269,21 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     .filter((rule) => rule.regex.test(text))
     .map((rule) => rule.type);
 
+  // Check if venue is a known theater
+  const venueIsKnownTheater = KNOWN_THEATER_VENUES.some((regex) =>
+    regex.test(normalized.venueName ?? ""),
+  );
+
   let eventType: EventType =
     matchedTypes[0] ??
-    (normalized.venueName.toLowerCase().includes("teatro") ? "teatro" : "otro");
+    (normalized.venueName.toLowerCase().includes("teatro") || venueIsKnownTheater ? "teatro" : "otro");
 
-  // Metadata hinting from scraper category/source/genre when text is ambiguous
-  if (eventType === "otro") {
-    const hintedType = inferTypeFromMetadata(context);
-    if (hintedType) {
+  // Metadata hinting: use scraper category to improve classification
+  // This helps when text matching is weak but source provides good category
+  const hintedType = inferTypeFromMetadata(context);
+  if (hintedType) {
+    // If current type is "otro" or the hinted type is more specific, use it
+    if (eventType === "otro" || shouldPreferHintedType(eventType, hintedType)) {
       eventType = hintedType;
     }
   }
@@ -276,6 +303,19 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     matchedTypes,
     isRecurring,
   };
+}
+
+/**
+ * Decide if the hinted type from metadata should be preferred over the heuristic match.
+ * Prioritize specific types over generic ones.
+ */
+function shouldPreferHintedType(currentType: EventType, hintedType: EventType): boolean {
+  // Prefer hinted type if current is generic
+  const genericTypes = new Set<EventType>(["otro", "club", "bar"]);
+  if (genericTypes.has(currentType)) {
+    return true;
+  }
+  return false;
 }
 
 // High-confidence types that don't need AI even when there are multiple matches.

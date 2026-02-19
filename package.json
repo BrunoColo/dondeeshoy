@@ -20,6 +20,7 @@
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.1",
+    "html-entities": "^2.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.564.0",
     "motion": "^12.34.0",
