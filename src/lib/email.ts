@@ -3,7 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 import type { NewEventSubmission } from "@/lib/db/schema";
 
-const ADMIN_EMAIL = "hola@dondeeshoy.com";
+const ADMIN_EMAIL = "brunocolo05@gmail.com";
 const FROM_EMAIL = "noreply@dondeeshoy.com";
 
 /** Lazy singleton — avoids crashing at import time when RESEND_API_KEY is unset */
