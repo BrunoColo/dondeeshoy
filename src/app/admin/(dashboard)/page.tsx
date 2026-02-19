@@ -1,0 +1,169 @@
+import { getAdminDashboardStats, getDailyScrapeCounts } from "@/lib/admin-queries";
+
+type DailyCount = { date: string; scraped: number; processed: number };
+type EventTypeCount = { type: string; count: number };
+
+export default async function AdminDashboardPage() {
+  const [stats, dailyCounts] = await Promise.all([
+    getAdminDashboardStats(),
+    getDailyScrapeCounts(7),
+  ]);
+
+  const maxDaily = Math.max(
+    ...dailyCounts.map((d: DailyCount) => Math.max(d.scraped, d.processed)),
+    1
+  );
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-zinc-100 mb-2">Dashboard</h1>
+        <p className="text-zinc-500 text-sm">Estadísticas generales del sistema</p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard
+          label="Eventos Activos"
+          value={stats.totalEvents.toLocaleString("es-UY")}
+          sublabel="en la base de datos"
+        />
+        <KpiCard
+          label="Creados Hoy"
+          value={stats.eventsToday.toLocaleString("es-UY")}
+          sublabel="nuevos eventos"
+        />
+        <KpiCard
+          label="Raw Events"
+          value={stats.unprocessedRaw.toLocaleString("es-UY")}
+          sublabel="sin procesar"
+          highlight
+        />
+        <KpiCard
+          label="Submissions"
+          value={stats.pendingSubmissions.toLocaleString("es-UY")}
+          sublabel="pendientes"
+          highlight
+        />
+      </div>
+
+      {/* Coverage Stats */}
+      <div className="border border-zinc-800 rounded p-4">
+        <h2 className="text-lg font-bold text-zinc-100 mb-4">Cobertura de Datos</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ProgressBar
+            label="Con Precio"
+            current={stats.withPrice}
+            total={stats.totalEvents}
+          />
+          <ProgressBar
+            label="Con Imagen"
+            current={stats.withImage}
+            total={stats.totalEvents}
+          />
+          <ProgressBar
+            label="Con Ubicación"
+            current={stats.withLocation}
+            total={stats.totalEvents}
+          />
+        </div>
+      </div>
+
+      {/* Daily Chart */}
+      <div className="border border-zinc-800 rounded p-4">
+        <h2 className="text-lg font-bold text-zinc-100 mb-4">Últimos 7 días</h2>
+        <div className="space-y-3">
+          {dailyCounts.map((day: DailyCount) => (
+            <div key={day.date} className="flex items-center gap-4">
+              <span className="text-xs text-zinc-500 w-20">
+                {new Date(day.date).toLocaleDateString("es-UY", {
+                  weekday: "short",
+                  day: "numeric",
+                })}
+              </span>
+              <div className="flex-1 flex gap-1">
+                <div
+                  className="h-4 bg-zinc-700 rounded-sm"
+                  style={{ width: `${(day.scraped / maxDaily) * 100}%`, minWidth: day.scraped > 0 ? "4px" : "0" }}
+                />
+              </div>
+              <span className="text-xs text-zinc-400 w-12 text-right">
+                {day.scraped}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex gap-4 text-xs text-zinc-500">
+          <span className="flex items-center gap-2">
+            <span className="w-3 h-3 bg-zinc-700 rounded-sm" />
+            Scraped
+          </span>
+        </div>
+      </div>
+
+      {/* Events by Type */}
+      <div className="border border-zinc-800 rounded p-4">
+        <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Tipo</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {stats.eventsByType.map((item: EventTypeCount) => (
+            <div key={item.type} className="flex justify-between text-sm">
+              <span className="text-zinc-400 capitalize">{item.type}</span>
+              <span className="text-zinc-200">{item.count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sublabel,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  sublabel: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={`border rounded p-4 ${highlight ? "border-zinc-700 bg-zinc-900/50" : "border-zinc-800"}`}>
+      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-yellow-400" : "text-zinc-100"}`}>
+        {value}
+      </p>
+      <p className="text-xs text-zinc-600">{sublabel}</p>
+    </div>
+  );
+}
+
+function ProgressBar({
+  label,
+  current,
+  total,
+}: {
+  label: string;
+  current: number;
+  total: number;
+}) {
+  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-2">
+        <span className="text-zinc-400">{label}</span>
+        <span className="text-zinc-200">
+          {current} / {total} ({percentage}%)
+        </span>
+      </div>
+      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-zinc-600 rounded-full transition-all"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}

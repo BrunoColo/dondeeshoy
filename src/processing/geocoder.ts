@@ -3,7 +3,7 @@ import type { NormalizedEventInput } from "./normalizer";
 export interface GeocodeResult {
   latitude: number | null;
   longitude: number | null;
-  source: "lookup" | "mapbox" | "none";
+  source: "scraper" | "lookup" | "mapbox" | "none";
 }
 
 type KnownVenue = {

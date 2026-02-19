@@ -142,7 +142,15 @@ async function processRawEvent(
     return "skipped";
   }
 
-  const geocode = await geocodeVenue(normalized);
+  // Use scraper-provided coordinates if available, otherwise geocode
+  const geocode =
+    normalized.latitude != null && normalized.longitude != null
+      ? {
+          latitude: normalized.latitude,
+          longitude: normalized.longitude,
+          source: "scraper" as const,
+        }
+      : await geocodeVenue(normalized);
   const enriched = {
     ...normalized,
     latitude: geocode.latitude,

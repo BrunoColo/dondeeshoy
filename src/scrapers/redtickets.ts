@@ -303,8 +303,16 @@ export class RedTicketsScraper extends BaseScraper {
     const { venueName: rtVenueName, venueAddress: rtVenueAddress } =
       this.parseVenueText(rawVenueText);
 
-    // Attempt price extraction from JSON-LD / meta tags
-    const prices = this.extractPrices($);
+    // Extract coordinates directly from Google Maps embed iframe
+    const coords = this.extractMapCoordinates($);
+
+    // Attempt price extraction from the GeneXus embedded ticket data first,
+    // then fall back to JSON-LD / meta / text extraction
+    const ticketPrices = this.extractTicketPrices($, html);
+    const prices = ticketPrices.length > 0 ? ticketPrices : this.extractPrices($);
+
+    // Check isFree flag from the embedded GeneXus data
+    const gxFree = this.extractIsFreeFromGx($, html);
 
     return {
       source: "redtickets",
@@ -318,6 +326,8 @@ export class RedTicketsScraper extends BaseScraper {
         venueAddress: rtVenueAddress,
         imageUrl: finalImageUrl,
         prices,
+        ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
+        ...(gxFree === true ? { isFree: true } : {}),
         extractedAt: new Date().toISOString(),
       },
     };
@@ -509,6 +519,195 @@ export class RedTicketsScraper extends BaseScraper {
           prices,
         );
       }
+    }
+  }
+
+  /* ─────────────── Coordinates from Google Maps embed ────────────── */
+
+  /**
+   * Extract latitude and longitude directly from the Google Maps embed iframe.
+   * RedTickets embeds an iframe like:
+   *   <IFRAME src="https://www.google.com/maps/embed/v1/place?key=...&q=-34.90581000 , -56.19950300&zoom=16" ...>
+   * This gives us the exact coordinates the organizer set.
+   */
+  private extractMapCoordinates(
+    $: cheerio.CheerioAPI,
+  ): { latitude: number; longitude: number } | null {
+    const iframe = $(
+      "iframe[name='W0010EMBMAP'], IFRAME[name='W0010EMBMAP'], iframe[src*='google.com/maps/embed'], IFRAME[src*='google.com/maps/embed']",
+    ).first();
+
+    const src = iframe.attr("src") || "";
+    // Match q=LAT , LNG (with possible spaces around comma)
+    const match = src.match(/[?&]q=([-\d.]+)\s*,\s*([-\d.]+)/);
+
+    if (match) {
+      const lat = Number.parseFloat(match[1]);
+      const lng = Number.parseFloat(match[2]);
+
+      // Sanity check: must be in Uruguay's bounding box roughly
+      if (
+        !Number.isNaN(lat) &&
+        !Number.isNaN(lng) &&
+        lat >= -36 &&
+        lat <= -30 &&
+        lng >= -59 &&
+        lng <= -53
+      ) {
+        return { latitude: lat, longitude: lng };
+      }
+    }
+
+    return null;
+  }
+
+  /* ──────────── Ticket prices from GeneXus embedded JSON ──────────── */
+
+  /**
+   * Extract ticket prices from the embedded GeneXus purchase response JSON.
+   * The page embeds a large JSON blob containing `vPURCHASEOPTIONSRESPONSE`
+   * which has the full ticket data including prices and availability.
+   *
+   * Structure: Evt.Dates[].Times[].Tickets[] → each ticket has:
+   *   - price: string like "14656.00" (total including fees)
+   *   - unitPrice: string like "13324.00" (base price)
+   *   - soldOut: boolean (on the parent Time/Date level)
+   *   - caption: string (ticket type name, e.g. "Segunda Tanda")
+   */
+  private extractTicketPrices(
+    $: cheerio.CheerioAPI,
+    html: string,
+  ): number[] {
+    const purchaseData = this.extractGxPurchaseResponse($, html);
+    if (!purchaseData) return [];
+
+    const prices: number[] = [];
+
+    try {
+      const evt = (purchaseData as Record<string, unknown>).Evt as
+        | Record<string, unknown>
+        | undefined;
+      if (!evt) return [];
+
+      // Check if event is free
+      if (evt.isFree === true) return [];
+
+      const dates = evt.Dates as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(dates)) return [];
+
+      for (const date of dates) {
+        // Skip sold-out dates
+        if (date.soldOut === true) continue;
+
+        const times = date.Times as
+          | Array<Record<string, unknown>>
+          | undefined;
+        if (!Array.isArray(times)) continue;
+
+        for (const time of times) {
+          // Skip sold-out times
+          if (time.soldOut === true) continue;
+
+          const tickets = time.Tickets as
+            | Array<Record<string, unknown>>
+            | undefined;
+          if (!Array.isArray(tickets)) continue;
+
+          for (const ticket of tickets) {
+            // Use unitPrice (base price without fees) if available, else price
+            const priceStr =
+              (ticket.unitPrice as string) || (ticket.price as string);
+            if (!priceStr) continue;
+
+            const amount = Number.parseFloat(priceStr);
+            if (!Number.isNaN(amount) && amount > 0) {
+              prices.push(amount);
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore parse errors — fall back to other price extraction
+    }
+
+    return uniqueNumbers(prices);
+  }
+
+  /**
+   * Check the GeneXus embedded data for an explicit isFree flag.
+   */
+  private extractIsFreeFromGx(
+    $: cheerio.CheerioAPI,
+    html: string,
+  ): boolean | null {
+    const purchaseData = this.extractGxPurchaseResponse($, html);
+    if (!purchaseData) return null;
+
+    try {
+      const evt = (purchaseData as Record<string, unknown>).Evt as
+        | Record<string, unknown>
+        | undefined;
+      return evt?.isFree === true ? true : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Extract the vPURCHASEOPTIONSRESPONSE JSON from the page's GeneXus state.
+   *
+   * Strategy:
+   *   1. Parse the GXState hidden input (most reliable — clean JSON)
+   *   2. Fallback: bracket counting in the raw HTML
+   */
+  private extractGxPurchaseResponse(
+    $: cheerio.CheerioAPI,
+    html: string,
+  ): Record<string, unknown> | null {
+    // ── Strategy 1: GXState hidden input ──
+    const gxStateValue = $("input[name='GXState']").attr("value");
+
+    if (gxStateValue) {
+      try {
+        const state = JSON.parse(gxStateValue) as Record<string, unknown>;
+        // Find the key that ends with vPURCHASEOPTIONSRESPONSE
+        // (the prefix varies: W0013, W0014, etc.)
+        const purchaseKey = Object.keys(state).find((k) =>
+          k.endsWith("vPURCHASEOPTIONSRESPONSE"),
+        );
+
+        if (purchaseKey && typeof state[purchaseKey] === "object") {
+          return state[purchaseKey] as Record<string, unknown>;
+        }
+      } catch {
+        // GXState parse failed, try fallback
+      }
+    }
+
+    // ── Strategy 2: Bracket counting in raw HTML ──
+    const marker = 'vPURCHASEOPTIONSRESPONSE":';
+    const idx = html.indexOf(marker);
+    if (idx === -1) return null;
+
+    let i = idx + marker.length;
+    while (i < html.length && html[i] === " ") i++;
+    if (html[i] !== "{") return null;
+
+    let depth = 0;
+    let end = i;
+    for (let j = i; j < html.length; j++) {
+      if (html[j] === "{") depth++;
+      else if (html[j] === "}") depth--;
+      if (depth === 0) {
+        end = j + 1;
+        break;
+      }
+    }
+
+    try {
+      return JSON.parse(html.substring(i, end)) as Record<string, unknown>;
+    } catch {
+      return null;
     }
   }
 
