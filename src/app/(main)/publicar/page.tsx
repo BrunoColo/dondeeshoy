@@ -27,20 +27,20 @@ import Link from "next/link";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EVENT_TYPES = [
-  { value: "fiesta", label: "🎉 Fiesta" },
-  { value: "festival", label: "🎪 Festival" },
-  { value: "concierto", label: "🎵 Concierto" },
-  { value: "recital", label: "🎸 Recital" },
-  { value: "cultural", label: "🎭 Cultural" },
-  { value: "deportivo", label: "⚽ Deportivo" },
-  { value: "gastronomico", label: "🍽️ Gastronómico" },
-  { value: "familiar", label: "👨‍👩‍👧 Familiar" },
-  { value: "feria", label: "🛍️ Feria" },
-  { value: "taller", label: "🎨 Taller" },
-  { value: "club", label: "🎧 Club" },
-  { value: "bar", label: "🍺 Bar" },
-  { value: "teatro", label: "🎬 Teatro" },
-  { value: "otro", label: "✨ Otro" },
+  { value: "fiesta", label: "Fiesta" },
+  { value: "festival", label: "Festival" },
+  { value: "concierto", label: "Concierto" },
+  { value: "recital", label: "Recital" },
+  { value: "cultural", label: "Cultural" },
+  { value: "deportivo", label: "Deportivo" },
+  { value: "gastronomico", label: "Gastronómico" },
+  { value: "familiar", label: "Familiar" },
+  { value: "feria", label: "Feria" },
+  { value: "taller", label: "Taller" },
+  { value: "club", label: "Club" },
+  { value: "bar", label: "Bar" },
+  { value: "teatro", label: "Teatro" },
+  { value: "otro", label: "Otro" },
 ] as const;
 
 const DEPARTMENTS = [

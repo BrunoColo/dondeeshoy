@@ -22,7 +22,19 @@ Organizador recibe email de confirmación (manual por ahora)
 
 ---
 
-## 2. La página `/publicar`
+## 2. Estado actual del sistema
+
+| Componente | Estado | Notas |
+|------------|--------|-------|
+| Formulario `/publicar` | ✅ Listo | Funciona completamente |
+| API `/api/submissions` | ✅ Lista | Valida y guarda en DB |
+| Tabla `event_submissions` | ✅ Lista | Migración aplicada |
+| Notificaciones email | ⚠️ Requiere configuración | Falta `RESEND_API_KEY` |
+| Panel de admin | ❌ No existe | Revisión manual en Supabase |
+
+---
+
+## 3. La página `/publicar`
 
 **Ruta:** `src/app/(main)/publicar/page.tsx`
 
@@ -40,7 +52,7 @@ Después del submit exitoso, la misma página muestra un estado de confirmación
 
 ---
 
-## 3. El endpoint `POST /api/submissions`
+## 4. El endpoint `POST /api/submissions`
 
 **Ruta:** `src/app/api/submissions/route.ts`
 
@@ -53,7 +65,7 @@ Qué hace:
 
 ---
 
-## 4. La tabla `event_submissions`
+## 5. La tabla `event_submissions`
 
 **Schema:** `src/lib/db/schema/submissions.ts`
 
@@ -81,7 +93,7 @@ Qué hace:
 
 ---
 
-## 5. Las notificaciones por email
+## 6. Las notificaciones por email
 
 **Archivo:** `src/lib/email.ts`
 
@@ -111,7 +123,7 @@ RESEND_API_KEY=re_xxxxxxxxxxxx
 
 ---
 
-## 6. Aplicar la migración en Supabase
+## 7. Aplicar la migración en Supabase (YA ESTÁ HECHO)
 
 La migración SQL está en `src/lib/db/migrations/0002_add_event_submissions.sql`.
 
@@ -123,7 +135,7 @@ La migración SQL está en `src/lib/db/migrations/0002_add_event_submissions.sql
 
 ---
 
-## 7. Cómo revisás las solicitudes (flujo de admin)
+## 8. Cómo revisás las solicitudes (flujo de admin)
 
 ### Ver solicitudes pendientes
 
@@ -156,7 +168,43 @@ WHERE id = 'uuid-de-la-solicitud';
 
 ---
 
-## 8. Qué falta / próximos pasos
+## 9. PARA ACTIVAR EL SISTEMA — Lo que tenés que hacer
+
+### Paso 1: Configurar Resend (para recibir emails)
+
+Editá tu archivo `.env` y agregá:
+
+```env
+RESEND_API_KEY=re_tu_api_key_aqui
+```
+
+**O si querés probar rápido sin configurar dominio:**
+1. Cambiá temporalmente en `src/lib/email.ts`:
+   ```ts
+   const ADMIN_EMAIL = "tu-email-personal@gmail.com";
+   ```
+2. Agregá tu API key de Resend en `.env`
+3. Probá el formulario
+
+### Paso 2: Verificar la tabla en Supabase
+
+1. Entrá a [supabase.com](https://supabase.com) → tu proyecto
+2. Ir a **Table Editor**
+3. Buscá la tabla `event_submissions`
+4. Si no existe, ejecutá la migración `0002_add_event_submissions.sql`
+
+### Paso 3: Probar el sistema completo
+
+1. Levantá el servidor: `npm run dev`
+2. Andá a **http://localhost:3000/publicar**
+3. Llená el formulario con datos de prueba
+4. Verificá:
+   - Que se guarde en Supabase (tabla `event_submissions`)
+   - Que recibás el email (si configuraste Resend)
+
+---
+
+## 10. Qué falta / próximos pasos
 
 | Feature | Prioridad | Descripción |
 |---------|-----------|-------------|
@@ -168,7 +216,7 @@ WHERE id = 'uuid-de-la-solicitud';
 
 ---
 
-## 9. Resumen de archivos creados/modificados
+## 11. Resumen de archivos creados/modificados
 
 ```
 src/
