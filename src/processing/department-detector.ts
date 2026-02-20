@@ -32,6 +32,61 @@ export type UruguayDepartment =
   | "Rocha";
 
 /**
+ * Approximate bounding boxes for each Uruguay department (lat/lng).
+ * Used for coordinate-based department detection, which is more reliable
+ * than text matching (avoids false positives like "Colonia" street in Montevideo).
+ */
+export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  "Montevideo":    { minLat: -34.950, maxLat: -34.705, minLng: -56.410, maxLng: -56.005 },
+  "Canelones":     { minLat: -34.895, maxLat: -34.080, minLng: -56.530, maxLng: -55.340 },
+  "Maldonado":     { minLat: -35.030, maxLat: -34.170, minLng: -55.460, maxLng: -54.500 },
+  "Colonia":       { minLat: -34.520, maxLat: -33.780, minLng: -58.450, maxLng: -57.020 },
+  "San José":      { minLat: -34.620, maxLat: -33.770, minLng: -57.120, maxLng: -56.090 },
+  "Soriano":       { minLat: -34.100, maxLat: -33.000, minLng: -58.350, maxLng: -57.100 },
+  "Río Negro":     { minLat: -33.450, maxLat: -32.250, minLng: -58.450, maxLng: -57.020 },
+  "Paysandú":      { minLat: -32.900, maxLat: -31.300, minLng: -58.100, maxLng: -56.500 },
+  "Salto":         { minLat: -31.800, maxLat: -30.500, minLng: -58.300, maxLng: -56.400 },
+  "Artigas":       { minLat: -31.000, maxLat: -30.060, minLng: -57.650, maxLng: -55.600 },
+  "Rivera":        { minLat: -31.870, maxLat: -30.880, minLng: -56.000, maxLng: -54.100 },
+  "Tacuarembó":    { minLat: -32.330, maxLat: -31.150, minLng: -56.600, maxLng: -54.600 },
+  "Cerro Largo":   { minLat: -33.200, maxLat: -31.750, minLng: -55.050, maxLng: -53.250 },
+  "Treinta y Tres": { minLat: -33.750, maxLat: -32.760, minLng: -55.120, maxLng: -53.400 },
+  "Durazno":       { minLat: -33.500, maxLat: -32.200, minLng: -56.700, maxLng: -55.200 },
+  "Florida":       { minLat: -34.250, maxLat: -33.050, minLng: -56.300, maxLng: -55.050 },
+  "Flores":        { minLat: -33.920, maxLat: -33.200, minLng: -57.300, maxLng: -56.500 },
+  "Lavalleja":     { minLat: -34.600, maxLat: -33.500, minLng: -55.450, maxLng: -54.300 },
+  "Rocha":         { minLat: -34.970, maxLat: -33.350, minLng: -54.700, maxLng: -53.350 },
+};
+
+/**
+ * Detect the Uruguay department from coordinates using bounding boxes.
+ * Returns the department name if the point falls within a bounding box,
+ * or null if no match (coordinates outside Uruguay or in an overlap area).
+ */
+export function detectDepartmentFromCoordinates(
+  latitude: number,
+  longitude: number,
+): UruguayDepartment | null {
+  // Check Montevideo first (smallest department, common case)
+  const mvd = DEPARTMENT_BOUNDS["Montevideo"];
+  if (latitude >= mvd.minLat && latitude <= mvd.maxLat && longitude >= mvd.minLng && longitude <= mvd.maxLng) {
+    return "Montevideo";
+  }
+
+  for (const [dept, bounds] of Object.entries(DEPARTMENT_BOUNDS) as [UruguayDepartment, typeof mvd][]) {
+    if (dept === "Montevideo") continue; // already checked
+    if (
+      latitude >= bounds.minLat && latitude <= bounds.maxLat &&
+      longitude >= bounds.minLng && longitude <= bounds.maxLng
+    ) {
+      return dept;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Each entry maps a set of lowercase/accent-stripped keywords to a department.
  * Keywords are matched as substrings against the combined text of:
  *   venue name + venue address + scraper city field + event name
@@ -318,11 +373,15 @@ function normalizeForMatch(value: string): string {
 
 /**
  * Detect the Uruguay department from event location data.
+ * When coordinates are available, they take priority over text matching
+ * to avoid false positives (e.g. "Colonia" street in Montevideo).
  *
  * @param venueName  - Venue name from scraper
  * @param venueAddress - Venue address from scraper
  * @param scraperCity - City/location string from scraper (e.g. CobraTicket's city field)
  * @param eventName  - Event title (sometimes contains location like "Carnaval Salto")
+ * @param latitude   - Optional latitude for coordinate-based detection
+ * @param longitude  - Optional longitude for coordinate-based detection
  * @returns Canonical department name, defaults to "Montevideo"
  */
 export function detectDepartment(
@@ -330,7 +389,15 @@ export function detectDepartment(
   venueAddress: string | null,
   scraperCity: string | null,
   eventName: string | null,
+  latitude?: number | null,
+  longitude?: number | null,
 ): UruguayDepartment {
+  // Prefer coordinate-based detection when coordinates are available
+  if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+    const fromCoords = detectDepartmentFromCoordinates(latitude, longitude);
+    if (fromCoords) return fromCoords;
+  }
+
   // Build combined search text — prioritize address and city over name
   // (event names can have false positives like "Colonia de vacaciones")
   const parts = [

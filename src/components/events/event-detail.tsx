@@ -231,8 +231,8 @@ export function EventDetail({ event }: EventDetailProps) {
 
       {/* Fixed CTA button — mobile only */}
       {event.ticketUrl && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] lg:hidden"
-          style={{ background: "linear-gradient(to top, rgba(6,6,12,0.95) 60%, transparent)" }}
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 lg:hidden"
+          style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(to top, rgba(6,6,12,0.95) 60%, transparent)" }}
         >
           <div className="mx-auto max-w-2xl">
             <TicketButton ticketUrl={event.ticketUrl} />

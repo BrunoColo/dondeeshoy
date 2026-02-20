@@ -25,14 +25,24 @@ export async function POST(request: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
     const trendingKey = `trending:daily:${today}`;
 
-    // Fire both in parallel — Redis for real-time trending, DB for persistence
+    // Hourly trending key for "los más buscados" (uses Uruguay time)
+    const now = new Date();
+    const uyNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Montevideo" }));
+    const uyHour = `${uyNow.getFullYear()}-${String(uyNow.getMonth() + 1).padStart(2, "0")}-${String(uyNow.getDate()).padStart(2, "0")}T${String(uyNow.getHours()).padStart(2, "0")}`;
+    const hourlyKey = `trending:hourly:${uyHour}`;
+
+    // Fire all in parallel — Redis daily + hourly for trending, DB for persistence
     await Promise.all([
       redis.zincrby(trendingKey, 1, eventId),
+      redis.zincrby(hourlyKey, 1, eventId),
       incrementViewCount(eventId),
     ]);
 
-    // Set TTL on trending key (48h expiry to auto-cleanup)
-    await redis.expire(trendingKey, 60 * 60 * 48);
+    // Set TTLs (48h for daily, 2h for hourly)
+    await Promise.all([
+      redis.expire(trendingKey, 60 * 60 * 48),
+      redis.expire(hourlyKey, 60 * 60 * 2),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

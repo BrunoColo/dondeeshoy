@@ -8,6 +8,7 @@ import { findDuplicateEventId } from "./deduplicator";
 import { geocodeVenue } from "./geocoder";
 import { classifyEventWithAi } from "./ai-client";
 import { calculateConfidenceScore, normalizeRawEvent } from "./normalizer";
+import { detectDepartment } from "./department-detector";
 
 export interface PipelineResult {
   pending: number;
@@ -156,6 +157,20 @@ async function processRawEvent(
     latitude: geocode.latitude,
     longitude: geocode.longitude,
   };
+
+  // Re-detect department using coordinates (more reliable than text matching)
+  if (enriched.latitude != null && enriched.longitude != null) {
+    const rawData2 = rawEvent.rawData as Record<string, unknown>;
+    const scraperCity = typeof rawData2.city === "string" ? rawData2.city : null;
+    enriched.city = detectDepartment(
+      enriched.venueName !== "Venue por confirmar" ? enriched.venueName : null,
+      enriched.venueAddress,
+      scraperCity,
+      enriched.name,
+      enriched.latitude,
+      enriched.longitude,
+    );
+  }
 
   const rawData = rawEvent.rawData as Record<string, unknown>;
   const category = typeof rawData.category === "string" ? rawData.category : null;
@@ -317,12 +332,16 @@ async function mergeEventData(
         priceMin: events.priceMin,
         priceMax: events.priceMax,
         currency: events.currency,
+        isFree: events.isFree,
         imageUrl: events.imageUrl,
         venueName: events.venueName,
         venueAddress: events.venueAddress,
         startTime: events.startTime,
         endTime: events.endTime,
         date: events.date,
+        latitude: events.latitude,
+        longitude: events.longitude,
+        city: events.city,
       })
       .from(events)
       .where(eq(events.id, eventId))
@@ -350,9 +369,19 @@ async function mergeEventData(
     }
   }
 
-  if (normalized.priceMin != null && (existingPriceMin == null || existingPriceMin <= 1)) {
-    updates.priceMin = normalized.priceMin;
-    updates.priceMax = normalized.priceMax ?? normalized.priceMin;
+  // Always update price if rawData has price and event doesn't have one yet
+  // This ensures re-scraped events with new prices get updated
+  if (normalized.priceMin != null) {
+    const hasExistingPrice = existingPriceMin != null && existingPriceMin > 1;
+    if (!hasExistingPrice) {
+      updates.priceMin = normalized.priceMin;
+      updates.priceMax = normalized.priceMax ?? normalized.priceMin;
+    }
+  }
+
+  // Also update if rawData has isFree=true and event doesn't have price set
+  if (normalized.isFree && !existing.priceMin && !existing.priceMax && existing.isFree !== true) {
+    updates.isFree = normalized.isFree;
   }
 
   if (normalized.currency === "USD" && existingCurrency !== "USD") {
@@ -377,6 +406,25 @@ async function mergeEventData(
 
   if (!existing.endTime && normalized.endTime) {
     updates.endTime = normalized.endTime;
+  }
+
+  // Update coordinates and department when scraper provides them
+  // This ensures the mini map and department filter always have accurate data
+  const hasExistingCoords = existing.latitude && existing.longitude;
+  const hasNewCoords = normalized.latitude != null && normalized.longitude != null;
+  
+  if (hasNewCoords && !hasExistingCoords) {
+    updates.latitude = normalized.latitude?.toString() ?? null;
+    updates.longitude = normalized.longitude?.toString() ?? null;
+    // Recalculate department from new coordinates
+    if (normalized.city) {
+      updates.city = normalized.city;
+    }
+  }
+
+  // Also update city if it was previously null/empty and we have it now
+  if (normalized.city && !existing.city) {
+    updates.city = normalized.city;
   }
 
   if (Object.keys(updates).length === 0) return;

@@ -2,8 +2,9 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema/events";
-import { eq, and, gte, lte, asc, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, asc, desc, sql, ilike, or, isNotNull, inArray } from "drizzle-orm";
 import type { EventType, EventFilters } from "@/types/events";
+import { DEPARTMENT_BOUNDS, type UruguayDepartment } from "@/processing/department-detector";
 
 /* ─── Columns used by list/card views (skip heavy/unused fields) ─── */
 const listColumns = {
@@ -50,9 +51,32 @@ function buildFilterConditions(filters?: EventFilters) {
     conditions.push(eq(events.musicGenre, filters.genre));
   }
   if (filters?.department && filters.department.trim().length > 0) {
-    // Use ilike for case-insensitive matching to handle accent/case variations
-    // stored in the DB (e.g. "San José" vs "San Jose")
-    conditions.push(ilike(events.city, filters.department.trim()));
+    const dept = filters.department.trim() as UruguayDepartment;
+    const bounds = DEPARTMENT_BOUNDS[dept];
+
+    if (bounds) {
+      // Use coordinate bounding boxes for department filtering (more reliable).
+      // Fall back to text matching for events without coordinates.
+      conditions.push(
+        or(
+          and(
+            isNotNull(events.latitude),
+            isNotNull(events.longitude),
+            sql`CAST(${events.latitude} AS DECIMAL) >= ${bounds.minLat}`,
+            sql`CAST(${events.latitude} AS DECIMAL) <= ${bounds.maxLat}`,
+            sql`CAST(${events.longitude} AS DECIMAL) >= ${bounds.minLng}`,
+            sql`CAST(${events.longitude} AS DECIMAL) <= ${bounds.maxLng}`,
+          ),
+          and(
+            sql`${events.latitude} IS NULL`,
+            ilike(events.city, dept),
+          ),
+        )!,
+      );
+    } else {
+      // Unknown department — fall back to text matching
+      conditions.push(ilike(events.city, dept));
+    }
   }
   if (filters?.free) {
     conditions.push(eq(events.isFree, true));
@@ -267,6 +291,48 @@ export async function getTrendingEvents(date: string, limit: number = 5) {
     .where(and(eq(events.date, date), activeStatus, gte(events.viewCount, 3), eq(events.isRecurring, false)))
     .orderBy(desc(events.viewCount))
     .limit(limit);
+}
+
+/**
+ * Get hourly trending events — events with >= 10 views in the current hour.
+ * Uses Redis hourly sorted set for real-time tracking.
+ * Returns at most `limit` events (default 3).
+ */
+export async function getHourlyTrendingEvents(date: string, limit: number = 3) {
+  const { redis } = await import("@/lib/redis");
+
+  // Compute current hour key in Uruguay timezone
+  const now = new Date();
+  const uyNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Montevideo" }));
+  const uyHour = `${uyNow.getFullYear()}-${String(uyNow.getMonth() + 1).padStart(2, "0")}-${String(uyNow.getDate()).padStart(2, "0")}T${String(uyNow.getHours()).padStart(2, "0")}`;
+  const hourlyKey = `trending:hourly:${uyHour}`;
+
+  // Get top entries with scores (up to 20 to have room after filtering)
+  const results = await redis.zrange(hourlyKey, 0, 19, { rev: true, withScores: true });
+
+  // Parse into pairs and filter by minimum 10 views in the hour
+  const qualified: { eventId: string; views: number }[] = [];
+  for (let i = 0; i < results.length; i += 2) {
+    const eventId = results[i] as string;
+    const views = results[i + 1] as number;
+    if (views >= 10) {
+      qualified.push({ eventId, views });
+    }
+  }
+
+  if (qualified.length === 0) return [];
+
+  const topIds = qualified.slice(0, limit).map((q) => q.eventId);
+
+  // Fetch events from DB
+  const eventRows = await db
+    .select(listColumns)
+    .from(events)
+    .where(and(inArray(events.id, topIds), activeStatus, eq(events.date, date)))
+
+  // Preserve the Redis ordering (most views first)
+  const idOrder = new Map(topIds.map((id, i) => [id, i]));
+  return eventRows.sort((a, b) => (idOrder.get(a.id) ?? 99) - (idOrder.get(b.id) ?? 99));
 }
 
 /**
