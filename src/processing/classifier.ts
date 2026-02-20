@@ -26,33 +26,33 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "concierto",
     regex:
-      /\bconcierto\b|\blive\b|\bgira\b|\btour\b|\bbanda\s+en\s+vivo\b|\bpresenta\s+su\s+(disco|album)\b|\bm[uú]sica\s+en\s+vivo\b/i,
+      /\bconcierto\b|\blive\b|\bgira\b|\btour\b|\bbanda\s+en\s+vivo\b|\bpresenta\s+su\s+(disco|album)\b|\bm[uú]sica\s+en\s+vivo\b|\broda\s+de\s+samba\b|\bsamba\b|\bcandombe\b|\brueda\s+de\s+candombe\b/i,
   },
   { type: "recital", regex: /\brecital\b|\bset\s+ac[uú]stico\b|\bac[uú]stico\b/i },
   {
     type: "teatro",
     regex:
-      /\bteatro\b|\bobra\b|\bescena\b|\bdram[aá]tic[oa]\b|\bcomedia\b|\bdramaturgia\b|\bmon[oó]logo\b|\belenco\b|\bmusical\b|\btragedia\b|\bthe\s+crucible\b/i,
+      /\bteatro\b|\bobra\b|\bescena\b|\bdram[aá]tic[oa]\b|\bcomedia\b|\bdramaturgia\b|\bmon[oó]logo\b|\belenco\b|\bmusical\b|\btragedia\b|\bthe\s+crucible\b|\bunipersonal\b|\bimprovisaci\w*\b|\bstand\s*up\b|\bhumorist\w*\b|\bhumor\b|\bcircuito\s+teatral\b/i,
   },
   {
     type: "cultural",
     regex:
-      /\bmuseo\b|\bexposici[oó]n\b|\bgaler[ií]a\b|\bpatrimonio\b|\bcultural\b|\bart[eí]stic[oa]\b|\bcine\b|\bpel[ií]cula\b|\bfilm\b|\bdocumental\b|\bproyecci[oó]n\b|\bcortometraje\b|\baudiovisual\b|\bliteratura\b|\bpoes[ií]a\b/i,
+      /\bmuseo\b|\bexposici[oó]n\b|\bgaler[ií]a\b|\bpatrimonio\b|\bcultural\b|\bart[eí]stic[oa]\b|\bcine\b|\bpel[ií]cula\b|\bfilm\b|\bdocumental\b|\bproyecci[oó]n\b|\bcortometraje\b|\baudiovisual\b|\bliteratura\b|\bpoes[ií]a\b|\btablado\b|\bvisitas?\s+guiadas?\b|\bmisterios?\s+del?\b|\bpeatonal\s+tours?\b|\bvisit[aá]s?\s+(?:a\s+)?(?:la|el|al)\b|\breserva\s+(?:natural|de\s+fauna)\b|\bconocé\s+el\b/i,
   },
   {
     type: "deportivo",
     regex:
-      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b|\bdesaf[ií]o\b|\breto\b|\btraves[ií]a\b|\btriatl[oó]n\b|\btrail\b|\bmtb\b|\bgravel\b|\bnado\b|\bnataci[oó]n\b|\bciclismo\b|\bxcm\b|\bestadio\b|\b\d+\s*k(?:m)?\b|\bscott\s*marathon\b|\bvikingo\b|\ba\s*nado\b/i,
+      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b|\bdesaf[ií]o\b|\breto\b|\btraves[ií]a\b|\btriatl[oó]n\b|\btrail\b|\bmtb\b|\bgravel\b|\bnado\b|\bnataci[oó]n\b|\bciclismo\b|\bxcm\b|\bestadio\b|\b\d+\s*k(?:m)?\b|\bscott\s*marathon\b|\bvikingo\b|\ba\s*nado\b|\bhip[oó]dromo\b|\bmaro[nñ]as\b|\btrekking\b|\bsenderismo\b|\bpesca\b|\bgrutas?\s+extremas?\b/i,
   },
   {
     type: "gastronomico",
     regex:
-      /\bgastron[oó]mic\w*\b|\bfood\b|\bcata\b|\bdegustaci[oó]n\b|\bcerveza\b|\bvino\b|\bparrilla\b|\bmen[uú]\b|\bchef\b|\bcocina\b|\bcomida\b/i,
+      /\bgastron[oó]mic\w*\b|\bfood\b|\bcata\b|\bdegustaci[oó]n\b|\bcerveza\b|\bvino\b|\bparrilla\b|\bmen[uú]\b|\bchef\b|\bcocina\b|\bcomida\b|\bwine\s*lodge\b|\bchacra\s+tramonto\b/i,
   },
   {
     type: "familiar",
     regex:
-      /\bfamiliar\b|\binfantil\b|\bniñ\w*\b|\bkids\b|\bapto para todo p[uú]blico\b|\ben familia\b|\bvacaciones\s+de\s+julio\b/i,
+      /\bfamiliar\b|\binfantil\b|\bni\u00f1\w*\b|\bkids\b|\bapto para todo p[u\u00fa]blico\b|\ben familia\b|\bvacaciones\s+de\s+julio\b|\bpaintball\b|\btrampoline\b|\btrampol[i\u00ed]n\b|\bparque\s+(?:de\s+)?(?:aventura|destrezas?)\b|\baqua\s*park\b|\baquaman[i\u00ed]a\b|\baquapark\b|\bbungee\b|\bparque\s+acu[a\u00e1]tico\b|\bgravity\b|\bdino\s*aventura\b|\bcirco\b|\bwet\s*(?:&|y)\s*wild\b|\bnimbus\b|\bparque\s+biomas?\b|\bla\s+cuerda\b|\bfutvolt\b|\btactical\s+games?\b|\bludus\b/i,
   },
   {
     type: "feria",
@@ -62,23 +62,23 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "taller",
     regex:
-      /\btalleres?\b|\bworkshop\b|\bcharla\b|\bconferencia\b|\bseminario\b|\bcurso\b|\bmasterclass\b|\bcapacitaci[oó]n\b|\britual\b|\bsanaci[oó]n\b|\bmeditaci[oó]n\b|\bcongreso\b|\bxperience\b/i,
+      /\btalleres?\b|\bworkshop\b|\bcharla\b|\bconferencia\b|\bseminario\b|\bcurso\b|\bmasterclass\b|\bcapacitaci[oó]n\b|\britual\b|\bsanaci[oó]n\b|\bmeditaci[oó]n\b|\bcongreso\b|\bxperience\b|\bdisertaci[oó]n\b|\bescuela\s+de\b/i,
   },
   // fiesta — includes nightlife / dance / baile keywords (unified type)
   {
     type: "fiesta",
     regex:
-      /\bfiesta\b|\bparty\b|\brancho\b|\bpariseo\b|\bdance\b|\bdj\b|\belectro\b|\bboliche\b|\bbaile\b|\bpista\s*de\s*baile\b|\bnightclub\b|\bopenbar\b|\bopen\s*bar\b|\bfomo\b|\bcloud\s*7\b|\bcloud\s*sessions?\b|\bprevia\s+(?:de\s+)?(?:la\s+)?(?:fiesta|party|noche)\b|\bafter\s*party\b|\bperreo\b|\breggaeton\b|\breggeaton\b|\breguet[oó]n\b/i,
+      /\bfiesta\b|\bparty\b|\brancho\b|\bpariseo\b|\bdance\b|\bdj\b|\belectro\b|\bboliche\b|\bbaile\b|\bpista\s*de\s*baile\b|\bnightclub\b|\bopenbar\b|\bopen\s*bar\b|\bfomo\b|\bcloud\s*7\b|\bcloud\s*sessions?\b|\bprevia\s+(?:de\s+)?(?:la\s+)?(?:fiesta|party|noche)\b|\bafter\s*party\b|\bperreo\b|\breggaeton\b|\breggeaton\b|\breguet[o\u00f3]n\b|\bnoche\s+cubana\b|\bla\s+previa\b|\bdanzeria\b|\b2\s+pistas\b|\bacceso\s+\d+\s+pistas?\b|\bcumbia\s+vieja\b|\bsin\s+censura\b|\bsilent\s+(?:disco|party|luna)\b|\blokeito\b|\bsunset\s+experience\b/i,
   },
-  { type: "club", regex: /\bclub\b|\bsessions?\b|\bafter\b/i },
+  { type: "club", regex: /\bclub\b|\bclvb\b|\bsessions?\b|\bafter\b/i },
   { type: "bar", regex: /\bbar\b|\bpub\b|\bcervecer[ií]a\b|\bhappy\s*hour\b|\bcoctel\w*\b/i },
 ];
 
 const METADATA_HINT_RULES: Array<{ type: EventType; regex: RegExp }> = [
-  { type: "teatro", regex: /teatro|artes\s*esc[eé]nicas|dramaturgia|obra\s+de|funci[oó]n\s+de|actuaci[oó]n|elenco|obra\s+teatral|presentaci[oó]n\s+esc[é]nica|piezas?\s+teatrales?|sala\s+de\s+espect[áé]culos/i },
-  { type: "cultural", regex: /cultural|audiovisual|cine|literatura|artes\s*visuales|museo|exposici[oó]n|galer[ií]a|presentaci[oó]n\s+de\s+libro|charla\s+cultural|encuentro\s+literario|muestra\s+art[í]stica/i },
-  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo|desaf[ií]o|reto|traves[ií]a|trail|mtb|triatl[oó]n|estadio|ciclismo|nado|marat[oó]n|carrera\s+de|liga|deporte|competici[oó]n|torneo\s+de|challenge|copa|selecci[oó]n/i },
-  { type: "fiesta", regex: /fiesta|dance|dj|electro|boliche|night|reggaeton|reggeaton|perreo|party|after\s*party|open\s*bar|discoteca|clandestino|bailable|baile\s+de|kermesse|celebraci[oó]n|festejo/i },
+  { type: "teatro", regex: /teatro|artes\s*esc[eé]nicas|dramaturgia|obra\s+de|funci[oó]n\s+de|actuaci[oó]n|elenco|obra\s+teatral|presentaci[oó]n\s+esc[é]nica|piezas?\s+teatrales?|sala\s+de\s+espect[áé]culos|unipersonal|humor|stand\s*up/i },
+  { type: "cultural", regex: /cultural|audiovisual|cine|literatura|artes\s*visuales|museo|exposici[oó]n|galer[ií]a|presentaci[oó]n\s+de\s+libro|charla\s+cultural|encuentro\s+literario|muestra\s+art[í]stica|tablado|candombe|patrimonio|visita\s+guiada|tours?/i },
+  { type: "deportivo", regex: /deport|box|boxeo|f[uú]tbol|basket|basquet|mma|ufc|torneo|desaf[ií]o|reto|traves[ií]a|trail|mtb|triatl[oó]n|estadio|ciclismo|nado|marat[oó]n|carrera\s+de|liga|deporte|competici[oó]n|torneo\s+de|challenge|copa|selecci[oó]n|hip[oó]dromo|trekking|pesca/i },
+  { type: "fiesta", regex: /fiesta|dance|dj|electro|boliche|night|reggaeton|reggeaton|perreo|party|after\s*party|open\s*bar|discoteca|clandestino|bailable|baile\s+de|kermesse|celebraci[oó]n|festejo|noche\s+cubana|danzeria/i },
   { type: "concierto", regex: /m[uú]sica|musica|concierto|recital|banda|tour|vivo|show\s+musical|presentaci[oó]n\s+musical|actuaci[oó]n\s+musical|gira\s+musical/i },
   { type: "festival", regex: /festival|fest|carnaval|encuentro\s+de\s+m[ú]sica|marat[oó]n\s+musical/i },
   { type: "feria", regex: /feria|mercado|expo|feria\s+de|mercado\s+de|exposici[oó]n\s+comercial/i },
@@ -116,6 +116,47 @@ const KNOWN_THEATER_VENUES = [
   /teatro\s+gran\s+retton/i,
   /sala\s+del\s+museo/i,
   /peña\s+blanca/i,
+  /sala\s+camac[uú][aá]/i,
+  /la\s+incorrecta/i,
+  /casatrompo/i,
+  /\bacj\s+montevideo/i,
+];
+
+/* ─── Known concert / music venues in Uruguay ─── */
+const KNOWN_CONCERT_VENUES = [
+  /medio\s+y\s+medio/i,
+  /magnolio\s+sala/i,
+  /pueblo\s+narakan/i,
+  /sociedad\s+urbana\s+villa\s+dolores/i,
+  /soto\s+bosque/i,
+  /sala\s+del\s+museo/i,
+  /la\s+trastienda/i,
+  /sala\s+zitarrosa/i,
+  /estadio\s+centenario/i,
+  /antel\s+arena/i,
+  /velódromo/i,
+  /teatro\s+de\s+verano/i,
+];
+
+/* ─── Known party / nightclub venues in Uruguay ─── */
+const KNOWN_PARTY_VENUES = [
+  /viejo\s+barreiro/i,
+  /\bsoho\b/i,
+  /\bnox\s*cl[uv]b/i,
+  /\bplaza\s+mateo\b/i,
+  /\binmigrantes\s+mvd/i,
+  /\bviejar2/i,
+  /\blokeito/i,
+];
+
+/* ─── Known cultural venues (tablados, etc.) ─── */
+const KNOWN_CULTURAL_VENUES = [
+  /tablado\s+parque\s+rod[oó]/i,
+  /tablado\s+primero\s+de\s+mayo/i,
+  /tablado\s+1ero\s+de\s+mayo/i,
+  /tablado\s+monumental/i,
+  /palacio\s+salvo/i,
+  /plaza\s+de\s+toros/i,
 ];
 
 /* ─── Recurrence detection ─── */
@@ -269,14 +310,35 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     .filter((rule) => rule.regex.test(text))
     .map((rule) => rule.type);
 
-  // Check if venue is a known theater
+  // Check if venue is a known type
+  const venueName = normalized.venueName ?? "";
   const venueIsKnownTheater = KNOWN_THEATER_VENUES.some((regex) =>
-    regex.test(normalized.venueName ?? ""),
+    regex.test(venueName),
+  );
+  const venueIsKnownConcert = KNOWN_CONCERT_VENUES.some((regex) =>
+    regex.test(venueName),
+  );
+  const venueIsKnownParty = KNOWN_PARTY_VENUES.some((regex) =>
+    regex.test(venueName),
+  );
+  const venueIsKnownCultural = KNOWN_CULTURAL_VENUES.some((regex) =>
+    regex.test(venueName),
   );
 
-  let eventType: EventType =
-    matchedTypes[0] ??
-    (normalized.venueName.toLowerCase().includes("teatro") || venueIsKnownTheater ? "teatro" : "otro");
+  let eventType: EventType;
+  if (matchedTypes[0]) {
+    eventType = matchedTypes[0];
+  } else if (venueName.toLowerCase().includes("teatro") || venueIsKnownTheater) {
+    eventType = "teatro";
+  } else if (venueIsKnownParty) {
+    eventType = "fiesta";
+  } else if (venueIsKnownConcert) {
+    eventType = "concierto";
+  } else if (venueIsKnownCultural || /\btablado\b/i.test(normalized.name)) {
+    eventType = "cultural";
+  } else {
+    eventType = "otro";
+  }
 
   // Metadata hinting: use scraper category to improve classification
   // This helps when text matching is weak but source provides good category

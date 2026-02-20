@@ -183,6 +183,24 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
     return { date, startTime, wasFallback: false };
   }
 
+  // Try DD/MM/YY format (2-digit year, e.g. "21/02/26" for 2026)
+  const ddmmShortMatch = value.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2})(?!\d)/);
+  if (ddmmShortMatch) {
+    const day = Number.parseInt(ddmmShortMatch[1], 10);
+    const month = Number.parseInt(ddmmShortMatch[2], 10);
+    const shortYear = Number.parseInt(ddmmShortMatch[3], 10);
+    const year = shortYear >= 0 && shortYear <= 99 ? 2000 + shortYear : shortYear;
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+    let startTime: string | null = null;
+    if (timeMatch) {
+      const hour = Number.parseInt(timeMatch[1], 10);
+      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    }
+    return { date, startTime, wasFallback: false };
+  }
+
   // Try YYYY-MM-DD format
   const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {

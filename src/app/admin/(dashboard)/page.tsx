@@ -1,4 +1,4 @@
-import { getAdminDashboardStats, getDailyScrapeCounts } from "@/lib/admin-queries";
+import { getAdminDashboardStats, getDailyScrapeCounts, getEnhancedDashboardStats } from "@/lib/admin-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -6,15 +6,19 @@ type DailyCount = { date: string; scraped: number; processed: number };
 type EventTypeCount = { type: string; count: number };
 
 export default async function AdminDashboardPage() {
-  const [stats, dailyCounts] = await Promise.all([
+  const [stats, dailyCounts, enhanced] = await Promise.all([
     getAdminDashboardStats(),
     getDailyScrapeCounts(7),
+    getEnhancedDashboardStats(),
   ]);
 
   const maxDaily = Math.max(
     ...dailyCounts.map((d: DailyCount) => Math.max(d.scraped, d.processed)),
     1
   );
+
+  const otroCount = stats.eventsByType.find((t: EventTypeCount) => t.type === "otro")?.count ?? 0;
+  const otroPercentage = stats.totalEvents > 0 ? Math.round((otroCount / stats.totalEvents) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -39,13 +43,38 @@ export default async function AdminDashboardPage() {
           label="Raw Events"
           value={stats.unprocessedRaw.toLocaleString("es-UY")}
           sublabel="sin procesar"
-          highlight
+          highlight={stats.unprocessedRaw > 0}
         />
         <KpiCard
           label="Submissions"
           value={stats.pendingSubmissions.toLocaleString("es-UY")}
           sublabel="pendientes"
-          highlight
+          highlight={stats.pendingSubmissions > 0}
+        />
+      </div>
+
+      {/* Second row KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard
+          label="Próximos"
+          value={enhanced.upcomingCount.toLocaleString("es-UY")}
+          sublabel="eventos futuros"
+        />
+        <KpiCard
+          label="Pasados"
+          value={enhanced.pastCount.toLocaleString("es-UY")}
+          sublabel="eventos anteriores"
+        />
+        <KpiCard
+          label="Gratuitos"
+          value={enhanced.freeCount.toLocaleString("es-UY")}
+          sublabel={`${stats.totalEvents > 0 ? Math.round((enhanced.freeCount / stats.totalEvents) * 100) : 0}% del total`}
+        />
+        <KpiCard
+          label="Sin clasificar"
+          value={`${otroCount}`}
+          sublabel={`${otroPercentage}% → tipo "otro"`}
+          highlight={otroPercentage > 10}
         />
       </div>
 
@@ -68,6 +97,71 @@ export default async function AdminDashboardPage() {
             current={stats.withLocation}
             total={stats.totalEvents}
           />
+        </div>
+      </div>
+
+      {/* Two-column layout: Events by Type + Events by Source */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Events by Type */}
+        <div className="border border-zinc-800 rounded p-4">
+          <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Tipo</h2>
+          <div className="space-y-2">
+            {stats.eventsByType
+              .sort((a: EventTypeCount, b: EventTypeCount) => b.count - a.count)
+              .map((item: EventTypeCount) => {
+                const pct = stats.totalEvents > 0 ? Math.round((item.count / stats.totalEvents) * 100) : 0;
+                return (
+                  <div key={item.type} className="flex items-center gap-3">
+                    <span className="text-zinc-400 capitalize text-sm w-28 truncate">{item.type}</span>
+                    <div className="flex-1 h-4 bg-zinc-800 rounded-sm overflow-hidden">
+                      <div
+                        className={`h-full rounded-sm ${item.type === "otro" ? "bg-yellow-500/60" : "bg-zinc-600"}`}
+                        style={{ width: `${pct}%`, minWidth: item.count > 0 ? "4px" : "0" }}
+                      />
+                    </div>
+                    <span className="text-zinc-300 text-sm w-12 text-right">{item.count}</span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* Events by Source */}
+        <div className="border border-zinc-800 rounded p-4">
+          <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Fuente</h2>
+          <div className="space-y-2">
+            {enhanced.eventsBySource
+              .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
+              .map((item: { source: string; count: number }) => {
+                const maxSource = Math.max(...enhanced.eventsBySource.map((s: { count: number }) => s.count), 1);
+                const pct = Math.round((item.count / maxSource) * 100);
+                return (
+                  <div key={item.source} className="flex items-center gap-3">
+                    <span className="text-zinc-400 text-sm w-28 truncate">{item.source}</span>
+                    <div className="flex-1 h-4 bg-zinc-800 rounded-sm overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500/40 rounded-sm"
+                        style={{ width: `${pct}%`, minWidth: item.count > 0 ? "4px" : "0" }}
+                      />
+                    </div>
+                    <span className="text-zinc-300 text-sm w-12 text-right">{item.count}</span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+
+      {/* Events by City/Department */}
+      <div className="border border-zinc-800 rounded p-4">
+        <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Departamento</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {enhanced.eventsByCity.map((item: { city: string; count: number }) => (
+            <div key={item.city} className="flex justify-between text-sm border border-zinc-800/50 rounded p-2">
+              <span className="text-zinc-400 truncate">{item.city}</span>
+              <span className="text-zinc-200 ml-2 font-medium">{item.count}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -103,16 +197,54 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Events by Type */}
-      <div className="border border-zinc-800 rounded p-4">
-        <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Tipo</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {stats.eventsByType.map((item: EventTypeCount) => (
-            <div key={item.type} className="flex justify-between text-sm">
-              <span className="text-zinc-400 capitalize">{item.type}</span>
-              <span className="text-zinc-200">{item.count}</span>
-            </div>
-          ))}
+      {/* Two-column: Top Viewed + Recently Created */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Top Viewed Events */}
+        <div className="border border-zinc-800 rounded p-4">
+          <h2 className="text-lg font-bold text-zinc-100 mb-4">Más Vistos</h2>
+          <div className="space-y-2">
+            {enhanced.topViewed.map(
+              (event: { id: string; name: string; viewCount: number; date: string; venueName: string; eventType: string }, i: number) => (
+                <div key={event.id} className="flex items-start gap-3 text-sm">
+                  <span className="text-zinc-600 w-5 text-right">{i + 1}.</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-zinc-200 truncate">{event.name}</p>
+                    <p className="text-zinc-500 text-xs truncate">
+                      {event.venueName} · <span className="capitalize">{event.eventType}</span>
+                    </p>
+                  </div>
+                  <span className="text-zinc-400 text-xs whitespace-nowrap">
+                    {event.viewCount} vistas
+                  </span>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Recently Created Events */}
+        <div className="border border-zinc-800 rounded p-4">
+          <h2 className="text-lg font-bold text-zinc-100 mb-4">Recién Creados</h2>
+          <div className="space-y-2">
+            {enhanced.recentEvents.map(
+              (event: { id: string; name: string; date: string; venueName: string; eventType: string; city: string; createdAt: Date }) => (
+                <div key={event.id} className="flex items-start gap-3 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-zinc-200 truncate">{event.name}</p>
+                    <p className="text-zinc-500 text-xs truncate">
+                      {event.venueName} · {event.city} · <span className="capitalize">{event.eventType}</span>
+                    </p>
+                  </div>
+                  <span className="text-zinc-500 text-xs whitespace-nowrap">
+                    {new Date(event.createdAt).toLocaleDateString("es-UY", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>

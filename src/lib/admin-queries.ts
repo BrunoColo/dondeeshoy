@@ -1,7 +1,7 @@
 import { db } from "./db";
-import { events, rawEvents } from "./db/schema";
+import { events, rawEvents, eventSources } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
-import { eq, desc, and, gte, sql, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, count } from "drizzle-orm";
 
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil";
 
@@ -313,6 +313,92 @@ export async function rejectSubmission(id: string, notes?: string) {
     .where(eq(eventSubmissions.id, id));
 
   return { success: true };
+}
+
+// ============= Enhanced Dashboard Stats =============
+
+export async function getEnhancedDashboardStats() {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+
+  // Events by source (how many final events each scraper produced)
+  const eventsBySource = await db
+    .select({
+      source: eventSources.source,
+      count: count(),
+    })
+    .from(eventSources)
+    .groupBy(eventSources.source);
+
+  // Events by city/department
+  const eventsByCity = await db
+    .select({
+      city: events.city,
+      count: count(),
+    })
+    .from(events)
+    .where(eq(events.status, "active"))
+    .groupBy(events.city)
+    .orderBy(desc(count()));
+
+  // Upcoming events (future dates)
+  const [upcomingCount] = await db
+    .select({ count: count() })
+    .from(events)
+    .where(and(eq(events.status, "active"), gte(events.date, todayStr)));
+
+  // Past events (date before today)
+  const [pastCount] = await db
+    .select({ count: count() })
+    .from(events)
+    .where(and(eq(events.status, "active"), lte(events.date, todayStr)));
+
+  // Top viewed events
+  const topViewed = await db
+    .select({
+      id: events.id,
+      name: events.name,
+      viewCount: events.viewCount,
+      date: events.date,
+      venueName: events.venueName,
+      eventType: events.eventType,
+    })
+    .from(events)
+    .where(eq(events.status, "active"))
+    .orderBy(desc(events.viewCount))
+    .limit(10);
+
+  // Recently created events
+  const recentEvents = await db
+    .select({
+      id: events.id,
+      name: events.name,
+      date: events.date,
+      venueName: events.venueName,
+      eventType: events.eventType,
+      city: events.city,
+      createdAt: events.createdAt,
+    })
+    .from(events)
+    .where(eq(events.status, "active"))
+    .orderBy(desc(events.createdAt))
+    .limit(10);
+
+  // Free vs paid events
+  const [freeCount] = await db
+    .select({ count: count() })
+    .from(events)
+    .where(and(eq(events.status, "active"), eq(events.isFree, true)));
+
+  return {
+    eventsBySource,
+    eventsByCity,
+    upcomingCount: upcomingCount?.count ?? 0,
+    pastCount: pastCount?.count ?? 0,
+    topViewed,
+    recentEvents,
+    freeCount: freeCount?.count ?? 0,
+  };
 }
 
 // ============= Daily Counts =============
