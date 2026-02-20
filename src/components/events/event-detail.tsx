@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatTime, formatDateES, getTimeStatus } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
@@ -21,6 +23,7 @@ interface EventDetailProps {
 }
 
 export function EventDetail({ event }: EventDetailProps) {
+  const router = useRouter();
   const price = formatPrice(event.priceMin, event.priceMax, event.isFree, event.currency);
   const startTime = formatTime(event.startTime);
   const endTime = formatTime(event.endTime);
@@ -33,6 +36,15 @@ export function EventDetail({ event }: EventDetailProps) {
     longitude != null &&
     Number.isFinite(latitude) &&
     Number.isFinite(longitude);
+
+  const handleBack = () => {
+    // Try to go back in history, fallback to home if no history
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
 
   return (
     <div className="fade-up">
@@ -47,12 +59,12 @@ export function EventDetail({ event }: EventDetailProps) {
           />
 
           {/* Back button */}
-          <Link
-            href="/"
+          <button
+            onClick={handleBack}
             className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white transition-colors hover:bg-black/60"
           >
             <ArrowLeft className="h-5 w-5" strokeWidth={2} />
-          </Link>
+          </button>
 
           {/* Now indicator */}
           {timeStatus.type === "now" && (
