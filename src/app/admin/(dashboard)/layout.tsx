@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyCookie } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "◆" },
   { href: "/admin/scrapers", label: "Scrapers", icon: "◇" },

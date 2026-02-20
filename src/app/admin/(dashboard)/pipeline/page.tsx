@@ -1,6 +1,8 @@
 import { getPipelineStats, getRawEvents } from "@/lib/admin-queries";
 import { PipelineClient } from "./pipeline-client";
 
+export const dynamic = "force-dynamic";
+
 type PipelineError = {
   id: string;
   source: string;

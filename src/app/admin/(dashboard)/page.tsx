@@ -1,5 +1,7 @@
 import { getAdminDashboardStats, getDailyScrapeCounts } from "@/lib/admin-queries";
 
+export const dynamic = "force-dynamic";
+
 type DailyCount = { date: string; scraped: number; processed: number };
 type EventTypeCount = { type: string; count: number };
 

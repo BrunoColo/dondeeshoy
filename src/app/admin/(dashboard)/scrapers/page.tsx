@@ -1,6 +1,8 @@
 import { getScraperStats } from "@/lib/admin-queries";
 import { ScrapersClient } from "./scrapers-client";
 
+export const dynamic = "force-dynamic";
+
 type ScraperStat = {
   source: string;
   total: number;
