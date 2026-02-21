@@ -202,16 +202,22 @@ export class RedTicketsScraper extends BaseScraper {
     let category: string | null = null;
     let imageUrl: string | null = null;
 
-    // Look for category text
-    const categoryEl = $card
-      .find(
-        "[class*='category'], [class*='Category'], [class*='categoria'], [class*='tag'], [class*='Tag'], .badge",
-      )
-      .first();
-    if (categoryEl.length) {
-      const text = normalizeWhitespace(categoryEl.text());
-      if (text && text.length < 50) {
-        category = text;
+    // Look for category text — RedTickets uses inline-styled elements:
+    // a <li> containing a small colored-dot <div> + an <a> with the category name.
+    category = this.extractCategoryFromDotPattern($card);
+
+    // Fallback: class-based selectors (in case RedTickets changes markup)
+    if (!category) {
+      const categoryEl = $card
+        .find(
+          "[class*='category'], [class*='Category'], [class*='categoria'], [class*='tag'], [class*='Tag'], .badge",
+        )
+        .first();
+      if (categoryEl.length) {
+        const text = normalizeWhitespace(categoryEl.text());
+        if (text && text.length < 50) {
+          category = text;
+        }
       }
     }
 
@@ -286,10 +292,11 @@ export class RedTicketsScraper extends BaseScraper {
       "img",
     ]);
 
-    // Category: prefer detail page, fallback to search card metadata
+    // Category: prefer search card metadata (reflects RedTickets' actual classification),
+    // fallback to detail page extraction (which may pick up generic badges)
     const detailCategory = this.extractCategory($);
     const cardMeta = this.searchCardMeta.get(url);
-    const category = detailCategory || cardMeta?.category || null;
+    const category = cardMeta?.category || detailCategory || null;
 
     // Image: prefer detail page, fallback to search card thumbnail
     const finalImageUrl = imageUrl || cardMeta?.imageUrl || null;
@@ -345,6 +352,12 @@ export class RedTicketsScraper extends BaseScraper {
   }
 
   private extractCategory($: cheerio.CheerioAPI): string | null {
+    // Primary: detect RedTickets' inline-styled category pattern
+    // (colored dot <div> + <a> with category text inside a <li>)
+    const dotPattern = this.extractCategoryFromDotPattern($('body'));
+    if (dotPattern) return dotPattern;
+
+    // Fallback: class-based selectors
     const candidate =
       $("[class*='category']").first().text() ||
       $("[class*='categoria']").first().text() ||
@@ -355,6 +368,33 @@ export class RedTicketsScraper extends BaseScraper {
   }
 
   /**
+   * Extract category text from RedTickets' characteristic dot+label pattern.
+   * The HTML structure is: <li> → <div style="...border-radius:10px;height:10px;width:10px..."> (colored dot)
+   *                                <a style="...font-family: Lato...">Category Name</a>
+   * This pattern is used on both search cards and detail pages.
+   */
+  private extractCategoryFromDotPattern($container: cheerio.Cheerio<cheerio.AnyNode>): string | null {
+    let found: string | null = null;
+
+    $container.find('li').each((_, li) => {
+      if (found) return;
+      const $li = $container.find(li);
+      // Look for the characteristic small colored dot div
+      const dot = $li.find('div[style*="border-radius"][style*="height: 10px"][style*="width: 10px"]');
+      if (!dot.length) return;
+      // The category text is in the <a> sibling of the dot
+      const categoryLink = dot.next('a');
+      if (!categoryLink.length) return;
+      const text = normalizeWhitespace(categoryLink.text());
+      if (text && text.length > 0 && text.length < 50) {
+        found = text;
+      }
+    });
+
+    return found;
+  }
+
+  /**
    * Extract event description from meta tags or page content.
    * Avoids the span.Description.Flex which contains date/venue info.
    */
@@ -362,12 +402,12 @@ export class RedTicketsScraper extends BaseScraper {
     // Try meta tags first (most reliable)
     const ogDesc = $("meta[property='og:description']").attr("content");
     if (ogDesc) {
-      return normalizeWhitespace(ogDesc)?.substring(0, 1000) || null;
+      return this.stripHtmlAndNormalize(ogDesc, 1000);
     }
 
     const metaDesc = $("meta[name='description']").attr("content");
     if (metaDesc) {
-      return normalizeWhitespace(metaDesc)?.substring(0, 1000) || null;
+      return this.stripHtmlAndNormalize(metaDesc, 1000);
     }
 
     // Fallback: look for description containers in the page
@@ -387,6 +427,24 @@ export class RedTicketsScraper extends BaseScraper {
     }
 
     return null;
+  }
+
+  /**
+   * Strip HTML tags and entities from a string, normalize whitespace,
+   * and truncate to maxLen. Used for descriptions that may contain raw HTML.
+   */
+  private stripHtmlAndNormalize(raw: string, maxLen: number): string | null {
+    const stripped = raw
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+    return stripped.substring(0, maxLen) || null;
   }
 
   /**

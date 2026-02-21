@@ -34,6 +34,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   const params = await searchParams;
   const tomorrow = getTomorrowUY();
   const when = typeof params.when === "string" ? params.when : undefined;
+  const fechaParam = typeof params.fecha === "string" ? params.fecha : undefined;
 
   // Parse filters
   const filters: Filters = {};
@@ -49,7 +50,17 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   let filterRange: { start: string; end: string };
   let subtitle = "Eventos de los próximos días";
 
-  if (when === "manana") {
+  if (when === "fecha" && fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam)) {
+    const dateEvents = await getEventsBetweenDates(fechaParam, fechaParam, filters);
+    grouped = new Map(dateEvents.length > 0 ? [[fechaParam, dateEvents]] : []);
+    filterRange = { start: fechaParam, end: fechaParam };
+    // Format date for subtitle
+    const [y, m, d] = fechaParam.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    subtitle = `Eventos del ${dayNames[dateObj.getDay()]} ${d} de ${monthNames[dateObj.getMonth()]}`;
+  } else if (when === "manana") {
     const tomorrowEvents = await getEventsBetweenDates(tomorrow, tomorrow, filters);
     grouped = new Map(tomorrowEvents.length > 0 ? [[tomorrow, tomorrowEvents]] : []);
     filterRange = { start: tomorrow, end: tomorrow };

@@ -37,6 +37,9 @@ export type UruguayDepartment =
  * than text matching (avoids false positives like "Colonia" street in Montevideo).
  */
 export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  // Bounding boxes for each Uruguay department.
+  // Boundaries are set to avoid overlaps between adjacent departments,
+  // using rivers/roads as natural boundaries where possible.
   "Montevideo":    { minLat: -34.950, maxLat: -34.705, minLng: -56.410, maxLng: -56.005 },
   "Canelones":     { minLat: -34.895, maxLat: -34.080, minLng: -56.530, maxLng: -55.340 },
   "Maldonado":     { minLat: -35.030, maxLat: -34.170, minLng: -55.460, maxLng: -54.500 },
@@ -44,9 +47,9 @@ export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxL
   "San José":      { minLat: -34.620, maxLat: -33.770, minLng: -57.120, maxLng: -56.090 },
   "Soriano":       { minLat: -34.100, maxLat: -33.000, minLng: -58.350, maxLng: -57.100 },
   "Río Negro":     { minLat: -33.450, maxLat: -32.250, minLng: -58.450, maxLng: -57.020 },
-  "Paysandú":      { minLat: -32.900, maxLat: -31.300, minLng: -58.100, maxLng: -56.500 },
-  "Salto":         { minLat: -31.800, maxLat: -30.500, minLng: -58.300, maxLng: -56.400 },
-  "Artigas":       { minLat: -31.000, maxLat: -30.060, minLng: -57.650, maxLng: -55.600 },
+  "Paysandú":      { minLat: -32.900, maxLat: -31.480, minLng: -58.100, maxLng: -56.500 },
+  "Salto":         { minLat: -31.480, maxLat: -30.850, minLng: -58.300, maxLng: -56.400 },
+  "Artigas":       { minLat: -30.850, maxLat: -30.060, minLng: -57.650, maxLng: -55.600 },
   "Rivera":        { minLat: -31.870, maxLat: -30.880, minLng: -56.000, maxLng: -54.100 },
   "Tacuarembó":    { minLat: -32.330, maxLat: -31.150, minLng: -56.600, maxLng: -54.600 },
   "Cerro Largo":   { minLat: -33.200, maxLat: -31.750, minLng: -55.050, maxLng: -53.250 },
@@ -230,9 +233,18 @@ const DEPARTMENT_RULES: Array<{ keywords: string[]; department: UruguayDepartmen
       "salto",
       "costanera norte",   // Salto's costanera
       "termas del dayman",
+      "termas del daymán",
       "termas de arapey",
+      "termas de salto",
+      "dayman",
+      "daymán",
       "5000 salto",
       "costanera nte., 5000",
+      "ciudad de salto",
+      "salto grande",
+      "acuamania",
+      "acuamanía",
+      "horacio quiroga, salto",
     ],
     department: "Salto",
   },

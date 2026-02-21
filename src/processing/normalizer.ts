@@ -98,13 +98,14 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   const priceMin = prices.length > 0 ? Math.min(...prices) : null;
   const priceMax = prices.length > 0 ? Math.max(...prices) : null;
 
-  // Only mark as free if the text explicitly says so, never from price data alone
+  // Mark as free if: scraper explicitly says so, OR text says free + no prices
   const bodyText = sanitizeText(
     `${(rawData.title as string) ?? ""} ${(rawData.description as string) ?? ""} ${(rawData.dateText as string) ?? ""}`,
   ).toLowerCase();
+  const scraperSaysIsFree = rawData.isFree === true;
+  const textSaysFree = /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
   const isFree =
-    prices.length === 0 &&
-    /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
+    scraperSaysIsFree || (prices.length === 0 && textSaysFree);
 
   const hasUsdHint = /\b(usd|u\$s|us\$|d[oó]lar(?:es)?)\b/i.test(bodyText);
   const currency =
@@ -310,7 +311,11 @@ function normalizePrices(pricesRaw: unknown): number[] {
   }
 
   return pricesRaw
-    .map((price) => (typeof price === "number" ? price : Number.parseInt(String(price), 10)))
+    .map((price) => {
+      const num = typeof price === "number" ? price : Number.parseFloat(String(price));
+      // Round to integer — DB column is integer
+      return Number.isFinite(num) ? Math.round(num) : NaN;
+    })
     .filter((price) => Number.isFinite(price) && price > 0);
 }
 
@@ -361,7 +366,16 @@ function cleanVenueAddress(raw: string): string {
 }
 
 function sanitizeText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]*>/g, " ")     // Strip HTML tags
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeSpanish(value: string): string {
