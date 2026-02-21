@@ -148,10 +148,25 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
     if (row.city && row.city.trim()) deptSet.add(row.city);
   }
 
+  // Move "fiesta" to first position in types, "Montevideo" to first position in departments
+  const typesArray = [...typeSet];
+  const fiestaIndex = typesArray.indexOf("fiesta");
+  if (fiestaIndex > 0) {
+    typesArray.splice(fiestaIndex, 1);
+    typesArray.unshift("fiesta");
+  }
+
+  const departmentsArray = [...deptSet].sort((a, b) => a.localeCompare(b, "es"));
+  const montevideoIndex = departmentsArray.indexOf("Montevideo");
+  if (montevideoIndex > 0) {
+    departmentsArray.splice(montevideoIndex, 1);
+    departmentsArray.unshift("Montevideo");
+  }
+
   return {
     genres: [...genreSet].sort(),
-    types: [...typeSet],
-    departments: [...deptSet].sort((a, b) => a.localeCompare(b, "es")),
+    types: typesArray,
+    departments: departmentsArray,
   };
 }
 
