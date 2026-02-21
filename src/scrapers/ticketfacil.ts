@@ -383,6 +383,12 @@ export class TicketFacilScraper extends BaseScraper {
       return null;
     }
 
+    // Split venue into name and address when separated by " - "
+    // Pattern: "Teatro Solís - Buenos Aires s/n" → name + address
+    const venueParts = rawVenue.split(/\s*[-–—]\s*/);
+    const venueName = venueParts[0]?.trim() || rawVenue;
+    const venueAddr = venueParts.length > 1 ? venueParts.slice(1).join(" - ").trim() : null;
+
     // ── Image ──
     const imageUrl = this.extractImageUrl($, sourceUrl, sourceId);
 
@@ -434,8 +440,8 @@ export class TicketFacilScraper extends BaseScraper {
         dateText: rawDateText,
         startTime: rawStartTime,
         endTime: rawEndTime,
-        venueName: rawVenue || null,
-        venueAddress: null,
+        venueName: venueName || null,
+        venueAddress: venueAddr,
         imageUrl,
         prices,
         isFreeText,

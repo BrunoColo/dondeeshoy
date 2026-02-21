@@ -51,25 +51,28 @@ Este documento analiza el sistema completo de scraping de eventos de Uruguay, de
 
 **Fortalezas:**
 - Extrae coordenadas directamente del iframe de Google Maps嵌入
-- Posee sistema avanzado de extracción de precios desde JSON GeneXus
-- Detecta eventos gratuitos desde datos embebidos
+- **NUEVO: Sistema avanzado de extracción de precios desde JSON GeneXus embebido** (`vPURCHASEOPTIONSRESPONSE`)
+- **NUEVO: Extrae descripción** desde meta tags y contenido de la página
+- Detecta eventos gratuitos desde datos embebidos (campo `isFree` del GeneXus)
 - Soporte para metadatos de categoría desde cards de búsqueda
+- **Posee fallback robusto de precios**: 1) GeneXus JSON → 2) JSON-LD → 3) Meta tags → 4) Texto
 
 **Campos extraídos:**
 ```typescript
 {
-  title, category, dateText, venueName, venueAddress,
+  title, description, category, dateText, venueText, venueAddress,
   imageUrl, prices, latitude, longitude, isFree
 }
 ```
 
-**PROBLEMA CRÍTICO:**
-- **NO extrae descripción del evento** - ~500-800 eventos afectados
-- Esto representa ~40% del volumen total sin descripción
+~~**PROBLEMA CRÍTICO:**~~
+~~- **NO extrae descripción del evento** - ~500-800 eventos afectados~~
+~~- Esto representa ~40% del volumen total sin descripción~~
+
+**YA RESUELTO:** Ahora extrae descripción correctamente.
 
 **Irregularidades detectadas:**
 - El patrón de URL puede variar (`/evento/{slug}/{id}`)
-- No extrae descripción del evento
 - La fecha y venue vienen en un formato estructurado que requiere parsing específico (`span.Description.Flex`)
 
 ---
@@ -81,6 +84,7 @@ Este documento analiza el sistema completo de scraping de eventos de Uruguay, de
 - Posee filtros agresivos pre-scraping para excluir eventos no válidos
 - Extrae precios de dos páginas diferentes (info + registro)
 - Maneja rangos de fechas correctamente
+- **NUEVO: Extrae venueAddress** - hace split de strings como "Teatro Solís - Buenos Aires s/n" en venueName + venueAddress
 
 **Filtros pre-scraping implementados:**
 - Excluye membresías de clubs (`socios`, `club balneario`)
@@ -92,19 +96,19 @@ Este documento analiza el sistema completo de scraping de eventos de Uruguay, de
 ```typescript
 {
   title, description, dateText, startTime, endTime,
-  venueName, imageUrl, prices, isFreeText
+  venueName, venueAddress, imageUrl, prices, isFreeText
 }
 ```
 
 **PROBLEMAS:**
+- ~~**NO extrae venue address**~~ - **YA RESUELTO** (~200-400 eventos ahora tienen address)
 - **NO extrae coordenadas** (~200-400 eventos afectados)
-- **NO extrae venue address** (venue address siempre null)
 - **NO extrae categoría**
 
 **Irregularidades detectadas:**
 - No extrae coordenadas (siempre `null`)
 - No extrae categoría
-- Venue address siempre `null`
+- ~~Venue address siempre `null`~~ - **YA RESUELTO**
 - Dependencia de la API externa de accesofacil (punto de fallo)
 
 ---
@@ -193,13 +197,13 @@ Este documento analiza el sistema completo de scraping de eventos de Uruguay, de
 | Posición | Scraper | Volumen | Puntuación | Razón |
 |----------|---------|---------|------------|-------|
 | 1 | CobraTicket | ~300-500 | 9/10 | Más campos, coordenadas, city field, fallback robusto |
-| 2 | RedTickets | ~500-800 | 8.5/10 | Mayor volumen, coordenadas, precios GeneXus, PERO sin descripción |
+| 2 | RedTickets | ~500-800 | 9/10 | Mayor volumen, coordenadas, precios GeneXus, descripción extraída ✅ |
 | 3 | TicketFacil | ~200-400 | 7.5/10 | API estable, filtros buenos, SIN coordenadas, SIN venue address |
 | 4 | Cartelera | ~100-200 | 6.5/10 | Multi-fecha, cast, pero frágil, SIN coordenadas |
 | 5 | MVD Eventos | ~50-150 | 7/10 | Drupal estructurado, SIN coordenadas, SIN precios |
 | 6 | Entraste | ~20-50 | 4/10 | Campos mínimos, sin coordenadas, HTML frágil |
 
-**Nota**: RedTickets es #2 en calidad pero #1 en volumen (500-800 eventos). Invertir en mejorarlo tiene el mayor ROI.
+**Nota**: RedTickets es #1 en volumen Y ahora tiene todos los campos. Es el scraper con mayor ROI.
 
 ---
 
@@ -249,6 +253,11 @@ El normalizador transforma `RawEvent` → `NormalizedEventInput` con los siguien
    - Cada fecha no parseable = llamada a OpenAI
    - Impacta en latencia y costo
 
+5. **NUEVO: Detección de gratuito mejorada** (v2):
+   - Primero consulta `scraperSaysIsFree` (del scraper)
+   - Si no hay precios Y el texto dice "gratis"/"entrada libre" → es gratis
+   - El scraper de RedTickets ahora provee `isFree` directamente desde GeneXus
+
 ---
 
 ## 3. Sistema de Geocodificación (geocoder.ts)
@@ -269,10 +278,11 @@ El normalizador transforma `RawEvent` → `NormalizedEventInput` con los siguien
 
 ### 3.2 Base de Venues Conocidos
 
-El sistema tiene ~109 venues pre-mapeados con coordenadas, incluyendo:
+El sistema tiene **~130+ venues pre-mapeados** con coordenadas, incluyendo:
 - 70+ venues de Montevideo
 - 15+ venues de Punta del Este / Maldonado
-- 10+ venues del interior
+- **NUEVO: 20+ venues del interior**: Tacuarembó, Rivera, Salto, Paysandú, Colonia, Durazno, Lavalleja, Rocha
+- Mejora la geocodificación para TicketFacil/Cartelera/MVD eventos sin coords del scraper
 
 ### 3.3 Problemas y Limitaciones
 
@@ -287,13 +297,20 @@ El sistema tiene ~109 venues pre-mapeados con coordenadas, incluyendo:
    - Pero no hay validación de si está dentro del país correctamente
 
 3. **KNOWN_VENUES incompleto**:
-   - Solo 109 venues hardcodeados
+   - ~~Solo 109 venues hardcodeados~~ - **Actualizado**: ~130+ venues
+   - **NUEVO**: Agregados 20+ venues del interior (Tacuarembó, Rivera, Salto, Paysandú, Colonia, Durazno, Lavalleja, Rocha)
    - Venues nuevos no reconocidos
    - Algunos coordenadas aproximadas
 
 4. **No hay validación de calidad**:
    - No se verifica si la dirección geocodificada coincide con el venue
    - Posibles falsos positivos
+
+5. **NUEVO: Coordinate-text cross-validation**:
+   - Validación cruzada de coordenadas y texto en detección de departamentos
+   - Si hay coords disponibles → usa bounding boxes (más preciso)
+   - Si no hay coords → usa texto (venue name, address, city)
+   - Evita false positives como "Colonia" siendo calle en Montevideo
 
 ---
 
@@ -493,10 +510,10 @@ interface PipelineResult {
 
 | Problema | Scraper(s) Afectado(s) | Eventos Impactados | Impacto | Severidad |
 |----------|------------------------|-------------------|---------|-----------|
-| Sin descripción | RedTickets | ~500-800 | No hay detalle del evento | **CRÍTICA** |
+| ~~Sin descripción~~ | ~~RedTickets~~ | ~~~500-800~~ | ~~No hay detalle del evento~~ | ~~**CRÍTICA**~~ → **RESUELTO** |
+| ~~Venue address null~~ | ~~TicketFacil~~ | ~~200-400~~ | ~~Sin venue address~~ | ~~**ALTA**~~ → **RESUELTO** |
 | Sin coordenadas | TicketFacil, Cartelera, MVD Eventos | ~350-750 | No hay mapa | **ALTA** |
-| Sin venue address | TicketFacil, MVD Eventos | ~250-550 | Geocodificación peor | **ALTA** |
-| Venue address null | TicketFacil, MVD Eventos | ~250-550 | Geocodificación worse | Media |
+| Venue address null | MVD Eventos | ~50-150 | Geocodificación worse | Media |
 | Fechas en texto libre | Todos | Variable | Parsing error prone | Media |
 | Sin categoría | Entraste, TicketFacil | ~220-450 | Clasificación harder | Media |
 | Precios faltantes | MVD Eventos, Entraste | ~70-200 | Sin info de entrada | Media |
@@ -531,6 +548,17 @@ interface PipelineResult {
    - Eventos creados sin revisión
    - Errores pueden propagarse
 
+### 8.4 Fixes Recientes (2026-02-21)
+
+1. **Middleware deprecation (Vercel)**:
+   - Renombrado `middleware.ts` → `proxy.ts`
+   - Cambiado `export function middleware()` → `export function proxy()`
+   - Conforme a convención de Next.js 16
+
+2. **TypeScript error**:
+   - Corregido `cheerio.AnyNode` → `AnyNode` en redtickets.ts:376
+   - El tipo ya estaba importado desde domhandler pero referenciado incorrectamente
+
 ---
 
 ## 9. Recomendaciones de Mejora (Priorizadas por Volumen de Impacto)
@@ -539,38 +567,39 @@ interface PipelineResult {
 
 | Scraper | Volumen | Problema Principal | Eventos Affected | Prioridad |
 |---------|---------|-------------------|------------------|-----------|
-| **RedTickets** | ~500-800 | ❌ Sin descripción | ~500-800 | **CRÍTICA** |
+| **RedTickets** | ~500-800 | ✅ Todo completo (descripción agregada) | ~0 | - |
 | **CobraTicket** | ~300-500 | ✅ Todo completo | ~0 | - |
-| **TicketFacil** | ~200-400 | ❌ Sin coords, sin venue address | ~200-400 | **ALTA** |
-| **Cartelera** | ~100-200 | ❌ Sin coords, frágil CSS | ~100-200 | **ALTA** |
+| **TicketFacil** | ~200-400 | ✅ Venue address resuelto, ❌ Sin coords | ~200-400 | **#1** |
+| **Cartelera** | ~100-200 | ❌ Sin coords, frágil CSS | ~100-200 | **#2** |
 | **MVD Eventos** | ~50-150 | ❌ Sin coords, sin prices | ~50-150 | MEDIA |
 | **Entraste** | ~20-50 | ❌ Casi todo incompleto | ~20-50 | BAJA |
 
 ### Prioridad REAL (volumen × gravedad):
 
-1. **RedTickets (~500-800 eventos)**: Agregar extracción de descripción
-2. **TicketFacil (~200-400 eventos)**: Agregar coordenadas + venue address
-3. **Cartelera (~100-200 eventos)**: Agregar coordenadas + robustizar CSS
-4. **MVD Eventos (~50-150 eventos)**: Agregar coordenadas + precios
-5. **Entraste (~20-50 eventos)**: Reescribir completo o eliminar
+1. **TicketFacil (~200-400 eventos)**: Agregar coordenadas + venue address
+2. **Cartelera (~100-200 eventos)**: Agregar coordenadas + robustizar CSS
+3. **MVD Eventos (~50-150 eventos)**: Agregar coordenadas + precios
+4. **Entraste (~20-50 eventos)**: Reescribir completo o eliminar
 
 ### 9.1 Alta Prioridad (MAYOR IMPACTO)
 
-#### 1. **[CRÍTICA] Extraer descripción en RedTickets** (~500-800 eventos)
-**Por qué**: RedTickets es el mayor proveedor pero no extrae descripción.
+~~#### 1. **[CRÍTICA] Extraer descripción en RedTickets** (~500-800 eventos)~~
+~~**Por qué**: RedTickets es el mayor proveedor pero no extrae descripción.~~
 
-**Impacto**: 500-800 eventos × mejora = **mayor ROI**
+~~**Impacto**: 500-800 eventos × mejora = **mayor ROI**~~
 
-```typescript
-// En redtickets.ts - agregar en scrapeEvent()
-const description = normalizeWhitespace(
-  $("[class*='description']").first().text() ||
-  $("meta[property='og:description']").attr("content") ||
-  ""
-) || null;
-```
+~~```typescript~~
+~~// En redtickets.ts - agregar en scrapeEvent()~~
+~~const description = normalizeWhitespace(~~
+~~  $("[class*='description']").first().text() ||~~
+~~  $("meta[property='og:description']").attr("content") ||~~
+~~  ""~~
+~~) || null;~~
+~~```~~
 
-#### 2. **[ALTA] Agregar coordenadas a TicketFacil** (~200-400 eventos)
+**YA RESUELTO:** RedTickets ahora extrae descripción correctamente.
+
+#### 1. **[ALTA] Agregar coordenadas a TicketFacil** (~200-400 eventos)
 **Por qué**: Segundo mayor proveedor, sin coords ni venue address.
 
 **Estrategia**: Usar el venue name para geocodificación en el pipeline.
@@ -622,6 +651,7 @@ El sistema de scraping está **funcional pero con limitaciones significativas**:
 3. **Normalización**: Funciona bien pero depende mucho de IA para fechas difíciles
 4. **Clasificación**: Regex-based robusta pero con casos edge
 5. **Geocodificación**: Limitada por venues conocidos + API externa
+6. **Descripción**: **YA RESUELTO** - RedTickets ahora extrae descripción
 
 ### 10.2 Métricas Estimadas
 
@@ -635,11 +665,11 @@ El sistema de scraping está **funcional pero con limitaciones significativas**:
 
 | Prioridad | Mejora | Eventos Affected | Esfuerzo |
 |-----------|--------|------------------|-----------|
-| **#1** | Extraer descripción en RedTickets | ~500-800 | Bajo |
-| **#2** | Agregar coords a TicketFacil | ~200-400 | Medio |
-| **#3** | Robustecer Cartelera | ~100-200 | Medio |
-| **#4** | Agregar coords a MVD Eventos | ~50-150 | Medio |
-| **#5** | Reescribir/eliminar Entraste | ~20-50 | Alto |
+| ~~**#1** | Extraer descripción en RedTickets | ~~500-800~~ | ~~Bajo~~ |
+| **#1** | Agregar coords a TicketFacil | ~200-400 | Medio |
+| **#2** | Robustecer Cartelera | ~100-200 | Medio |
+| **#3** | Agregar coords a MVD Eventos | ~50-150 | Medio |
+| **#4** | Reescribir/eliminar Entraste | ~20-50 | Alto |
 
 ### 10.4 Recomendación Estratégica
 
@@ -649,18 +679,17 @@ Dada la distribución de volumen:
 
 | Scraper | Volumen | % Total | Problema Principal | Prioridad |
 |---------|---------|---------|-------------------|-----------|
-| RedTickets | ~500-800 | ~42% | Sin descripción | **#1** |
+| RedTickets | ~500-800 | ~42% | ✅ Ya resuelto (descripción) | - |
 | CobraTicket | ~300-500 | ~23% | ✅ Completo | - |
-| TicketFacil | ~200-400 | ~18% | Sin coords, sin venue | **#2** |
-| Cartelera | ~100-200 | ~9% | Sin coords, frágil | **#3** |
-| MVD Eventos | ~50-150 | ~5% | Sin coords, sin prices | #4 |
-| Entraste | ~20-50 | ~2% | Casi todo incompleto | #5 |
+| TicketFacil | ~200-400 | ~18% | ✅ Venue address resuelto, ❌ Sin coords | **#1** |
+| Cartelera | ~100-200 | ~9% | Sin coords, frágil | **#2** |
+| MVD Eventos | ~50-150 | ~5% | Sin coords, sin prices | #3 |
+| Entraste | ~20-50 | ~2% | Casi todo incompleto | #4 |
 
 **Invertir en:**
-1. **RedTickets** = +42% mejoría con poco esfuerzo
-2. **TicketFacil** = +18% con esfuerzo medio (geocodificación)
-3. **Cartelera** = +9% con esfuerzo medio
+1. **TicketFacil** = +18% con esfuerzo medio (geocodificación + venue address resuelto ✅)
+2. **Cartelera** = +9% con esfuerzo medio
 
 ---
 
-*Documento generado automaticamente - Fecha: 2026-02-20*
+*Documento actualizado automaticamente - Fecha: 2026-02-21 (actualizado)*

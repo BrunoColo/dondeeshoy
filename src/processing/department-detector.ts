@@ -50,7 +50,7 @@ export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxL
   "Paysandú":      { minLat: -32.900, maxLat: -31.480, minLng: -58.100, maxLng: -56.500 },
   "Salto":         { minLat: -31.480, maxLat: -30.850, minLng: -58.300, maxLng: -56.400 },
   "Artigas":       { minLat: -30.850, maxLat: -30.060, minLng: -57.650, maxLng: -55.600 },
-  "Rivera":        { minLat: -31.870, maxLat: -30.880, minLng: -56.000, maxLng: -54.100 },
+  "Rivera":        { minLat: -31.600, maxLat: -30.880, minLng: -55.800, maxLng: -54.100 },
   "Tacuarembó":    { minLat: -32.330, maxLat: -31.150, minLng: -56.600, maxLng: -54.600 },
   "Cerro Largo":   { minLat: -33.200, maxLat: -31.750, minLng: -55.050, maxLng: -53.250 },
   "Treinta y Tres": { minLat: -33.750, maxLat: -32.760, minLng: -55.120, maxLng: -53.400 },
@@ -407,7 +407,28 @@ export function detectDepartment(
   // Prefer coordinate-based detection when coordinates are available
   if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
     const fromCoords = detectDepartmentFromCoordinates(latitude, longitude);
-    if (fromCoords) return fromCoords;
+    if (fromCoords) {
+      // Cross-validate: if text explicitly mentions a DIFFERENT department name,
+      // prefer the text-based result. Addresses/city fields with explicit department
+      // names (e.g. "Tacuarembó") are more reliable than bounding-box overlaps.
+      const textParts = [scraperCity, venueAddress].filter(Boolean) as string[];
+      const textCombined = normalizeForMatch(textParts.join(" "));
+      for (const rule of DEPARTMENT_RULES) {
+        if (rule.department === fromCoords) continue;
+        for (const keyword of rule.keywords) {
+          const nk = normalizeForMatch(keyword);
+          // Only override if the keyword is a department name or very specific location
+          // (not generic words that could appear in other contexts)
+          if (textCombined.includes(nk) && nk.length >= 5) {
+            console.log(
+              `[dept-detector] Coords say ${fromCoords} but text says ${rule.department} (keyword: "${keyword}") — using text`,
+            );
+            return rule.department;
+          }
+        }
+      }
+      return fromCoords;
+    }
   }
 
   // Build combined search text — prioritize address and city over name

@@ -106,6 +106,31 @@ const KNOWN_VENUES: KnownVenue[] = [
   { keys: ["centro de aviacion civil de florida", "aviación civil florida"], latitude: -34.1000, longitude: -56.2200 },
   { keys: ["genoves beer", "genovés beer", "san jose de mayo"], latitude: -34.3370, longitude: -56.7130 },
   { keys: ["camino mainumby"], latitude: -34.8420, longitude: -55.9880 },
+  // ── Tacuarembó ──────────────────────────────────────────
+  { keys: ["teatro 25 de mayo", "25 de mayo tacuarembo"], latitude: -31.7100, longitude: -55.9800 },
+  { keys: ["simon bolivar 61", "simón bolívar 61"], latitude: -31.7137, longitude: -55.9832 },
+  { keys: ["el mono tacuarembo", "mono tacuarembó", "reapertura del mono"], latitude: -31.7137, longitude: -55.9832 },
+  // ── Rivera ──────────────────────────────────────────────
+  { keys: ["rivera, rivera", "ciudad de rivera"], latitude: -30.9054, longitude: -55.5508 },
+  // ── Salto ───────────────────────────────────────────────
+  { keys: ["teatro larrañaga", "teatro larranaga"], latitude: -31.3883, longitude: -57.9611 },
+  { keys: ["acuamania", "acuamanía"], latitude: -31.2600, longitude: -57.9500 },
+  { keys: ["termas del dayman", "termas del daymán"], latitude: -31.2667, longitude: -57.9667 },
+  { keys: ["termas de arapey"], latitude: -30.9167, longitude: -57.4333 },
+  // ── Paysandú ────────────────────────────────────────────
+  { keys: ["teatro florencio sanchez paysandu", "teatro florencio sánchez paysandú"], latitude: -32.3214, longitude: -58.0756 },
+  // ── Colonia ─────────────────────────────────────────────
+  { keys: ["teatro bastion del carmen", "bastión del carmen"], latitude: -34.4712, longitude: -57.8440 },
+  { keys: ["plaza de toros colonia"], latitude: -34.4696, longitude: -57.8576 },
+  // ── Durazno ─────────────────────────────────────────────
+  { keys: ["anfiteatro del rio yi", "anfiteatro del río yi"], latitude: -33.3833, longitude: -56.5167 },
+  { keys: ["pilsen rock durazno", "durazno rock"], latitude: -33.3833, longitude: -56.5167 },
+  // ── Lavalleja ───────────────────────────────────────────
+  { keys: ["camping aguas blancas"], latitude: -34.2300, longitude: -55.0300 },
+  { keys: ["catedral de minas"], latitude: -34.3761, longitude: -55.2372 },
+  // ── Rocha ───────────────────────────────────────────────
+  { keys: ["la paloma rocha", "puerto la paloma"], latitude: -34.6547, longitude: -54.1533 },
+  { keys: ["cabo polonio"], latitude: -34.3981, longitude: -53.7871 },
 ];
 
 export async function geocodeVenue(normalized: NormalizedEventInput): Promise<GeocodeResult> {

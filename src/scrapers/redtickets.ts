@@ -373,7 +373,7 @@ export class RedTicketsScraper extends BaseScraper {
    *                                <a style="...font-family: Lato...">Category Name</a>
    * This pattern is used on both search cards and detail pages.
    */
-  private extractCategoryFromDotPattern($container: cheerio.Cheerio<cheerio.AnyNode>): string | null {
+  private extractCategoryFromDotPattern($container: cheerio.Cheerio<AnyNode>): string | null {
     let found: string | null = null;
 
     $container.find('li').each((_, li) => {
