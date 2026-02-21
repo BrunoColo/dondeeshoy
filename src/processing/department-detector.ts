@@ -8,7 +8,60 @@
  * Uruguay has 19 departments. We map cities/towns/keywords to their department.
  * The `city` field stored in the DB is the DEPARTMENT name (not the city),
  * so filters work at department level.
+ *
+ * BOUNDING BOXES: These are APPROXIMATE limits derived from geographic data.
+ * They are not exact boundaries - use for general classification only.
+ * For precise needs, use proper polygon data from IDE Uruguay / GADM.
  */
+
+/**
+ * Keywords that are PROBLEMATIC because they can be:
+ * 1. Department names AND also common street names in Montevideo
+ * 2. Too generic / common words
+ * 
+ * These should NOT override coordinate-based detection.
+ */
+const PROBLEMATIC_KEYWORDS = new Set([
+  "colonia",      // Calle Colonia in Montevideo, also department
+  "artigas",      // Calle Artigas in Montevideo, also department  
+  "flores",       // Calle Flores in Montevideo, also department
+  "durazno",      // Can be a generic word
+  "rio negro",    // Also a color/street name
+  "libertad",     // Common word, not just department
+  "union",        // Not a department but common in addresses
+  "republica",   // Common word in addresses
+  "brasil",       // Country name, appears in addresses
+  "espana",       // Country name
+  "italia",       // Country name
+  "paraguay",     // Country name
+]);
+
+/**
+ * Keywords that are UNAMBIGUOUSLY department names or very specific locations.
+ * These CAN override coordinate detection if explicitly present in address/city.
+ */
+const UNAMBIGUOUS_DEPARTMENT_KEYWORDS = new Set([
+  // Montevideo area - specific neighborhoods
+  "pocitos", "punta carretas", "carrasco", "buena vista", "malvín", 
+  "parque batlle", "belvedere", "centro", "ciudad viej", "aguada",
+  "tres cruces", "palermo", "sayago", "piedras blancas",
+  // Canelones - specific
+  "atlantida", "la paz", "las piedras", "progreso", "pando",
+  "ciudad de la costa", "solymar", "el pinar", "salinas", "santa lucia",
+  // Maldonado - specific  
+  "punta del este", "punta shopping", "jose ignacio", "la barra",
+  "manantiales", "piriapolis", "san carlos",
+  // Colonia - specific
+  "colonia del sacramento", "carmelo", "nueva helvecia", "nueva palmira",
+  "rosario", "juan lacaze",
+  // Other departments - very specific
+  "paysandu", "salto", "artigas", "rivera", "tacuarembo",
+  "cerro largo", "treinta y tres", "durazno", "florida", "flores",
+  "lavalleja", "rocha", "soriano", "rio negro", "san jose",
+  // With accents
+  "punta del este", "josé ignacio", "piriápolis", "la paz",
+  "nueva helvecia", "colonia del sacramento",
+]);
 
 export type UruguayDepartment =
   | "Montevideo"
@@ -404,33 +457,22 @@ export function detectDepartment(
   latitude?: number | null,
   longitude?: number | null,
 ): UruguayDepartment {
-  // Prefer coordinate-based detection when coordinates are available
+  // PRIORITY 1: Coordinate-based detection (MOST RELIABLE)
+  // Coordinates are objective data - they represent the actual location.
+  // Always prefer coordinates when available.
   if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
     const fromCoords = detectDepartmentFromCoordinates(latitude, longitude);
     if (fromCoords) {
-      // Cross-validate: if text explicitly mentions a DIFFERENT department name,
-      // prefer the text-based result. Addresses/city fields with explicit department
-      // names (e.g. "Tacuarembó") are more reliable than bounding-box overlaps.
-      const textParts = [scraperCity, venueAddress].filter(Boolean) as string[];
-      const textCombined = normalizeForMatch(textParts.join(" "));
-      for (const rule of DEPARTMENT_RULES) {
-        if (rule.department === fromCoords) continue;
-        for (const keyword of rule.keywords) {
-          const nk = normalizeForMatch(keyword);
-          // Only override if the keyword is a department name or very specific location
-          // (not generic words that could appear in other contexts)
-          if (textCombined.includes(nk) && nk.length >= 5) {
-            console.log(
-              `[dept-detector] Coords say ${fromCoords} but text says ${rule.department} (keyword: "${keyword}") — using text`,
-            );
-            return rule.department;
-          }
-        }
-      }
+      // Coordinates are king - they represent actual GPS location.
+      // Return directly without any text-based override.
+      // The bounding boxes may have overlaps, but they're still more reliable
+      // than text matching (which has false positives like "Colonia" street).
       return fromCoords;
     }
+    // If coordinates are outside all known bounding boxes, fall through to text
   }
 
+  // PRIORITY 2: Text-based detection (fallback when no coords)
   // Build combined search text — prioritize address and city over name
   // (event names can have false positives like "Colonia de vacaciones")
   const parts = [
@@ -448,6 +490,16 @@ export function detectDepartment(
   for (const rule of DEPARTMENT_RULES) {
     for (const keyword of rule.keywords) {
       const normalizedKeyword = normalizeForMatch(keyword);
+      
+      // Skip problematic keywords (department names that are also street names)
+      // UNLESS the keyword is very specific (e.g., "colonia del sacramento" not just "colonia")
+      if (PROBLEMATIC_KEYWORDS.has(normalizedKeyword) && !UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has(normalizedKeyword)) {
+        // Check if it's at least a longer phrase that makes it unambiguous
+        if (normalizedKeyword.split(/\s+/).length < 2) {
+          continue; // Skip single-word problematic keywords
+        }
+      }
+      
       if (combinedPrimary.includes(normalizedKeyword)) {
         return rule.department;
       }
@@ -458,6 +510,14 @@ export function detectDepartment(
   for (const rule of DEPARTMENT_RULES) {
     for (const keyword of rule.keywords) {
       const normalizedKeyword = normalizeForMatch(keyword);
+      
+      // Same filtering for event name
+      if (PROBLEMATIC_KEYWORDS.has(normalizedKeyword) && !UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has(normalizedKeyword)) {
+        if (normalizedKeyword.split(/\s+/).length < 2) {
+          continue;
+        }
+      }
+      
       if (combinedWithName.includes(normalizedKeyword)) {
         return rule.department;
       }

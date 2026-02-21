@@ -275,7 +275,16 @@ const REJECT_PATTERNS = [
   /\breserv[aá]\s+tu\s+(cancha|turno|lugar|espacio)\b/i,
   // Permanent facilities / services
   /\bgimnasio\b.*\b(abierto|horario|mensual)\b/i,
-  /\bmembres[ií]a\b/i,
+  // Memberships / club subscriptions / socio
+  /\bmembres[ií]as?\b/i,
+  /\bsocio(s)?\b/i,
+  /\bafiliad[oá]\b/i,
+  /\binscripci[oá]n\s+(anual|mensual)\b/i,
+  /\bcuota\s+(mensual|anual)\b/i,
+  /\brenovaci[oá]n\s+(de\s+)?(membres|socio)\b/i,
+  /\bclub\s+de\s+(socios|members)\b/i,
+  /\bpacote\s+(mensual|familiar|socio)\b/i,
+  // Subscription plans
   /\bplan\s+mensual\b/i,
   /\babonos?\s+mensual(es)?\b/i,
   /\bpiscina\b.*\b(abierta|horario|temporada)\b/i,

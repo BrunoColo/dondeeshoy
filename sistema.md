@@ -293,8 +293,8 @@ El sistema tiene **~130+ venues pre-mapeados** con coordenadas, incluyendo:
    - API externa prone a rate limits
 
 2. **Bounding box Uruguay**:
-   - Coordendas fuera de `-36 to -30` lat y `-59 to -53` lng son rechazadas
-   - Pero no hay validación de si está dentro del país correctamente
+   - ~~Coordendas fuera de `-36 to -30` lat y `-59 to -53` lng son rechazadas~~
+   - ~~Pero no hay validación de si está dentro del país correctamente~~
 
 3. **KNOWN_VENUES incompleto**:
    - ~~Solo 109 venues hardcodeados~~ - **Actualizado**: ~130+ venues
@@ -302,15 +302,11 @@ El sistema tiene **~130+ venues pre-mapeados** con coordenadas, incluyendo:
    - Venues nuevos no reconocidos
    - Algunos coordenadas aproximadas
 
-4. **No hay validación de calidad**:
-   - No se verifica si la dirección geocodificada coincide con el venue
-   - Posibles falsos positivos
-
-5. **NUEVO: Coordinate-text cross-validation**:
-   - Validación cruzada de coordenadas y texto en detección de departamentos
-   - Si hay coords disponibles → usa bounding boxes (más preciso)
-   - Si no hay coords → usa texto (venue name, address, city)
-   - Evita false positives como "Colonia" siendo calle en Montevideo
+4. **NUEVO: Lógica de detección de departamentos mejorada**:
+   - **Coordenadas siempre tienen prioridad** - son datos objetivos de ubicación real
+   - **Keywords problemáticos identificados**: "colonia", "artigas", "flores", "durazno", etc. son nombres de calles en Montevideo Y departamentos
+   - **Unambiguous keywords**: solo phrases específicas como "colonia del sacramento" pueden detectar departamento sin coords
+   - **Bounding boxes aproximados**: derivamos de datos geográficos generales, no son límites oficiales (para precisión usar GADM/IDE Uruguay)
 
 ---
 
@@ -558,6 +554,12 @@ interface PipelineResult {
 2. **TypeScript error**:
    - Corregido `cheerio.AnyNode` → `AnyNode` en redtickets.ts:376
    - El tipo ya estaba importado desde domhandler pero referenciado incorrectamente
+
+3. **Lógica de detección de departamentos mejorada**:
+   - **Las coordenadas siempre tienen prioridad** - eliminamos el cross-validation problemático
+   - **Keywords problemáticos**: identificados 11 palabras que son deptos Y calles (colonia, artigas, flores, etc.)
+   - **Solo phrases específicas** pueden detectar depto sin coords (ej: "colonia del sacramento")
+   - **Bounding boxes**: siguen siendo aproximaciones, no datos oficiales (fuente: límites geográficos generales, no INE/GADM)
 
 ---
 
