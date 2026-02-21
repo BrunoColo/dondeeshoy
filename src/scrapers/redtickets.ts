@@ -314,12 +314,16 @@ export class RedTicketsScraper extends BaseScraper {
     // Check isFree flag from the embedded GeneXus data
     const gxFree = this.extractIsFreeFromGx($, html);
 
+    // Extract description from meta tags or page content
+    const description = this.extractDescription($);
+
     return {
       source: "redtickets",
       sourceId,
       sourceUrl: url,
       rawData: {
         title,
+        description,
         category,
         dateText,
         venueText: rtVenueName,
@@ -348,6 +352,41 @@ export class RedTicketsScraper extends BaseScraper {
 
     const normalized = normalizeWhitespace(candidate ?? "");
     return normalized || null;
+  }
+
+  /**
+   * Extract event description from meta tags or page content.
+   * Avoids the span.Description.Flex which contains date/venue info.
+   */
+  private extractDescription($: cheerio.CheerioAPI): string | null {
+    // Try meta tags first (most reliable)
+    const ogDesc = $("meta[property='og:description']").attr("content");
+    if (ogDesc) {
+      return normalizeWhitespace(ogDesc)?.substring(0, 1000) || null;
+    }
+
+    const metaDesc = $("meta[name='description']").attr("content");
+    if (metaDesc) {
+      return normalizeWhitespace(metaDesc)?.substring(0, 1000) || null;
+    }
+
+    // Fallback: look for description containers in the page
+    // Avoid the flex description that contains date/venue
+    const descElement = $("[class*='description']")
+      .not("span.Description.Flex")
+      .filter((_, el) => {
+        const text = $(el).text();
+        // Must have meaningful content (not just date/venue)
+        return text.length > 50;
+      })
+      .first();
+
+    if (descElement.length) {
+      const text = normalizeWhitespace(descElement.text());
+      return text?.substring(0, 1000) || null;
+    }
+
+    return null;
   }
 
   /**

@@ -7,12 +7,76 @@ export interface ClassificationResult {
   musicGenre: string | null;
   matchedTypes: EventType[];
   isRecurring: boolean;
+  /** true when the type was resolved from the source-provided category */
+  fromSourceCategory: boolean;
 }
 
 export interface ClassificationContext {
   source?: string;
   category?: string | null;
   genre?: string | null;
+}
+
+/* ─── Source category → EventType direct mapping ───
+ * Keys are normalised (lowercase, trimmed, accents removed).
+ * When a scraper already classifies the event we trust it first. */
+const SOURCE_CATEGORY_MAP: Record<string, EventType> = {
+  // ── shared across multiple sources ──
+  fiestas: "fiesta",
+  deportes: "deportivo",
+  musica: "concierto",
+  teatro: "teatro",
+
+  // ── RedTickets ──
+  museos: "cultural",
+  familiares: "familiar",
+  turismo: "cultural",
+  carnaval: "festival",
+  // "Especiales" / "VERANO 2026" → too generic, fall through to heuristics
+
+  // ── CobraTicket ──
+  congresos: "taller",
+  cultura: "cultural",
+  gastronomia: "gastronomico",
+
+  // ── MVD Eventos (slug-style from discovery pages) ──
+  "artes escenicas": "teatro",
+  "artes-escenicas": "teatro",
+  recreacion: "familiar",
+  audiovisual: "cultural",
+  "artes visuales": "cultural",
+  "artes-visuales": "cultural",
+  literatura: "cultural",
+  paseos: "cultural",
+
+  // ── Cartelera (implicit section type) ──
+  // genre is extracted separately; category rarely present
+
+  // ── voy.com.uy categories (for future scraper) ──
+  cine: "cultural",
+  "otros eventos": "otro",
+  escapadas: "cultural",
+};
+
+/**
+ * Normalise a category string for lookup: lowercase, trim, strip accents.
+ */
+function normaliseCategory(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Attempt to map a source-provided category directly to an EventType.
+ * Returns null when the category is unknown or too generic to be trusted.
+ */
+function mapSourceCategory(category: string | null | undefined): EventType | null {
+  if (!category) return null;
+  const key = normaliseCategory(category);
+  return SOURCE_CATEGORY_MAP[key] ?? null;
 }
 
 /* ─── Type classification rules ─── */
@@ -310,7 +374,27 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     .filter((rule) => rule.regex.test(text))
     .map((rule) => rule.type);
 
-  // Check if venue is a known type
+  const musicGenre = GENRE_RULES.find((rule) => rule.regex.test(text))?.genre ?? null;
+  const isRecurring = detectRecurrence(normalized);
+
+  // ── 1. Source category: trust the scraper's own classification first ──
+  const sourceMapped = mapSourceCategory(context?.category);
+  if (sourceMapped && sourceMapped !== "otro") {
+    // Still apply late-night reclassification for edge cases
+    let finalType = sourceMapped;
+    if (shouldReclassifyAsFiesta(finalType, normalized.startTime)) {
+      finalType = "fiesta";
+    }
+    return {
+      eventType: finalType,
+      musicGenre,
+      matchedTypes,
+      isRecurring,
+      fromSourceCategory: true,
+    };
+  }
+
+  // ── 2. Text heuristics (regex rules on name + description + venue) ──
   const venueName = normalized.venueName ?? "";
   const venueIsKnownTheater = KNOWN_THEATER_VENUES.some((regex) =>
     regex.test(venueName),
@@ -340,30 +424,25 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     eventType = "otro";
   }
 
-  // Metadata hinting: use scraper category to improve classification
-  // This helps when text matching is weak but source provides good category
+  // ── 3. Metadata hinting (fallback for when heuristics are weak) ──
   const hintedType = inferTypeFromMetadata(context);
   if (hintedType) {
-    // If current type is "otro" or the hinted type is more specific, use it
     if (eventType === "otro" || shouldPreferHintedType(eventType, hintedType)) {
       eventType = hintedType;
     }
   }
 
-  // Time-based reclassification: late-night generic events → fiesta
+  // ── 4. Time-based reclassification: late-night generic events → fiesta ──
   if (shouldReclassifyAsFiesta(eventType, normalized.startTime)) {
     eventType = "fiesta";
   }
-
-  const musicGenre = GENRE_RULES.find((rule) => rule.regex.test(text))?.genre ?? null;
-
-  const isRecurring = detectRecurrence(normalized);
 
   return {
     eventType,
     musicGenre,
     matchedTypes,
     isRecurring,
+    fromSourceCategory: false,
   };
 }
 
@@ -372,9 +451,14 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
  * Prioritize specific types over generic ones.
  */
 function shouldPreferHintedType(currentType: EventType, hintedType: EventType): boolean {
-  // Prefer hinted type if current is generic
+  // Always prefer hinted type if current is generic
   const genericTypes = new Set<EventType>(["otro", "club", "bar"]);
   if (genericTypes.has(currentType)) {
+    return true;
+  }
+  // Prefer more specific hinted types over broad ones
+  const specificTypes = new Set<EventType>(["teatro", "deportivo", "gastronomico", "familiar"]);
+  if (specificTypes.has(hintedType) && !specificTypes.has(currentType)) {
     return true;
   }
   return false;
@@ -397,6 +481,11 @@ export function shouldUseAiClassification(
   normalized: NormalizedEventInput,
   heuristic: ClassificationResult,
 ): boolean {
+  // 0) Source category was authoritative — no AI needed
+  if (heuristic.fromSourceCategory) {
+    return false;
+  }
+
   // 1) Unknown bucket => strong AI candidate
   if (heuristic.eventType === "otro") {
     return true;
