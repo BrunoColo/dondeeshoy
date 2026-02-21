@@ -57,6 +57,7 @@ export default async function ScrapersPage() {
                 <td className="p-3 text-right text-zinc-500">
                   {stat.lastScrape
                     ? new Date(stat.lastScrape).toLocaleString("es-UY", {
+                        timeZone: "America/Montevideo",
                         day: "2-digit",
                         month: "2-digit",
                         hour: "2-digit",
