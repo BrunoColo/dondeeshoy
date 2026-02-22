@@ -3,7 +3,7 @@ import { events, rawEvents, eventSources } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
 import { eq, desc, and, gte, lte, sql, count } from "drizzle-orm";
 
-export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil";
+export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
 
 // ============= Dashboard Stats =============
 
@@ -78,7 +78,7 @@ export async function getAdminDashboardStats() {
 // ============= Scraper Stats =============
 
 export async function getScraperStats() {
-  const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil"];
+  const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

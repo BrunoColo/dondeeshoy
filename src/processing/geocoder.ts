@@ -25,7 +25,7 @@ const KNOWN_VENUES: KnownVenue[] = [
   { keys: ["sala del museo"], latitude: -34.9054, longitude: -56.2081 },
   { keys: ["radisson montevideo", "radisson victoria plaza", "victoria plaza hotel"], latitude: -34.9065, longitude: -56.1935 },
   { keys: ["plaza mateo"], latitude: -34.8823, longitude: -56.1677 },
-  { keys: ["lotus, wtc", "lotus wtc", "world trade center montevideo"], latitude: -34.8987, longitude: -56.0734 },
+  { keys: ["lotus, wtc", "lotus club", "lotus wtc", "world trade center montevideo"], latitude: -34.9042, longitude: -56.1358 },
   { keys: ["parque roosevelt", "parque franklin roosevelt"], latitude: -34.8763, longitude: -56.0494 },
   { keys: ["plaza italia shopping"], latitude: -34.8846, longitude: -56.2155 },
   { keys: ["mvd shopping"], latitude: -34.8750, longitude: -56.1417 },

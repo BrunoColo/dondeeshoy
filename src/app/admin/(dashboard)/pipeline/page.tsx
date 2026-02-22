@@ -35,6 +35,7 @@ export default async function PipelinePage() {
     mvd_eventos: "MVD",
     cobraticket: "Cobra",
     ticketfacil: "TicketFacil",
+    mientrada: "MiEntrada",
   };
 
   return (

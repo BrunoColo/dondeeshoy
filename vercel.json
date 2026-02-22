@@ -25,6 +25,10 @@
       "schedule": "15 16 * * *"
     },
     {
+      "path": "/api/scrape/mientrada",
+      "schedule": "30 16 * * *"
+    },
+    {
       "path": "/api/scrape/process",
       "schedule": "0 17 * * *"
     },
