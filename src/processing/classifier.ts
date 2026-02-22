@@ -223,45 +223,36 @@ const KNOWN_CULTURAL_VENUES = [
   /plaza\s+de\s+toros/i,
 ];
 
-/* ─── Recurrence detection ─── */
+/* ─── Recurrence detection ───
+ * Only flag events that genuinely repeat on a regular schedule year-round
+ * (e.g. "every Monday", "every Friday and Saturday", "open every day").
+ * One-off events that merely mention a day-of-week or a start time must NOT match.
+ */
 const DAY = `(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)`;
 const RECURRENCE_PATTERNS = [
-  /\btodos los d[ií]as\b/i,
-  /\btodo el a[nñ]o\b/i,
-  /\bdurante todo el a[nñ]o\b/i,
-  /\babierto todo el a[nñ]o\b/i,
+  // Explicit "every day / all year" markers
+  /\btodos\s+los\s+d[ií]as\b/i,
+  /\btodo\s+el\s+a[nñ]o\b/i,
+  /\bdurante\s+todo\s+el\s+a[nñ]o\b/i,
+  /\babierto\s+todo\s+el\s+a[nñ]o\b/i,
+  /\babierto\s+(todos\s+los\s+d[ií]as|siempre)\b/i,
   // "DayA a DayB" — with or without "de" prefix (matches "Lunes a Jueves", "de Martes a Viernes", etc.)
   new RegExp(`\\b(?:de\\s+)?${DAY}\\s+a\\s+${DAY}\\b`, "i"),
-  /\btodos los fines?\s*de?\s*semana\b/i,
-  /\bcada fin\s*de\s*semana\b/i,
+  // "todos los fines de semana" / "cada fin de semana"
+  /\btodos\s+los\s+fines?\s*de?\s*semana\b/i,
+  /\bcada\s+fin\s*de\s*semana\b/i,
+  // "todos los [day]" / "cada [day]" — the core recurring-day markers
   new RegExp(`\\btodos?\\s+los?\\s+${DAY}\\b`, "i"),
   new RegExp(`\\bcada\\s+${DAY}\\b`, "i"),
+  // Multi-day combos that imply weekly schedule
   /\bs[aá]bados?\s+y\s+domingos?\b/i,
   /\bviernes\s+y\s+s[aá]bados?\b/i,
   /\bjueves\s+y\s+viernes\b/i,
   /\bmartes\s+y\s+jueves\b/i,
   /\blun(?:es)?\.?\s*a\s*vie(?:rnes)?\.?\b/i,
   /\bs[aá]b\.?\s*y\s*dom\.?\b/i,
-  /\babierto\s+(todos|cada|siempre)\b/i,
-  /\bhorarios?\s*:\s*\d/i,
-  /\bhorario\s+habitual\b/i,
-  /\bhorario\s+regular\b/i,
-  /\bd[ií]a\s+de\s+por\s+medio\b/i,
-  /\bsemanal(mente)?\b/i,
-  /\bpermanente\b/i,
-  // "Visita" type experiences (tours that run regularly)
-  /\bvisitas?\s+(a\s+la|al|guiadas?)\b/i,
-];
+  ];
 
-/* ─── Non-event / venue-service detection ─── */
-const NON_EVENT_PATTERNS = [
-  /\bcancha(s)?\s+(de\s+)?\b/i,
-  /\balquiler\s+de\b/i,
-  /\breserv[aá]\s+tu\b/i,
-  /\bharás?\s+tu\s+reserva\b/i,
-  /\bturnos?\s+(disponibles?|abiertos?)\b/i,
-  /\bclases?\s+de\s+\w+\s+(todos|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)\b/i,
-];
 
 /**
  * Patterns that indicate the raw event is NOT actually an event
@@ -308,26 +299,17 @@ const REJECT_PATTERNS = [
 export function detectRecurrence(normalized: NormalizedEventInput): boolean {
   const text = `${normalized.name} ${normalized.description ?? ""} ${normalized.scheduleText ?? ""}`;
 
-  // Check explicit recurrence patterns
-  if (RECURRENCE_PATTERNS.some((p) => p.test(text))) {
-    return true;
-  }
-
-  // Check non-event patterns (venue services are inherently recurring)
-  if (NON_EVENT_PATTERNS.some((p) => p.test(text))) {
-    return true;
-  }
-
-  return false;
+  // Only flag as recurring when explicit year-round schedule patterns are found
+  return RECURRENCE_PATTERNS.some((p) => p.test(text));
 }
 
 /**
  * Check if the startTime indicates a late-night fiesta.
- * - Any event starting at 23:xx is unconditionally classified as "fiesta".
- * - club/otro/bar events starting at 22:xx or 00:xx are also reclassified.
+ * Any event (regardless of scraper or current type) starting between
+ * 23:00 and 01:59 is unconditionally classified as "fiesta".
  */
 function shouldReclassifyAsFiesta(
-  eventType: EventType,
+  _eventType: EventType,
   startTime: string | null,
 ): boolean {
   if (!startTime) return false;
@@ -341,13 +323,8 @@ function shouldReclassifyAsFiesta(
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
 
-  // 23:00–23:59 → always fiesta, regardless of type or scraper
-  if (hour === 23) return true;
-
-  // For 22:xx and midnight, only reclassify generic nightlife types
-  const reclassifiableTypes: EventType[] = ["club", "otro", "bar"];
-  if (!reclassifiableTypes.includes(eventType)) return false;
-  return hour >= 22 || hour === 0;
+  // 23:00–01:59 → always fiesta, regardless of type or scraper
+  return hour === 23 || hour === 0 || hour === 1;
 }
 
 /**
