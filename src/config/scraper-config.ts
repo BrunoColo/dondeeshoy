@@ -8,6 +8,7 @@ export const scraperConfig = {
   cobraticketBaseUrl: "https://cobraticket.uy/eventos",
   ticketfacilBaseUrl: "https://ticketfacil.uy",
   ticketfacilListUrl: "https://ticketfacil.uy/eventos/?category=todos",
+  mientradaBaseUrl: "https://mientrada.com.uy",
   requestsPerSecond: 1,
   retryAttempts: 3,
   timeoutMs: 15_000,

@@ -22,6 +22,7 @@ export default async function ScrapersPage() {
     mvd_eventos: "MVD Eventos",
     cobraticket: "CobraTicket",
     ticketfacil: "TicketFacil",
+    mientrada: "MiEntrada",
   };
 
   return (

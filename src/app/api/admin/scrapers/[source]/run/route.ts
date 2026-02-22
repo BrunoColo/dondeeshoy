@@ -14,7 +14,7 @@ export async function POST(
   const { source } = await params;
 
   // Validar source
-  const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil"];
+  const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
   if (!validSources.includes(source)) {
     return NextResponse.json({ error: "Invalid source" }, { status: 400 });
   }
@@ -26,8 +26,10 @@ export async function POST(
     }
 
     // Llamar al endpoint de scrape existente
+    // Map source names with underscores to hyphenated route paths (e.g. mvd_eventos -> mvd-eventos)
+    const routeSource = source.replace(/_/g, "-");
     const baseUrl = request.nextUrl.origin;
-    const response = await fetch(`${baseUrl}/api/scrape/${source}`, {
+    const response = await fetch(`${baseUrl}/api/scrape/${routeSource}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${cronSecret}`,

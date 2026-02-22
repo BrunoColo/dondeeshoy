@@ -6,18 +6,12 @@ import {
 } from "@/lib/queries";
 import { getTodayUY, getDateOffsetUY, formatTime, getDateLabel } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
+import { SidebarLiveClock, AnimatedStat } from "./sidebar-live";
 import {
   Flame,
   MapPin,
   CalendarDays,
   Zap,
-  TrendingUp,
-  Music,
-  Theater,
-  Dumbbell,
-  Palette,
-  PartyPopper,
-  Star,
   Megaphone,
   Sparkles,
   BadgeCheck,
@@ -49,6 +43,18 @@ export async function DesktopSidebar() {
       {/* Container que fluye hacia abajo sin límite de altura ni scroll */}
       <div className="sticky top-[60px] flex flex-col gap-3 overflow-x-hidden py-4 pr-1">
 
+        {/* ── LIVE CLOCK + DATE ── */}
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(168,85,247,0.10) 0%, rgba(34,211,238,0.06) 100%)",
+            border: "1px solid rgba(168,85,247,0.20)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
+          <SidebarLiveClock />
+        </div>
+
         {/* ── TRENDING HOY ── */}
         {trending.length > 0 && (
           <div
@@ -61,10 +67,10 @@ export async function DesktopSidebar() {
           >
             <div className="flex items-center gap-2 mb-3">
               <Flame
-                className="h-3.5 w-3.5 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.7)]"
+                className="h-4 w-4 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.7)]"
                 strokeWidth={2.5}
               />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400">
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-orange-400">
                 Más vistos hoy
               </h2>
             </div>
@@ -75,26 +81,26 @@ export async function DesktopSidebar() {
                   <li key={event.id}>
                     <Link
                       href={`/evento/${event.slug}`}
-                      className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.05]"
+                      className="group flex items-start gap-2.5 rounded-xl p-2.5 transition-colors hover:bg-white/[0.06]"
                     >
                       {/* Rank number */}
-                      <span className="shrink-0 mt-0.5 text-[10px] font-bold font-mono text-muted-foreground/40 w-3 text-right">
+                      <span className="shrink-0 mt-0.5 text-xs font-bold font-mono text-muted-foreground/40 w-4 text-right">
                         {i + 1}
                       </span>
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[11px] font-semibold text-foreground leading-snug group-hover:text-neon-violet transition-colors line-clamp-2">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <span className="text-[13px] font-semibold text-foreground leading-snug group-hover:text-neon-violet transition-colors line-clamp-2">
                           {event.name}
                         </span>
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <EventTypeBadge type={event.eventType} size="sm" />
                           {time && (
-                            <span className="text-[9px] text-muted-foreground/60 font-mono">
+                            <span className="text-[10px] text-muted-foreground/60 font-mono">
                               {time}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50">
-                          <MapPin className="h-2 w-2 shrink-0" strokeWidth={2} />
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+                          <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                           <span className="truncate">{event.venueName}</span>
                         </div>
                       </div>
@@ -105,43 +111,6 @@ export async function DesktopSidebar() {
             </ul>
           </div>
         )}
-
-        {/* ── CATEGORÍAS POPULARES ── */}
-        <div
-          className="rounded-2xl p-4"
-          style={{
-            background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.018) 100%)",
-            border: "1px solid rgba(255,255,255,0.09)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="h-3.5 w-3.5 text-neon-cyan" strokeWidth={2} />
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-cyan">
-              Categorías
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { label: "Música", icon: Music, color: "text-neon-violet", bg: "bg-neon-violet/10 hover:bg-neon-violet/18", border: "border-neon-violet/20", href: "/?type=concierto" },
-              { label: "Teatro", icon: Theater, color: "text-neon-green", bg: "bg-neon-green/10 hover:bg-neon-green/18", border: "border-neon-green/20", href: "/?type=teatro" },
-              { label: "Fiestas", icon: PartyPopper, color: "text-neon-magenta", bg: "bg-neon-magenta/10 hover:bg-neon-magenta/18", border: "border-neon-magenta/20", href: "/?type=fiesta" },
-              { label: "Deporte", icon: Dumbbell, color: "text-neon-amber", bg: "bg-neon-amber/10 hover:bg-neon-amber/18", border: "border-neon-amber/20", href: "/?type=deportivo" },
-              { label: "Cultural", icon: Palette, color: "text-neon-blue", bg: "bg-neon-blue/10 hover:bg-neon-blue/18", border: "border-neon-blue/20", href: "/?type=cultural" },
-              { label: "Festivales", icon: Star, color: "text-orange-400", bg: "bg-orange-400/10 hover:bg-orange-400/18", border: "border-orange-400/20", href: "/?type=festival" },
-            ].map(({ label, icon: Icon, color, bg, border, href }) => (
-              <Link
-                key={label}
-                href={href}
-                className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 transition-all ${bg} border ${border}`}
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
-              >
-                <Icon className={`h-3 w-3 shrink-0 ${color}`} strokeWidth={2} />
-                <span className={`text-[10px] font-semibold ${color}`}>{label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
 
         {/* ── PRÓXIMOS DESTACADOS ── */}
         {highlights.length > 0 && (
@@ -154,8 +123,8 @@ export async function DesktopSidebar() {
             }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <CalendarCheck className="h-3.5 w-3.5 text-neon-magenta" strokeWidth={2} />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-magenta">
+              <CalendarCheck className="h-4 w-4 text-neon-magenta" strokeWidth={2} />
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-neon-magenta">
                 Próximos destacados
               </h2>
             </div>
@@ -167,10 +136,10 @@ export async function DesktopSidebar() {
                   <Link
                     key={event.id}
                     href={`/evento/${event.slug}`}
-                    className="group flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-white/[0.05]"
+                    className="group flex items-start gap-2.5 rounded-xl p-2.5 transition-colors hover:bg-white/[0.06]"
                   >
                     {/* Date pill */}
-                    <div className={`shrink-0 flex flex-col items-center justify-center rounded-lg px-1.5 py-1 min-w-[36px] border ${
+                    <div className={`shrink-0 flex flex-col items-center justify-center rounded-lg px-2 py-1.5 min-w-[40px] border ${
                       isToday
                         ? "bg-neon-violet/15 border-neon-violet/30 text-neon-violet"
                         : isTomorrow
@@ -179,30 +148,30 @@ export async function DesktopSidebar() {
                     }`}
                     style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
                     >
-                      <span className="text-[8px] font-bold uppercase leading-none">
+                      <span className="text-[9px] font-bold uppercase leading-none">
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
                       {time && (
-                        <span className="text-[8px] font-mono leading-none mt-0.5 opacity-80">
+                        <span className="text-[9px] font-mono leading-none mt-0.5 opacity-80">
                           {time}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-[11px] font-semibold text-foreground leading-snug group-hover:text-neon-magenta transition-colors line-clamp-2">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-[13px] font-semibold text-foreground leading-snug group-hover:text-neon-magenta transition-colors line-clamp-2">
                         {event.name}
                       </span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <EventTypeBadge type={event.eventType} size="sm" />
                         {event.isFree && (
-                          <span className="text-[8px] font-bold uppercase tracking-wide text-neon-green bg-neon-green/10 border border-neon-green/20 px-1.5 py-0.5 rounded-full">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-neon-green bg-neon-green/10 border border-neon-green/20 px-1.5 py-0.5 rounded-full">
                             Gratis
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50">
-                        <MapPin className="h-2 w-2 shrink-0" strokeWidth={2} />
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+                        <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                         <span className="truncate">{event.venueName}</span>
                       </div>
                     </div>
@@ -212,9 +181,9 @@ export async function DesktopSidebar() {
             </div>
             <Link
               href="/proximos"
-              className="mt-2 flex items-center justify-center gap-1 text-[10px] font-semibold text-neon-magenta/70 hover:text-neon-magenta transition-colors"
+              className="mt-2 flex items-center justify-center gap-1 text-[11px] font-semibold text-neon-magenta/70 hover:text-neon-magenta transition-colors"
             >
-              <CalendarDays className="h-3 w-3" />
+              <CalendarDays className="h-3.5 w-3.5" />
               Ver todos los próximos
             </Link>
           </div>
@@ -246,10 +215,10 @@ export async function DesktopSidebar() {
                 <Rocket className="h-4 w-4 text-neon-violet" />
               </div>
               <div className="flex flex-col gap-0.5 min-w-0">
-                <p className="text-[13px] font-bold text-foreground leading-tight">
+                <p className="text-sm font-bold text-foreground leading-tight">
                   ¿Tenés un evento?
                 </p>
-                <p className="text-[10px] text-muted-foreground/70 leading-snug">
+                <p className="text-[11px] text-muted-foreground/70 leading-snug">
                   Publicalo gratis y llegá a miles
                 </p>
               </div>
@@ -258,16 +227,16 @@ export async function DesktopSidebar() {
             {/* Features */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3 w-3 text-neon-green shrink-0" />
-                <span className="text-[10px] text-neon-green font-semibold">Gratis para eventos sin costo</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-neon-green shrink-0" />
+                <span className="text-[11px] text-neon-green font-semibold">Gratis para eventos sin costo</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3 w-3 text-neon-cyan shrink-0" />
-                <span className="text-[10px] text-muted-foreground/80">Aparecé en el mapa y en búsquedas</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-neon-cyan shrink-0" />
+                <span className="text-[11px] text-muted-foreground/80">Aparecé en el mapa y en búsquedas</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3 w-3 text-neon-cyan shrink-0" />
-                <span className="text-[10px] text-muted-foreground/80">Llegá a toda Uruguay</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-neon-cyan shrink-0" />
+                <span className="text-[11px] text-muted-foreground/80">Llegá a toda Uruguay</span>
               </div>
             </div>
 
@@ -293,10 +262,10 @@ export async function DesktopSidebar() {
         >
           {/* Label */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">
               Publicidad
             </span>
-            <Megaphone className="h-3 w-3 text-muted-foreground/40" />
+            <Megaphone className="h-3.5 w-3.5 text-muted-foreground/40" />
           </div>
 
           {/* Ad 1 — Venue */}
@@ -323,13 +292,13 @@ export async function DesktopSidebar() {
             </div>
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[12px] font-bold text-white leading-tight">Magma Futura</span>
+                <span className="text-[13px] font-bold text-white leading-tight">Magma Futura</span>
                 <ExternalLink className="h-3 w-3 text-muted-foreground/50 shrink-0" />
               </div>
-              <span className="text-[10px] text-foreground/75 leading-snug">
+              <span className="text-[11px] text-foreground/75 leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
               </span>
-              <span className="text-[9px] font-semibold text-neon-cyan mt-0.5">magmafutura.com.uy →</span>
+              <span className="text-[10px] font-semibold text-neon-cyan mt-0.5">magmafutura.com.uy →</span>
             </div>
           </a>
 
@@ -357,22 +326,22 @@ export async function DesktopSidebar() {
             </div>
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[12px] font-bold text-white leading-tight">RedTickets</span>
+                <span className="text-[13px] font-bold text-white leading-tight">RedTickets</span>
                 <ExternalLink className="h-3 w-3 text-muted-foreground/50 shrink-0" />
               </div>
-              <span className="text-[10px] text-foreground/75 leading-snug">
+              <span className="text-[11px] text-foreground/75 leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
               </span>
-              <span className="text-[9px] font-semibold text-neon-violet mt-0.5">redtickets.com.uy →</span>
+              <span className="text-[10px] font-semibold text-neon-violet mt-0.5">redtickets.com.uy →</span>
             </div>
           </a>
 
           {/* CTA para anunciarse */}
           <Link
             href="/publicar#contacto"
-            className="mt-2.5 flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[9px] font-semibold text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors border border-white/[0.06] hover:border-white/[0.1]"
+            className="mt-2.5 flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors border border-white/[0.06] hover:border-white/[0.1]"
           >
-            <Tag className="h-2.5 w-2.5" />
+            <Tag className="h-3 w-3" />
             Anunciá tu negocio aquí
           </Link>
         </div>
@@ -388,8 +357,8 @@ export async function DesktopSidebar() {
             }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="h-3.5 w-3.5 text-neon-cyan" strokeWidth={2} />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-neon-cyan">
+              <BarChart3 className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-neon-cyan">
                 En números
               </h2>
             </div>
@@ -399,22 +368,7 @@ export async function DesktopSidebar() {
                 { value: stats.weekCount, label: "esta semana" },
                 { value: stats.venuesCount, label: "venues" },
               ].map(({ value, label }) => (
-                <div
-                  key={label}
-                  className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 px-1"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
-                  }}
-                >
-                  <span className="text-[16px] font-bold text-foreground font-mono leading-none">
-                    {value}
-                  </span>
-                  <span className="text-[8px] text-muted-foreground/60 text-center leading-tight">
-                    {label}
-                  </span>
-                </div>
+                <AnimatedStat key={label} value={value} label={label} />
               ))}
             </div>
           </div>
@@ -429,29 +383,29 @@ export async function DesktopSidebar() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50 mb-3">
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-3">
             Explorar
           </h2>
           <div className="space-y-0.5">
             <Link
               href="/"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
-              <Zap className="h-3 w-3 text-neon-violet shrink-0" strokeWidth={2} />
+              <Zap className="h-3.5 w-3.5 text-neon-violet shrink-0" strokeWidth={2} />
               Eventos de hoy
             </Link>
             <Link
               href="/proximos"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
-              <CalendarDays className="h-3 w-3 text-neon-cyan shrink-0" strokeWidth={2} />
+              <CalendarDays className="h-3.5 w-3.5 text-neon-cyan shrink-0" strokeWidth={2} />
               Próximos eventos
             </Link>
             <Link
               href="/mapa"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-colors"
             >
-              <MapPin className="h-3 w-3 text-neon-magenta shrink-0" strokeWidth={2} />
+              <MapPin className="h-3.5 w-3.5 text-neon-magenta shrink-0" strokeWidth={2} />
               Ver en el mapa
             </Link>
           </div>
@@ -461,11 +415,11 @@ export async function DesktopSidebar() {
         <div className="flex flex-col gap-1 px-2 pb-2">
           <div className="flex items-center gap-1.5">
             <span className="live-dot w-1.5 h-1.5" />
-            <p className="text-[9px] text-muted-foreground/50 leading-relaxed">
+            <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
               Actualizado cada 5 minutos
             </p>
           </div>
-          <p className="text-[9px] text-muted-foreground/30 leading-relaxed">
+          <p className="text-[10px] text-muted-foreground/30 leading-relaxed">
             Eventos en Uruguay · ¿Dónde es Hoy?
           </p>
         </div>

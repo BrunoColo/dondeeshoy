@@ -519,6 +519,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               tomorrowEvents={tomorrowEvents}
               weekendEvents={weekendEvents}
               selectedEventId={selectedEventId}
+              activeTypeFilter={activeTypeFilter}
               onEventSelect={handleEventSelect}
               onDateFilterChange={handleDateFilterChange}
             />

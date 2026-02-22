@@ -22,6 +22,13 @@
       "when": 1771363227031,
       "tag": "0002_add_event_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771723750066,
+      "tag": "0003_happy_epoch",
+      "breakpoints": true
     }
   ]
 }

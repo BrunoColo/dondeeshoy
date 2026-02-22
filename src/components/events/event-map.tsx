@@ -73,6 +73,8 @@ interface EventMapProps {
   weekendEvents: MapEvent[];
   /** Controlled selected event id (from sidebar) */
   selectedEventId?: string | null;
+  /** Active type filter from sidebar (e.g. "fiesta", "concierto") */
+  activeTypeFilter?: string | null;
   /** Called when user clicks a marker */
   onEventSelect?: (event: MapEvent | null) => void;
   /** Called when date filter changes */
@@ -123,6 +125,7 @@ export function EventMap({
   tomorrowEvents,
   weekendEvents,
   selectedEventId,
+  activeTypeFilter,
   onEventSelect,
   onDateFilterChange,
 }: EventMapProps) {
@@ -140,8 +143,17 @@ export function EventMap({
 
   const recurringCount = useMemo(() => activeEvents.filter((e: MapEvent) => e.isRecurring).length, [activeEvents]);
   const visibleEvents = useMemo(
-    () => (hideRecurring ? activeEvents.filter((e: MapEvent) => !e.isRecurring) : activeEvents),
-    [activeEvents, hideRecurring],
+    () => {
+      let events = activeEvents;
+      if (hideRecurring) {
+        events = events.filter((e: MapEvent) => !e.isRecurring);
+      }
+      if (activeTypeFilter) {
+        events = events.filter((e: MapEvent) => e.eventType === activeTypeFilter);
+      }
+      return events;
+    },
+    [activeEvents, hideRecurring, activeTypeFilter],
   );
 
   // Notify parent when date filter or visible events change
@@ -345,10 +357,15 @@ export function EventMap({
             })}
           </div>
 
-          {/* Count + recurring toggle */}
+          {/* Count + recurring toggle + type filter indicator */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm whitespace-nowrap">
               {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
+              {activeTypeFilter && (
+                <span className="ml-1.5 text-[10px] text-neon-violet font-semibold">
+                  · {activeTypeFilter}
+                </span>
+              )}
             </div>
             {recurringCount > 0 && (
               <button
