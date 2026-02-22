@@ -14,8 +14,8 @@ import {
   RotateCcw,
   Search,
   X,
-  SlidersHorizontal,
   ChevronRight,
+  SlidersHorizontal,
 } from "lucide-react";
 import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -236,24 +236,35 @@ function TypeChip({
 
 export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: EventMapWrapperProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [sidebarEvents, setSidebarEvents] = useState<MapEvent[]>(todayEvents);
   const [currentFilter, setCurrentFilter] = useState<DateFilter>("hoy");
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTypeFilter, setActiveTypeFilter] = useState<string | null>(null);
-  const [showTypeFilters, setShowTypeFilters] = useState(false);
+
+  // Track previous date filter to only reset sidebar state when it truly changes
+  const prevFilterRef = useRef<DateFilter>("hoy");
 
   const handleEventSelect = useCallback((event: MapEvent | null) => {
     setSelectedEventId(event?.id ?? null);
   }, []);
 
-  const handleDateFilterChange = useCallback((filter: DateFilter, events: MapEvent[]) => {
+  const handleDateFilterChange = useCallback((filter: DateFilter) => {
+    const dateActuallyChanged = prevFilterRef.current !== filter;
+    prevFilterRef.current = filter;
     setCurrentFilter(filter);
-    setSidebarEvents(events);
-    setSelectedEventId(null);
-    setSearchQuery("");
-    setActiveTypeFilter(null);
+    if (dateActuallyChanged) {
+      setSelectedEventId(null);
+      setSearchQuery("");
+      setActiveTypeFilter(null);
+    }
   }, []);
+
+  // Derive sidebar events from date filter + props (not from map’s filtered output)
+  const sidebarEvents = useMemo(() => {
+    if (currentFilter === "manana") return tomorrowEvents;
+    if (currentFilter === "finde") return weekendEvents;
+    return todayEvents;
+  }, [currentFilter, todayEvents, tomorrowEvents, weekendEvents]);
 
   // Compute available types from current sidebar events
   const availableTypes = useMemo(() => {
@@ -346,51 +357,44 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
           )}
         </div>
 
-        {/* Type filter toggle */}
+        {/* Type filter chips — always visible */}
         {availableTypes.length > 1 && (
-          <button
-            type="button"
-            onClick={() => setShowTypeFilters((v) => !v)}
-            className={cn(
-              "mt-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
-              showTypeFilters ? "text-[#A855F7]" : "text-[#475569] hover:text-[#94A3B8]",
-            )}
-          >
-            <SlidersHorizontal className="h-3 w-3" />
-            Filtrar por tipo
-            {activeTypeFilter && (
-              <span className="ml-1 rounded-full bg-[#A855F7]/20 border border-[#A855F7]/40 px-1.5 py-0.5 text-[9px] text-[#C084FC]">
-                1 activo
+          <div className="mt-2.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <SlidersHorizontal className="h-3 w-3 text-[#475569]" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#475569]">
+                Filtrar por tipo
               </span>
-            )}
-          </button>
-        )}
-
-        {/* Type filter chips */}
-        {showTypeFilters && availableTypes.length > 1 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {activeTypeFilter && (
-              <button
-                type="button"
-                onClick={() => setActiveTypeFilter(null)}
-                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all"
-              >
-                <X className="h-2.5 w-2.5" />
-                Todos
-              </button>
-            )}
-            {availableTypes.map(({ type, count, color }) => (
-              <TypeChip
-                key={type}
-                type={type}
-                color={color}
-                count={count}
-                active={activeTypeFilter === type}
-                onClick={() =>
-                  setActiveTypeFilter(activeTypeFilter === type ? null : type)
-                }
-              />
-            ))}
+              {activeTypeFilter && (
+                <span className="rounded-full bg-[#A855F7]/20 border border-[#A855F7]/40 px-1.5 py-0.5 text-[9px] text-[#C084FC]">
+                  1 activo
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {activeTypeFilter && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTypeFilter(null)}
+                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all"
+                >
+                  <X className="h-2.5 w-2.5" />
+                  Todos
+                </button>
+              )}
+              {availableTypes.map(({ type, count, color }) => (
+                <TypeChip
+                  key={type}
+                  type={type}
+                  color={color}
+                  count={count}
+                  active={activeTypeFilter === type}
+                  onClick={() =>
+                    setActiveTypeFilter(activeTypeFilter === type ? null : type)
+                  }
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -558,6 +562,34 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               <p className="mt-1.5 text-[11px] text-[#64748B]">
                 {filterLabels[currentFilter]} · <span className="text-[#94A3B8] font-semibold">{filteredEvents.length}</span> eventos
               </p>
+
+              {/* Mobile type filter chips */}
+              {availableTypes.length > 1 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {activeTypeFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTypeFilter(null)}
+                      className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                      Todos
+                    </button>
+                  )}
+                  {availableTypes.map(({ type, count, color }) => (
+                    <TypeChip
+                      key={type}
+                      type={type}
+                      color={color}
+                      count={count}
+                      active={activeTypeFilter === type}
+                      onClick={() =>
+                        setActiveTypeFilter(activeTypeFilter === type ? null : type)
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-none px-3 py-3 space-y-2">

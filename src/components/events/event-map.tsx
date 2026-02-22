@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, Clock, Ticket, ExternalLink, RotateCw } from "lucide-react";
+import { MapPin, Clock, Ticket, ExternalLink, RotateCw, Maximize2 } from "lucide-react";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { formatPrice, formatTime } from "@/lib/format";
 import Link from "next/link";
@@ -77,8 +77,8 @@ interface EventMapProps {
   activeTypeFilter?: string | null;
   /** Called when user clicks a marker */
   onEventSelect?: (event: MapEvent | null) => void;
-  /** Called when date filter changes */
-  onDateFilterChange?: (filter: DateFilter, events: MapEvent[]) => void;
+  /** Called when date filter changes (date only — sidebar computes its own event list) */
+  onDateFilterChange?: (filter: DateFilter) => void;
 }
 
 export type DateFilter = "hoy" | "manana" | "finde";
@@ -120,6 +120,21 @@ function MapFlyTo({ event }: { event: MapEvent | null }) {
   return null;
 }
 
+/** Auto-fits the map bounds to show all visible events when they change significantly */
+function FitBoundsOnChange({ events, trigger }: { events: MapEvent[]; trigger: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (events.length === 0) return;
+    if (events.length === 1) {
+      map.flyTo([events[0].latitude, events[0].longitude], 14, { duration: 0.6 });
+      return;
+    }
+    const bounds = L.latLngBounds(events.map((e) => [e.latitude, e.longitude]));
+    map.flyToBounds(bounds, { padding: [50, 50], duration: 0.6, maxZoom: 15 });
+  }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 export function EventMap({
   todayEvents,
   tomorrowEvents,
@@ -133,6 +148,7 @@ export function EventMap({
   const [tileKey, setTileKey] = useState<TileLayerKey>("calles");
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
+  const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
   const popupRef = useRef<L.Popup | null>(null);
 
   const activeEvents = useMemo(() => {
@@ -156,10 +172,10 @@ export function EventMap({
     [activeEvents, hideRecurring, activeTypeFilter],
   );
 
-  // Notify parent when date filter or visible events change
+  // Notify parent only when the date filter pill changes
   useEffect(() => {
-    onDateFilterChange?.(dateFilter, visibleEvents);
-  }, [dateFilter, visibleEvents, onDateFilterChange]);
+    onDateFilterChange?.(dateFilter);
+  }, [dateFilter, onDateFilterChange]);
 
   // Resolve the selected event object (from controlled id or internal state)
   const selectedEvent = useMemo(() => {
@@ -205,6 +221,12 @@ export function EventMap({
     } else {
       setInternalSelected(null);
     }
+    // Auto fit bounds when switching date filter
+    setFitBoundsTrigger((v) => v + 1);
+  };
+
+  const handleFitBounds = () => {
+    setFitBoundsTrigger((v) => v + 1);
   };
 
   return (
@@ -219,6 +241,7 @@ export function EventMap({
       >
         <TileSwitch tileKey={tileKey} />
         <MapFlyTo event={selectedEvent} />
+        <FitBoundsOnChange events={visibleEvents} trigger={fitBoundsTrigger} />
 
         {visibleEvents.map((event) => {
           const isSelected = selectedEvent?.id === event.id;
@@ -385,29 +408,42 @@ export function EventMap({
           </div>
         </div>
 
-        {/* Right: style switcher */}
-        <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1 self-start">
+        {/* Right: style switcher + fit bounds */}
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1">
+            <button
+              type="button"
+              onClick={() => setTileKey("calles")}
+              className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+                tileKey === "calles"
+                  ? "bg-white/20 text-white shadow-sm"
+                  : "text-white/50 hover:text-white"
+              }`}
+            >
+              Calles
+            </button>
+            <button
+              type="button"
+              onClick={() => setTileKey("oscuro")}
+              className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+                tileKey === "oscuro"
+                  ? "bg-white/20 text-white shadow-sm"
+                  : "text-white/50 hover:text-white"
+              }`}
+            >
+              Noche
+            </button>
+          </div>
+
+          {/* Fit to bounds button */}
           <button
             type="button"
-            onClick={() => setTileKey("calles")}
-            className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-              tileKey === "calles"
-                ? "bg-white/20 text-white shadow-sm"
-                : "text-white/50 hover:text-white"
-            }`}
+            onClick={handleFitBounds}
+            title="Encuadrar todos los eventos"
+            className="flex items-center gap-1.5 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white/70 hover:text-white hover:border-white/40 transition-all"
           >
-            Calles
-          </button>
-          <button
-            type="button"
-            onClick={() => setTileKey("oscuro")}
-            className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-              tileKey === "oscuro"
-                ? "bg-white/20 text-white shadow-sm"
-                : "text-white/50 hover:text-white"
-            }`}
-          >
-            Noche
+            <Maximize2 className="h-3 w-3 shrink-0" />
+            <span className="hidden sm:inline">Encuadrar</span>
           </button>
         </div>
       </div>

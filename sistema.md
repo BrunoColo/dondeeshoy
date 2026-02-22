@@ -694,4 +694,205 @@ Dada la distribución de volumen:
 
 ---
 
-*Documento actualizado automaticamente - Fecha: 2026-02-21 (actualizado)*
+## 11. Reanálisis General del Sistema (2026-02-21)
+
+### 11.1 Fortalezas y Cosas Buenas
+
+#### Arquitectura General
+- **Next.js 16 con App Router**: Estructura moderna y escalable
+- **Separación clara de responsabilidades**: Scrapers → Pipeline → UI
+- **TypeScript estricto**: Tipado completo en todo el codebase
+- **ISR (Incremental Static Regeneration)**: Revalidación cada 5 minutos para contenido fresco
+- **Componentes bien organizados**: Separación de lógica y presentación
+
+#### Base de Datos y Queries
+- **Índices bien definidos**: date, status, city, slug, eventType
+- **Consultas optimizadas**: Filtrado en DB, no en memoria
+- **Drizzle ORM**: Type-safe database queries
+- **Migraciones versionadas**: Control de schema con Drizzle Kit
+
+#### Sistema de Procesamiento
+- **Pipeline robusto**: Normalización → Clasificación → Geocodificación → Deduplicación
+- **Reintentos con backoff**: Manejo de errores transitorios
+- **Fallback a IA**: Clasificación cuando heurísticas fallan
+- **Deduplicación inteligente**: Merge de datos incompletos
+
+#### Seguridad y Rate Limiting
+- **Rate limiting con Upstash Redis**: 30 req/min para API, 5/hr para submissions
+- **Autenticación HMAC para admin**: Tokens firmados con secret
+- **Validación con Zod**: Schemas estricta para submissions
+- **Protección CSRF**: Headers de seguridad
+
+#### UI/UX
+- **Diseño consistente**: Tailwind CSS con custom theme
+- **Estados de carga**: Skeletons para suspense
+- **Manejo de errores**: Páginas de error dedicadas
+- **Imágenes optimizadas**: Fallback para imágenes rotas
+- **Sistema de trending**: Redis-based real-time tracking
+
+#### Sistema de Scraping
+- **Base scraper reutilizable**: Herencia y composición
+- **Rate limiting por fuente**: Control de velocidad
+- **Upsert strategy**: Actualización de eventos existentes
+- **Múltiples fuentes**: 6 scrapers para cobertura diversificada
+
+---
+
+### 11.2 Inconsistencias y Problemas Detectados
+
+#### Inconsistencias de Datos entre Scrapers
+
+| Scraper | Coordinates | Venue Address | Prices | Category | Description |
+|---------|-------------|---------------|--------|----------|-------------|
+| CobraTicket | ✅ | ✅ | ⚠️ Parcial | ✅ | ✅ |
+| RedTickets | ✅ | ✅ | ✅ | ❌ | ✅ Recientemente agregado |
+| TicketFacil | ❌ | ✅ Resuelto | ⚠️ Parcial | ❌ | ✅ |
+| Cartelera | ❌ | ✅ | ✅ | ❌ | ✅ |
+| MVD Eventos | ❌ | ⚠️ Parcial | ❌ | ✅ | ✅ |
+| Entraste | ❌ | ✅ | ⚠️ Parcial | ❌ | ❌ |
+
+**Problema**: Diferentes niveles de completitud entre scrapers generan experiencia de usuario inconsistente.
+
+#### Problemas de Arquitectura
+
+1. **Dependencias externas críticas**:
+   - Mapbox API: Sin token no hay geocodificación
+   - OpenAI: Costos variables, latencia
+   - Redis: Punto único de fallo para rate limiting
+
+2. **Autenticación de admin simple**:
+   - Solo HMAC token, sin persistencia en DB
+   - No hay roles/permisos granulares
+   - Sesión de 7 días sin refresh
+
+3. **Sin paginación**:
+   - `getEventsByDate` devuelve todos los eventos
+   - Puede ser lento con muchos eventos por fecha
+   - `searchEvents` tiene limit=50 hardcodeado
+
+4. **Timezone handling**:
+   - `getTodayUY()` usa timezone Uruguay pero no hay validación
+   - Servidor puede estar en UTC diferente
+
+#### Problemas de Procesamiento
+
+1. **Clasificación con sesgo**:
+   - Keywords en español pueden perder matices
+   - "Fiesta" puesto primero en regex puede sobreclasificar
+
+2. **Deduplicación arbitraria**:
+   - Threshold 0.82 puede ser muy alto/bajo
+   - No considera fuente como factor de prioridad
+   - Un scraper de baja calidad puede sobrescribir datos buenos
+
+3. **Confidence score opaco**:
+   - No está claro cómo se calcula
+   - No se usa para filtrar eventos de baja calidad
+
+4. **Venue placeholder**:
+   - Muchos eventos quedan con "Venue por confirmar"
+   - Afecta experiencia de usuario
+
+#### Problemas de UI/UX
+
+1. **Sin error boundaries**:
+   - Un error en un componente puede romper toda la página
+   - No hay recuperación automática
+
+2. **Filtros sin feedback**:
+   - Si no hay resultados, el mensaje no es claro
+   - No sugiere alternativas
+
+3. **Mapa limitada**:
+   - Solo ~40% de eventos tienen coordenadas
+   - Solo eventos con coords aparecen en mapa
+
+4. **Trending requiere 10+ views**:
+   - threshold puede ser muy alto para eventos nuevos
+   - Eventos populares pero pocos vistos no aparecen
+
+#### Problemas de Seguridad
+
+1. **Rate limiting configurable**:
+   - Variables de entorno sin validación
+   - Si no hay Redis, el sistema falla completamente
+
+2. **Submissions sin moderation**:
+   - Cualquiera puede enviar eventos
+   - No hay CAPTCHA o verificación
+   - Email de notificación puede fallar silenciosamente
+
+---
+
+### 11.3 Recomendaciones de Mejora
+
+#### Alta Prioridad
+
+1. **Unificar completitud de datos entre scrapers**:
+   - Objetivo: Todos los scrapers deben extraer coordinates, venue address, category
+   - Prioridad: TicketFacil, Cartelera
+
+2. **Agregar paginación**:
+   - Implementar cursor-based pagination para eventos
+   - Infinite scroll para event lists
+
+3. **Mejorar sistema de confianza**:
+   - Documentar confidence score
+   - Usar para filtrar eventos de baja calidad
+   - Considerar fuente como factor de peso
+
+#### Media Prioridad
+
+4. **Error boundaries en UI**:
+   - Envolver componentes críticos
+   - Recuperación graceful de errores
+
+5. **Admin con persistencia**:
+   - Guardar sesiones en DB
+   - Agregar roles y permisos
+   - Audit log de acciones
+
+6. **Mejor fallback de imágenes**:
+   - Imágenes por tipo de evento
+   - No depender solo de gradient
+
+#### Baja Prioridad
+
+7. **Dashboard de métricas**:
+   - Scrapers stats en tiempo real
+   - Pipeline metrics
+   - User engagement
+
+8. **Sistema de cache**:
+   - Cachear respuestas de API externas
+   - Reducir costos de Mapbox/OpenAI
+
+9. **Tests**:
+   - Unit tests para scrapers
+   - Integration tests para pipeline
+
+---
+
+### 11.4 Estado de Salud General
+
+| Área | Estado | Notas |
+|------|--------|-------|
+| Arquitectura | ✅ Excelente | Next.js 16, App Router, TypeScript |
+| Base de Datos | ✅ Buena | Índices, migraciones, tipos |
+| Pipeline | ✅ Bueno | Retry, deduplicación, IA fallback |
+| Scrapers | ⚠️ Mixto | Diferentes niveles de completitud |
+| UI/UX | ✅ Bueno | Diseño consistente, good UX |
+| Seguridad | ✅ Bueno | Rate limiting, validación |
+| DevEx | ✅ Bueno | TypeScript, ESLint, tooling |
+
+**Puntuación general: 8/10**
+
+El sistema está bien construido y funcional. Las principales áreas de mejora son:
+1. Unificar calidad de datos entre scrapers
+2. Agregar paginación
+3. Mejorar sistema de confianza
+4. Agregar error boundaries
+
+---
+
+*Documento actualizado - Fecha: 2026-02-21 (reanalisis completo)*

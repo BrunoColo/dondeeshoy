@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const DAYS_ES = [
   "Domingo", "Lunes", "Martes", "Miércoles",
@@ -19,21 +19,17 @@ const MONTHS_ES = [
 export function SidebarLiveClock() {
   const [now, setNow] = useState<Date | null>(null);
   const [showColon, setShowColon] = useState(true);
-  const initialized = useRef(false);
 
   useEffect(() => {
-    // First tick fires immediately (via 0ms timeout to stay async)
-    if (!initialized.current) {
-      initialized.current = true;
-      const init = setTimeout(() => setNow(new Date()), 0);
-      const timer = setInterval(() => setNow(new Date()), 1000);
-      const blink = setInterval(() => setShowColon((v) => !v), 500);
-      return () => {
-        clearTimeout(init);
-        clearInterval(timer);
-        clearInterval(blink);
-      };
-    }
+    // First tick fires via 0ms timeout to avoid sync setState in effect
+    const init = setTimeout(() => setNow(new Date()), 0);
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    const blink = setInterval(() => setShowColon((v) => !v), 500);
+    return () => {
+      clearTimeout(init);
+      clearInterval(timer);
+      clearInterval(blink);
+    };
   }, []);
 
   if (!now) {
