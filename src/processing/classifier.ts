@@ -322,8 +322,9 @@ export function detectRecurrence(normalized: NormalizedEventInput): boolean {
 }
 
 /**
- * Check if the startTime indicates a late-night fiesta (>= 23:00).
- * Reclassifies club/otro/bar events that start very late as "fiesta".
+ * Check if the startTime indicates a late-night fiesta.
+ * - Any event starting at 23:xx is unconditionally classified as "fiesta".
+ * - club/otro/bar events starting at 22:xx or 00:xx are also reclassified.
  */
 function shouldReclassifyAsFiesta(
   eventType: EventType,
@@ -331,17 +332,21 @@ function shouldReclassifyAsFiesta(
 ): boolean {
   if (!startTime) return false;
 
-  // Only reclassify these types — don't turn a "concierto" into "fiesta"
-  const reclassifiableTypes: EventType[] = ["club", "otro", "bar"];
-  if (!reclassifiableTypes.includes(eventType)) return false;
-
   const hourMatch =
     startTime.match(/^(\d{1,2}):/) ??
-    startTime.match(/^(\d{1,2})\s*(?:hs?|h)\b/i);
+    startTime.match(/^(\d{1,2})\s*(?:hs?|h)\b/i) ??
+    startTime.match(/T(\d{2}):/);
   if (!hourMatch) return false;
 
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
+
+  // 23:00–23:59 → always fiesta, regardless of type or scraper
+  if (hour === 23) return true;
+
+  // For 22:xx and midnight, only reclassify generic nightlife types
+  const reclassifiableTypes: EventType[] = ["club", "otro", "bar"];
+  if (!reclassifiableTypes.includes(eventType)) return false;
   return hour >= 22 || hour === 0;
 }
 
