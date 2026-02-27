@@ -1,898 +1,626 @@
-# Sistema de Scraping y Procesamiento de Eventos - Análisis Completo
+# Análisis del Sistema — Scrapers → Eventos Reales
 
-## Resumen Ejecutivo
-
-Este documento analiza el sistema completo de scraping de eventos de Uruguay, desde la extracción de datos crudos hasta la creación de eventos normalizados en la base de datos. El sistema comprende 6 scrapers, un normalizador, un clasificador, un geocodificador, un detector de departamentos y un deduplicador.
+*Análisis objetivo desde el código fuente. Fecha: 2026-02-27*
 
 ---
 
-## 1. Análisis de Scrapers
+## Flujo General
 
-### 1.1 Comparación General
+```
+[Vercel Cron] 14:00–16:30 UTC diario
+      │
+      ├─ /api/scrape/redtickets   → RedTicketsScraper
+      ├─ /api/scrape/entraste     → EntrasteScraper
+      ├─ /api/scrape/cobraticket  → CobraTicketScraper
+      ├─ /api/scrape/ticketfacil  → TicketFacilScraper
+      ├─ /api/scrape/cartelera    → CarteleraScraper
+      ├─ /api/scrape/mvd-eventos  → MvdEventosScraper
+      └─ /api/scrape/mientrada   → MiEntradaScraper
+                │
+                ↓  UPSERT en raw_events (processed=false)
+         [raw_events table — JSONB]
+                │
+17:00 UTC → /api/scrape/process
+                │
+         runProcessingPipeline(batchSize=50)
+                │
+         por cada raw_event:
+           normalizeRawEvent()
+           shouldRejectEvent()
+           geocodeVenue()
+           detectDepartment()
+           classifyEvent() [± classifyEventWithAi()]
+           calculateConfidenceScore()
+           findDuplicateEventId()
+           createEvent() / mergeEventData()
+                │
+                ↓
+         [events table]
+                │
+03:00 UTC → mark-past (status='past' donde date < today)
+```
 
-| Scraper | Complejidad | Campos Extraídos | Fiabilidad | Cobertura | Volumen Estimado |
-|---------|-------------|------------------|------------|-----------|------------------|
-| CobraTicket | Alta | 14 | Excelente | Nacional | ~300-500 eventos |
-| RedTickets | Alta | 13 | Excelente | Nacional | ~500-800 eventos |
-| TicketFacil | Media-Alta | 11 | Buena | Nacional | ~200-400 eventos |
-| MVD Eventos | Media | 9 | Buena | Montevideo | ~50-150 eventos |
-| Cartelera | Media | 11 | Buena | Montevideo | ~100-200 eventos |
-| Entraste | Baja | 7 | Regular | Nacional | ~20-50 eventos |
+---
 
-**Volumen Total Estimado por ciclo: ~1,170 - 2,100 eventos**
+## 1. Scrapers
 
-### 1.2 Análisis Detallado por Scraper
+### 1.1 BaseScraper
 
-#### 🥇 CobraTicket (Tier: Excelente) - ~300-500 eventos
+Clase abstracta que todos los scrapers heredan. Define el contrato:
 
-**Fortalezas:**
-- Extrae datos estructurados desde JSON embebido de SvelteKit (SSR)
-- Proporciona coordenadas GPS directamente (`lat`, `lng`)
-- Incluye categoría, organizador, restricciones de edad
-- Posee fallback robusto a parsing DOM
-- El campo `city` ya viene formateado como "Ciudad, Departamento"
+- `discoverUrls()` → lista de URLs a scrapear
+- `scrapeEvent(url)` → `ScrapedRawEvent | null`
+- `run()` → itera URLs, aplica rate limit (Upstash Redis, 1 req/s), retry x3 con backoff 400ms×intento, guarda en `raw_events` con UPSERT en `(source, source_id)`
 
-**Campos extraídos:**
+**Problema real:** El rate limit en `BaseScraper.run()` aplica `enforceRateLimit` por request individual pero no hay ningún cap global de tiempo por sesión de scraping. Si un scraper descubre 800 URLs (RedTickets), eso son ~13 minutos solo de espera de rate limit, más el tiempo real de fetch. Vercel Functions tienen timeout de 300s (5 min) en el plan Pro. Un scraper grande puede agotar el timeout y quedarse con trabajo parcialmente hecho sin error explícito.
+
+**Problema real:** Cuando `saveRawEvent` hace UPSERT, resetea `processed=false` y borra `processingError`. Esto significa que re-scrapear un evento que fue rechazado (`processingError = "rejected: ..."`) lo vuelve a encolar para el pipeline. Si el evento sigue siendo un no-evento, el pipeline lo rechaza de nuevo, pero genera trabajo innecesario en cada ciclo diario.
+
+---
+
+### 1.2 CobraTicket
+
+**Calidad: Alta.** Extrae desde JSON SvelteKit embebido (`const data = [...]`).
+
+**Campos extraídos:** title, description, category, dateText (ISO), startTime, endTime, venueName, venueAddress, city ("Ciudad, Departamento"), latitude, longitude, imageUrl, isFree (texto), prices (de descripción), ageRestriction, organizer.
+
+**Lo que funciona bien:**
+- Coordenadas GPS directas desde `latlng` del payload
+- Fecha en ISO estricto (`2026-02-19 23:59:00`), sin ambigüedad
+- Campo `city` ya formateado como "Punta del Este, Maldonado"
+- Fallback DOM robusto si el JSON no está disponible
+
+**Problemas detectados:**
+
+1. **Precios extraídos de texto libre**, no de datos estructurados. El comentario en el código lo confirma: "actual ticket types are loaded client-side via Firebase and not available in SSR HTML". Los precios que llegan son los que CobraTicket menciona en la descripción del evento, lo cual es inconsistente: algunos organizadores los ponen, otros no. Esto produce `priceMin=null` para eventos de pago.
+
+2. **`new Function()` para evaluar JS embebido** (`extractSvelteKitProps`). Es técnicamente seguro en server-side pero es frágil ante cambios de formato del SSR de SvelteKit. Si SvelteKit cambia cómo serializa el state, el regex `const\s+data\s*=\s*(\[[\s\S]*?\])\s*;\s*(?:\r?\n|\s*Promise)` deja de matchear y cae al fallback DOM sin aviso visible.
+
+3. **Detección de isFree por texto** en `buildEventFromProps`: usa regex en `bodyText = title + description`. Si la descripción no menciona "gratis" pero el evento lo es (porque los precios están en Firebase), `isFree=false` y `prices=[]`, lo que genera `currency="USD"` en el normalizador (por la lógica `priceMax < 50`).
+
+---
+
+### 1.3 RedTickets
+
+**Calidad: Alta.** Mayor volumen del sistema (~500–800 URLs por ciclo).
+
+**Campos extraídos:** title, description, category, dateText, venueText, venueAddress, imageUrl, prices (GeneXus JSON → JSON-LD → meta → texto), latitude, longitude (iframe Google Maps), isFree (GeneXus).
+
+**Lo que funciona bien:**
+- Coordenadas desde iframe Google Maps embed (`q=LAT,LNG`)
+- Precios desde `vPURCHASEOPTIONSRESPONSE` en el estado GeneXus — datos estructurados reales, con `unitPrice` (sin fees)
+- `isFree` explícito desde `Evt.isFree` del payload GeneXus
+- Descripción desde `og:description` y fallback a contenido
+
+**Problemas detectados:**
+
+1. **Paginación con cap fijo de 10 páginas** (`maxSearchPages`). Si RedTickets tiene más de 10 páginas de resultados (lo cual depende del tamaño de página de su API), eventos válidos quedan fuera. No hay señal de cuándo se llegó al final real de los resultados más allá de "2 páginas vacías consecutivas".
+
+2. **`searchCardMeta` es estado mutable de instancia** (`private searchCardMeta = new Map()`). La instancia se crea en `new RedTicketsScraper()` y se descarta al final del cron. Pero si `discoverUrls()` falla parcialmente en una página, la metadata de esa página no queda en el cache y `scrapeEvent` usa el fallback de `detailCategory` para esa URL. No es un bug grave pero puede causar clasificaciones menos precisas para eventos de páginas que fallaron.
+
+3. **`extractCategoryFromDotPattern` busca `li > div[style*="border-radius"][style*="height: 10px"][style*="width: 10px"]`**. Este selector depende de inline styles específicos de la versión actual de RedTickets. Un cambio de CSS del lado de RedTickets rompe silenciosamente la extracción de categoría (cae a `null`, sin error).
+
+4. **El scraper hace 2 requests por evento** en RedTickets (search page + detail page). Con 800 URLs × 2 = 1600 requests, más las páginas de discovery. A 1 req/s eso es más de 26 minutos, bien por encima del timeout de Vercel.
+
+---
+
+### 1.4 TicketFacil
+
+**Calidad: Media-alta.**
+
+**Campos extraídos:** title, description, dateText (YYYY-MM-DD), startTime, endTime, venueName, venueAddress (split por " - "), imageUrl, prices (de `/registerToEvent/`).
+
+**Lo que funciona bien:**
+- Discovery por REST API de accesofacil, no HTML parsing
+- Filtros pre-scraping agresivos (membresías, eventos fuera de Uruguay, organizadores excluidos)
+- Manejo de rangos de fecha (usa la fecha de inicio)
+- Precios desde `initPrice` attributes en `/registerToEvent/`
+
+**Problemas detectados:**
+
+1. **Sin coordenadas.** TicketFacil no tiene mapa embed ni coordenadas en su HTML. Todos los eventos de esta fuente dependen de `KNOWN_VENUES` lookup o Mapbox para geocodificación. Con ~200-400 eventos por ciclo, esto es un impacto significativo en la cobertura del mapa.
+
+2. **Hace 2 requests por evento**: `/info/` + `/registerToEvent/` para precios. Duplica el tiempo de scraping.
+
+3. **`fetchPricesFromRegisterPage` silencia todos los errores** con `return []`. Si la página de registro tiene un error HTTP o cambia su formato, el evento queda sin precios sin ningún log.
+
+4. **Sin categoría.** `rawData` no incluye campo `category`. Todos los eventos de TicketFacil van directo a heurísticas de texto en el clasificador, sin la ventaja del `SOURCE_CATEGORY_MAP`.
+
+5. **`isFreeText` se almacena como booleano** en `rawData` pero el campo en el schema es `isFree` no `isFreeText`. En el normalizador (`normalizer.ts:105`), se lee `rawData.isFree === true`. Como TicketFacil guarda `isFreeText: true`, `scraperSaysIsFree` queda `false` y la detección de gratuitos depende solo del texto. Bug silencioso: `rawData.isFreeText` no se lee en ningún lugar del normalizador.
+
+---
+
+### 1.5 Cartelera
+
+**Calidad: Media.**
+
+**Campos extraídos:** title, genre, duration, description, venueName, venueAddress, imageUrl, prices, cast, dateText, startTime. Un raw_event por fecha de función.
+
+**Lo que funciona bien:**
+- Multi-fecha: genera un raw_event por función individual
+- Extrae elenco (`[itemprop='actor']`)
+- Extrae duración y género de markup schema.org
+
+**Problemas detectados:**
+
+1. **Sin coordenadas.** Ningún campo lat/lng en el scraper.
+
+2. **El override de `run()` es frágil.** Cartelera sobreescribe `run()` del BaseScraper para manejar multi-fecha. El mecanismo usa `_pendingMultiDateEvents` como array mutable de instancia. El código en `scrapeEvent()` hace `this._pendingMultiDateEvents = this._pendingMultiDateEvents || []` — esto presupone que `run()` inicializa el array antes de llamar a `scrapeEvent()`, lo cual es correcto, pero es una dependencia de orden implícita que puede romperse si se refactoriza la clase base.
+
+3. **`saveExtra()` duplica la lógica de `saveRawEvent()`** del BaseScraper (la misma query de UPSERT). Si `BaseScraper.saveRawEvent()` cambia (por ejemplo, se agrega un campo), `saveExtra()` queda desincronizado.
+
+4. **El conteo de `saved` en `run()` override** usa `savedIds.size`, que cuenta todos los eventos multi-fecha pero no resta el primero que ya fue guardado por `super.run()`. El resultado es que `saved` puede ser >= al real (el primero se cuenta dos veces si está en `_pendingMultiDateEvents`).
+
+5. **`parseDateHeading()` asume año actual o siguiente** basándose en comparación de número de mes. Si se scrapea en diciembre y hay funciones en enero, la lógica `if (monthNum < now.getMonth() + 1)` asigna año+1 correctamente. Pero si se scrapea en enero de 2026 y hay una función en diciembre (que terminó en diciembre 2025), asigna 2026 cuando debería ser pasado. En práctica esto rara vez ocurre porque Cartelera solo muestra funciones futuras, pero es una suposición no validada.
+
+6. **Selectores CSS específicos** (`.lista-horarios > li`, `.subheading`, `.hora`). Un rediseño del sitio los rompe sin error.
+
+---
+
+### 1.6 MVD Eventos
+
+**Calidad: Media.**
+
+**Campos extraídos:** title (con parent event), description, dateText, venueName, venueAddress, category, imageUrl, isFree.
+
+**Lo que funciona bien:**
+- Estructura Drupal relativamente estable (`field--name-*` classes)
+- Categoría disponible desde campos Drupal
+- Detecta gratuitos por texto
+
+**Problemas detectados:**
+
+1. **Sin coordenadas y sin precios.** MVD Eventos es un sitio gubernamental que no expone ninguno de los dos. Sin coordenadas, estos eventos no aparecen en el mapa a menos que el venue esté en `KNOWN_VENUES`.
+
+2. **`extractDates()` mezcla 3 estrategias** diferentes en cascada sin clara prioridad semántica: campo Drupal `field--fechas` → `field--resumen` (que es descripción, no fecha) → regex de día-de-la-semana en texto completo → regex DD/MM/YYYY en texto completo. Las últimas dos estrategias leen `$.text()` de toda la página, lo que puede capturar fechas de la navegación, footer o contenido relacionado en lugar de la fecha del evento.
+
+3. **`_MONTHS` está declarado pero inmediatamente marcado `void _MONTHS`**. Es código muerto: la variable está definida pero no se usa en ningún lugar del archivo. La extracción de fechas de MVD Eventos delega al normalizador, no a este mapa local.
+
+4. **Discovery mezcla `/evento/` y `/actividad/`** sin distinción. Algunos `/actividad/` son programas permanentes (museos abiertos, actividades semanales), no eventos puntuales. El filtro que excluye `agenda-anteriores` es insuficiente.
+
+5. **`extractSourceId` reemplaza `/` con `--`** para URLs como `/evento/padre/hijo`. Esto produce `sourceId = "padre--hijo"`. Funciona como identificador único pero si el sitio cambia la estructura de URL para el mismo evento, genera duplicados.
+
+---
+
+### 1.7 Entraste
+
+**Calidad: Baja.**
+
+**Campos extraídos:** title, venueName, venueAddress, dateText, imageUrl, prices. Sin descripción, sin coordenadas, sin categoría.
+
+**Problemas detectados:**
+
+1. **Discovery solo desde homepage**. Un único `fetchHtml(entrasteBaseUrl)` escanea los links de la página principal. Entraste probablemente tiene paginación o secciones de categorías no visitadas. El resultado es un volumen muy bajo (~20-50 eventos).
+
+2. **`extractDateText()` usa regex sobre el texto completo de la página** (`fullText = normalizeWhitespace($.root().text())`). Busca el primer match de `día-de-la-semana + número + de + mes`. Si el footer o la navegación de Entraste tienen texto con días de la semana (como "Eventos de este viernes"), captura eso en lugar de la fecha real del evento.
+
+3. **Sin descripción.** `rawData` no incluye campo `description`. Esto afecta la clasificación (el clasificador usa `name + description + venueName`) y el `shouldUseAiClassification()` que evalúa si la descripción es larga y genérica.
+
+4. **Sin coordenadas.** Entraste no tiene mapa embed.
+
+5. **Volumen demasiado bajo para el costo de mantenimiento.** 20-50 eventos por ciclo, con los campos más críticos faltantes.
+
+---
+
+### 1.8 MiEntrada
+
+**Calidad: Media.** Scraper relativamente nuevo, bien estructurado.
+
+**Campos extraídos:** title, imageUrl, venueName, venueAddress, department, lat, lng (de Google Maps link), dates (array DD/MM/YYYY), aperturaTime, description, prices.
+
+**Lo que funciona bien:**
+- Extrae coordenadas desde URL de Google Maps (`maps/search/LAT,LNG`)
+- Extrae `department` del formato "Venue, Ciudad/Departamento"
+- Descripción desde sección "Descripción" del HTML
+- Strips de boilerplate WhatsApp
+
+**Problemas detectados:**
+
+1. **`dates` se almacena como array `string[]` en `rawData`** pero el normalizador espera `rawData.dateText` como string. El campo `dates` de MiEntrada **no se lee en ningún lugar del normalizador**. Esto significa que todos los eventos de MiEntrada llegan al normalizador con `dateText = ""`, lo que activa el fallback a IA para parsear la fecha (desperdiciando budget de OpenAI).
+
+2. **`lat` y `lng` se almacenan como `rawData.lat` y `rawData.lng`** pero el normalizador lee `rawData.latitude` y `rawData.longitude`. Las coordenadas de MiEntrada **nunca se usan**. Todos sus eventos quedan sin coordenadas a pesar de que el scraper las extrae correctamente.
+
+3. **`department` del scraper se almacena en `rawData.department`** pero el normalizador no lo lee (lee `rawData.city` como `scraperCity`). La información de departamento queda perdida.
+
+4. Estos tres bugs (dateText, latitude/longitude, city) son probablemente **los defectos más críticos del sistema actual**: un scraper que extrae datos correctamente pero cuyos campos no son consumidos por el normalizador.
+
+---
+
+## 2. Normalizador
+
+### 2.1 Parsing de fechas
+
+El normalizador tiene 4 estrategias en orden: DD/MM/YYYY → DD/MM/YY → YYYY-MM-DD → "N de mes" en español. Si todo falla, llama a OpenAI GPT-4o-mini.
+
+**Problema: doble parsing de fecha** (líneas 57-71). El normalizador parsea la fecha de `dateText` Y también de `name`. Si ambos producen una fecha válida, siempre usa la del nombre: `parsedDate = dateFromName`. Esto tiene consecuencias no deseadas:
+
+- Eventos cuyos nombres incluyen fechas de ediciones anteriores ("Festival Rock 2025 - Edición 15° Aniversario") pueden heredar el año incorrecto.
+- Eventos de Cartelera que incluyen el número de edición en el nombre ("Ciclo 22 de agosto") pueden hacer que el normalizador parsee "22/08" como la fecha del evento.
+
+**Problema: `wasFallback` es `true` cuando no hay fecha**, pero el normalizador solo llama a la IA si `dateText` está presente. Si `dateText` es vacío (caso MiEntrada), `resolveDateWithAi("")` no se llama y la fecha queda como hoy (`formatDate(new Date())`). Esto genera fechas incorrectas silenciosamente.
+
+**Problema: la fecha de fallback es la fecha actual del servidor** (UTC). En el cron de las 17:00 UTC, eso es las 14:00 hora Uruguay (UTC-3). Si el evento es de hoy pero el scraping corre antes de la medianoche UY, la fecha puede quedar bien. Pero si hay algún evento con fecha ambigua, queda con la fecha de scraping, no con la fecha real.
+
+### 2.2 Detección de moneda
+
 ```typescript
-{
-  title, description, category, dateText, startTime, endTime,
-  venueName, venueAddress, city, latitude, longitude,
-  imageUrl, isFree, prices, ageRestriction, organizer
+const currency = hasUsdHint || (priceMax !== null && priceMax < 50) ? "USD" : "UYU";
+```
+
+La heurística `priceMax < 50` clasifica como USD cualquier evento con precio máximo menor a $50. En Uruguay, entradas de $0 a $49 pesos son extremadamente raras (o son en USD). Pero:
+- Eventos con `priceMax = null` (sin precio) quedan en UYU correctamente
+- Eventos gratuitos con `isFree=true` y `priceMax=null` también quedan bien
+- El riesgo real es un evento de $30 UYU (un taller comunitario muy barato) que se clasifica como USD 30
+
+### 2.3 `isFreeText` de TicketFacil no se lee
+
+Como se mencionó en §1.4, el campo `isFreeText` guardado por TicketFacil no coincide con el campo `isFree` que lee el normalizador. Bug silencioso.
+
+### 2.4 Venue cleaning
+
+`cleanVenueName()` corta en keywords como "Ubicación:", "Ver flyer", "Tickets". La lista es corta y específica a formatos actuales de scrapers. Nuevos formatos de texto no procesados correctamente quedan como nombres de venue sucios sin aviso.
+
+---
+
+## 3. Geocodificador
+
+### 3.1 Flujo
+
+```
+1. ¿Coords en normalized.latitude/longitude? → usar directamente
+2. ¿Venue en KNOWN_VENUES (~134 entries)? → usar coords del lookup
+3. ¿NEXT_PUBLIC_MAPBOX_TOKEN? → Mapbox API (country=uy, bounding box -36/-30 lat, -59/-53 lng)
+4. → null
+```
+
+### 3.2 KNOWN_VENUES
+
+134 venues hardcodeados con coordenadas. Cubre bien Montevideo (70+ venues) y Punta del Este (10+), con cobertura parcial del interior (Tacuarembó, Rivera, Salto, Paysandú, Colonia, Durazno, Lavalleja, Rocha).
+
+**Problema:** El lookup usa `text.includes(normalize(key))` sobre `venueName + venueAddress`. Esto puede dar falsos positivos si el nombre del venue contiene una substring de una clave conocida. Por ejemplo, un venue llamado "Bar Sala Zitarrosa 2" matchearía la entrada de "sala zitarrosa" y obtendría las coordenadas de Sala Zitarrosa (incorrectas para el bar).
+
+**Problema:** Algunas coordenadas son aproximadas (comentadas con "aprox" implícito por los valores redondos). Por ejemplo `{ keys: ["espacio cultural"], latitude: -34.9060, longitude: -56.1900 }` — "espacio cultural" es demasiado genérico y puede matchear cualquier venue cuyo nombre contenga esas palabras, asignando coordenadas arbitrarias del centro de Montevideo.
+
+**Problema:** Mapbox usa `NEXT_PUBLIC_MAPBOX_TOKEN` — un token del lado del cliente expuesto en el bundle del frontend. Usar este mismo token para geocodificación server-side (en el pipeline) no es un problema de seguridad en sí, pero si el token tiene restricciones de dominio/URL configuradas en Mapbox, las llamadas server-side pueden fallar.
+
+### 3.3 Coordenadas de MiEntrada perdidas
+
+Como se detalla en §1.8, MiEntrada extrae coordenadas correctamente pero las guarda como `lat`/`lng`. El normalizador solo lee `rawData.latitude`/`rawData.longitude`. Las coordenadas nunca llegan al geocodificador.
+
+---
+
+## 4. Detector de Departamentos
+
+### 4.1 Prioridad correcta
+
+Las coordenadas tienen prioridad absoluta sobre el texto. Esto es correcto. El bounding box de Uruguay (-36 a -30 lat, -59 a -53 lng) es el mismo que usa el geocodificador de Mapbox.
+
+### 4.2 Bounding boxes con solapamientos
+
+Los bounding boxes de departamentos se solapan geográficamente (Uruguay no es una grilla). Por ejemplo, las coordenadas de Atlantida (Canelones) están dentro del bbox de Canelones, pero podrían estar en el borde de otro. El código resuelve esto verificando Montevideo primero (departamento más pequeño, caso más común). Para el resto itera en orden de definición, tomando el primer match. No hay manejo explícito de solapamientos.
+
+**Caso concreto problemático:** El bbox de Canelones (`minLat: -34.895`) se solapa con el de Montevideo (`maxLat: -34.705`). Hay una banda entre -34.895 y -34.950 que cae fuera del bbox de Montevideo pero dentro del de Canelones. Eventos en esa banda se clasifican como Canelones, que puede ser correcto para Ciudad de la Costa pero incorrecto para puntos que GPS considera Montevideo.
+
+### 4.3 PROBLEMATIC_KEYWORDS vs UNAMBIGUOUS_DEPARTMENT_KEYWORDS
+
+Hay una inconsistencia en el código: `UNAMBIGUOUS_DEPARTMENT_KEYWORDS` incluye `"artigas"`, `"flores"`, `"durazno"` (líneas 57-60 del department-detector), pero `PROBLEMATIC_KEYWORDS` también los incluye (líneas 25-37). La lógica en `detectDepartment()` verifica:
+
+```typescript
+if (PROBLEMATIC_KEYWORDS.has(normalizedKeyword) && !UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has(normalizedKeyword)) {
+  if (normalizedKeyword.split(/\s+/).length < 2) continue;
 }
 ```
 
-**Irregularidades detectadas:**
-- Los precios se extraen del texto de descripción, no de datos estructurados
-- No hay manera de saber si hay entradas vendidas sin usar API externa
+Como `"artigas"` está en ambos sets, la condición `!UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has("artigas")` es `false`, por lo que NO se skipea. En práctica, `"artigas"` como palabra sola sí puede matchear y asignar departamento Artigas. Esto contradice el comentario "NOTE: 'artigas' alone is too generic" en el array `DEPARTMENT_RULES`.
 
 ---
 
-#### 🥈 RedTickets (Tier: Excelente) - ~500-800 eventos ⚠️ VOLUMEN MÁS ALTO
+## 5. Clasificador
 
-**Fortalezas:**
-- Extrae coordenadas directamente del iframe de Google Maps嵌入
-- **NUEVO: Sistema avanzado de extracción de precios desde JSON GeneXus embebido** (`vPURCHASEOPTIONSRESPONSE`)
-- **NUEVO: Extrae descripción** desde meta tags y contenido de la página
-- Detecta eventos gratuitos desde datos embebidos (campo `isFree` del GeneXus)
-- Soporte para metadatos de categoría desde cards de búsqueda
-- **Posee fallback robusto de precios**: 1) GeneXus JSON → 2) JSON-LD → 3) Meta tags → 4) Texto
+### 5.1 SOURCE_CATEGORY_MAP
 
-**Campos extraídos:**
+Mapea categorías de scrapers a EventType. Solo CobraTicket y MVD Eventos proveen categorías consistentemente. RedTickets a veces provee categoría (del dot-pattern), TicketFacil y Entraste no. El mapa incluye comentarios para categorías de `voy.com.uy` (scraper que no existe aún).
+
+### 5.2 Regex rules — orden y cobertura
+
+14 tipos de evento con regex. El orden importa porque el primer match gana. Problemas concretos:
+
+- `"club"` tiene regex `/\bclub\b/i`. Esto matchea "Club Atlético", "Club de teatro", "Club Náutico" — todos eventos legítimos que se clasificarían como `"club"` (tipo nightclub) en lugar de `"deportivo"` o `"teatro"`. Solo se evita si la regex de `"fiesta"` (que va antes) matchea primero, o si hay un venue conocido.
+
+- `"bar"` tiene regex `/\bbar\b/i`. Matchea "Bar de Derecho" (baile estudiantil), "Barbería", "embarque". Falsos positivos.
+
+- `"taller"` incluye `/\britua\b/` y `/\bsanaci[oó]n\b/`. Clasifica eventos de terapias alternativas como talleres, lo cual puede ser correcto pero es semánticamente debatible.
+
+- `"fiesta"` incluye `/\bnoche cubana\b/` y `/\bdanzeria\b/` — keywords muy específicos a venues/eventos particulares de Uruguay. Si esos venues cierran o cambian nombre, los keywords quedan muertos en el código.
+
+### 5.3 REJECT_PATTERNS
+
+Los reject patterns son conservadores (bien). Rechazan membresías, alquileres, empleos. Pero hay casos edge:
+
+- `/\bsocio(s)?\b/i` rechaza cualquier evento que mencione "socios". Eventos legítimos como "Noche de Socios" o "Descuento para Socios" quedan rechazados si el título los menciona.
+
+- `/\benv[ií]os?\b/i` rechaza cualquier mención de "envío/envíos". Esto es demasiado amplio — eventos que mencionan "el envío de señales en vivo" o "el envío del elenco a gira" quedarían rechazados.
+
+### 5.4 Lógica `shouldUseAiClassification`
+
+Activa IA cuando:
+1. `eventType === "otro"` — correcto
+2. `matchedTypes.length > 1` y el tipo no es high-confidence — puede sobreactivar IA para casos simples como "Festival de rock" que matchea festival+concierto
+3. descripción larga (≥120 chars) con palabras genéricas ("evento", "show", "experiencia") — razonable pero el threshold de 120 chars es arbitrario
+
+El budget de IA (`AI_CLASSIFICATION_MAX_PER_BATCH`, default 25) puede agotarse antes de procesar todos los ambiguos si hay muchos eventos "otro" en el batch de 50.
+
+### 5.5 Reclasificación nocturna
+
 ```typescript
-{
-  title, description, category, dateText, venueText, venueAddress,
-  imageUrl, prices, latitude, longitude, isFree
+return hour === 23 || hour === 0 || hour === 1;
+```
+
+Eventos que empiezan a las 23:00–01:59 se reclasifican automáticamente como `"fiesta"`. Esto puede sobreclasificar: un concierto que empieza a las 23:00 queda como "fiesta". Una obra de teatro en horario nocturno (poco común pero posible) también. La lógica no tiene excepciones.
+
+---
+
+## 6. Deduplicador
+
+### 6.1 Algoritmo
+
+- Eventos recurrentes: busca por ciudad + `isRecurring=true`, sin filtro de fecha
+- Eventos puntuales: busca por fecha + ciudad exacta
+- Similitud: bigrams Dice coefficient (no exactamente Jaccard, sino `2×overlap / (|A|+|B|)`)
+- Score = `nameSimilarity × 0.75 + venueSimilarity × 0.25`
+- Threshold: `>= 0.82`
+
+### 6.2 Problemas de deduplicación
+
+**Problema: la búsqueda de candidatos no tiene límite.** En `findDuplicateEventId`:
+
+```typescript
+const sameDayEvents = await db.select(...).from(events)
+  .where(and(eq(events.date, normalized.date), eq(events.city, normalized.city)));
+```
+
+Sin `.limit()`. Si hay 300 eventos en Montevideo el mismo día, carga 300 rows en memoria y las evalúa una a una. Con el volumen actual del sistema esto es tolerable, pero escala mal.
+
+**Problema: threshold 0.82 puede ser demasiado alto para nombres cortos.** Para un evento llamado "Jazz" (4 chars), hay muy pocos bigrams. La similitud entre "Jazz" y "Jazz en vivo" puede estar por debajo de 0.82 aunque sean el mismo evento.
+
+**Problema: `mergeEventData` no actualiza `eventType` ni `confidenceScore`.** Si un evento fue creado por MVD Eventos con tipo "cultural" y baja confidence, y luego llega de CobraTicket con tipo "concierto" y alta confidence, el merge no actualiza el tipo. El primero en llegar define el tipo permanentemente.
+
+**Problema: `mergeEventData` actualiza la fecha solo si la fecha nueva es diferente a la existente.** La lógica:
+
+```typescript
+if (existingDateStr && existingDateStr !== newDateStr) {
+  updates.date = normalized.date;
 }
 ```
 
-~~**PROBLEMA CRÍTICO:**~~
-~~- **NO extrae descripción del evento** - ~500-800 eventos afectados~~
-~~- Esto representa ~40% del volumen total sin descripción~~
-
-**YA RESUELTO:** Ahora extrae descripción correctamente.
-
-**Irregularidades detectadas:**
-- El patrón de URL puede variar (`/evento/{slug}/{id}`)
-- La fecha y venue vienen en un formato estructurado que requiere parsing específico (`span.Description.Flex`)
+Esto actualiza la fecha incondicionalmente cuando difieren — sin verificar cuál es más confiable. Si el evento original tenía una fecha correcta de CobraTicket (ISO) y el merge viene de MVD Eventos con una fecha parseada de texto libre (potencialmente incorrecta), la fecha "correcta" queda sobreescrita.
 
 ---
 
-#### 🥉 TicketFacil (Tier: Bueno) - ~200-400 eventos
+## 7. Pipeline
 
-**Fortalezas:**
-- Usa API REST de accesofacil para descubrimiento (no HTML parsing)
-- Posee filtros agresivos pre-scraping para excluir eventos no válidos
-- Extrae precios de dos páginas diferentes (info + registro)
-- Maneja rangos de fechas correctamente
-- **NUEVO: Extrae venueAddress** - hace split de strings como "Teatro Solís - Buenos Aires s/n" en venueName + venueAddress
+### 7.1 Procesamiento secuencial sin paralelismo
 
-**Filtros pre-scraping implementados:**
-- Excluye membresías de clubs (`socios`, `club balneario`)
-- Excluye eventos corporativos privados
-- Excluye eventos fuera de Uruguay por título, venue u organizador
-- Excluye eventos "por invitación" sin precios públicos
+El pipeline es estrictamente secuencial: un evento a la vez. Con `batchSize=50` y eventos que requieren llamadas a Mapbox + OpenAI, el tiempo por batch puede ser alto. No hay paralelización de las operaciones independientes (geocodificación + clasificación son independientes entre sí para eventos distintos).
 
-**Campos extraídos:**
+### 7.2 `batchSize=50` fijo
+
+El pipeline procesa 50 raw_events por llamada. Si hay 500 pendientes, se necesitan 10 llamadas al endpoint `/api/scrape/process`. Con el cron configurado para una sola llamada por día, los 450 restantes quedan pendientes hasta el siguiente día. No hay mecanismo de "volver a correr hasta agotar la cola".
+
+### 7.3 Retry de transient errors
+
+`withTransientRetry` tiene 3 intentos con backoff 200ms×intento. Solo reintenta para errores de red (`ENOTFOUND`, `ETIMEDOUT`, `ECONNRESET`, `ECONNREFUSED`, `57P01`). Errores de base de datos no transitorios (constraint violations, etc.) se propagan inmediatamente, correcto.
+
+### 7.4 Error handling por evento
+
+Si un evento falla, el pipeline registra el error en `processingError` y continua con el siguiente. Correcto. Pero si el error es en la query inicial `getPendingRawEvents`, toda la ejecución falla sin procesar ningún evento.
+
+### 7.5 `confidenceScore` no se actualiza en merge
+
+`calculateConfidenceScore` se calcula para el evento nuevo pero solo se usa al crear (`createEvent`). En `mergeEventData` no hay actualización de `confidenceScore`. Si el evento original tenía score 0.50 (sin hora, sin precio) y el merge agrega hora y precio, el score sigue siendo 0.50.
+
+### 7.6 El campo `scheduleText` se almacena pero no se usa
+
+`normalizeRawEvent` retorna `scheduleText: dateText || null`. Este campo se pasa a `findDuplicateEventId` (dentro de `detectRecurrence`) y a `classifyEvent`. Pero `createEvent` no lo incluye en el INSERT — no hay columna `scheduleText` en el schema `events`. El campo existe en `NormalizedEventInput` pero nunca persiste en la base de datos. Si alguna vez se quisiera mostrar el texto de horario al usuario, no está disponible.
+
+---
+
+## 8. Tabla de defectos por impacto
+
+| # | Defecto | Impacto | Afecta | Severidad |
+|---|---------|---------|--------|-----------|
+| 1 | MiEntrada: `lat`/`lng` ≠ `latitude`/`longitude` en normalizador | Coordenadas nunca se usan | Todos los eventos de MiEntrada | **Crítica** |
+| 2 | MiEntrada: `dates[]` no se lee como `dateText` en normalizador | Fecha siempre hoy, gasta AI budget | Todos los eventos de MiEntrada | **Crítica** |
+| 3 | MiEntrada: `department` no se lee como `city` en normalizador | Departamento incorrecto | Todos los eventos de MiEntrada | **Alta** |
+| 4 | TicketFacil: `isFreeText` no coincide con `isFree` en normalizador | Eventos gratuitos no detectados | ~200-400 eventos/ciclo | **Alta** |
+| 5 | Pipeline `batchSize=50` con un solo cron diario | 500+ pendientes → demora días en procesar | Todo el sistema | **Alta** |
+| 6 | `deduplicator`: sin limit en query de candidatos | Escala mal con volumen alto | Todo el sistema | **Media** |
+| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** |
+| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** |
+| 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** |
+| 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** |
+| 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** |
+| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** |
+| 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** |
+| 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** |
+
+---
+
+## 9. Cosas que funcionan bien
+
+Hay que ser justo: el sistema tiene partes bien diseñadas.
+
+- **Arquitectura en capas limpia**: scrapers → raw_events → pipeline → events. La separación es correcta y fácil de razonar.
+- **UPSERT en raw_events**: re-scrapear un evento actualiza los datos sin duplicar filas. Correcto.
+- **Redis distributed lock por fuente**: evita runs concurrentes del mismo scraper.
+- **withTransientRetry en el pipeline**: maneja desconexiones de base de datos sin perder trabajo.
+- **shouldRejectEvent antes de geocodificar**: ahorra llamadas a Mapbox/OpenAI para no-eventos.
+- **Bounding box sanity check en Mapbox**: descarta geocodificaciones fuera de Uruguay.
+- **Detección de departamento por coordenadas primero**: más confiable que texto.
+- **Multi-fecha en Cartelera**: la idea es correcta, aunque la implementación tiene fricciones.
+- **Filtros pre-scraping en TicketFacil**: el scraper más limpio en términos de calidad de señal.
+- **Extracción de precios desde GeneXus en RedTickets**: usa datos estructurados internos, no regex de texto libre.
+
+---
+
+## 10. Mejoras por prioridad
+
+### Prioridad crítica (bugs que producen datos incorrectos ahora mismo)
+
+**1. Mapear campos de MiEntrada en el normalizador**
+
+En `normalizer.ts`, agregar lectura de los campos específicos de MiEntrada:
+
 ```typescript
-{
-  title, description, dateText, startTime, endTime,
-  venueName, venueAddress, imageUrl, prices, isFreeText
+// Soporte para MiEntrada (lat/lng → latitude/longitude, dates[] → dateText)
+const rawLat = typeof rawData.lat === "number" ? rawData.lat : rawLatitude;
+const rawLng = typeof rawData.lng === "number" ? rawData.lng : rawLongitude;
+
+// MiEntrada guarda dates como array; usar el primer elemento como dateText
+const rawDates = Array.isArray(rawData.dates) ? rawData.dates : null;
+const effectiveDateText = dateText || (rawDates?.[0] ?? "");
+
+// MiEntrada guarda department como 'department', no 'city'
+const scraperDept = typeof rawData.department === "string" ? rawData.department : null;
+const effectiveScraperCity = scraperCity || scraperDept;
+```
+
+**2. Corregir `isFreeText` de TicketFacil**
+
+En `ticketfacil.ts`, cambiar el nombre del campo:
+
+```typescript
+rawData: {
+  ...
+  isFree: isFreeText,  // era: isFreeText: isFreeText
+  ...
 }
 ```
 
-**PROBLEMAS:**
-- ~~**NO extrae venue address**~~ - **YA RESUELTO** (~200-400 eventos ahora tienen address)
-- **NO extrae coordenadas** (~200-400 eventos afectados)
-- **NO extrae categoría**
+O bien, en `normalizer.ts`, leer también `rawData.isFreeText`:
 
-**Irregularidades detectadas:**
-- No extrae coordenadas (siempre `null`)
-- No extrae categoría
-- ~~Venue address siempre `null`~~ - **YA RESUELTO**
-- Dependencia de la API externa de accesofacil (punto de fallo)
-
----
-
-#### 📊 MVD Eventos (Tier: Bueno) - ~50-150 eventos
-
-**Fortalezas:**
-- Scraping de sitio Drupal bien estructurado
-- Extrae categoría desde campos Drupal
-- Soporta tanto eventos como actividades
-- Detecta eventos gratuitos desde texto
-
-**Campos extraídos:**
 ```typescript
-{
-  title (con parent event), description, dateText,
-  venueName, venueAddress, category, imageUrl, isFree
+const scraperSaysIsFree = rawData.isFree === true || rawData.isFreeText === true;
+```
+
+### Prioridad alta (impacto en calidad de datos)
+
+**3. Pipeline: ejecutar hasta agotar la cola en un solo cron**
+
+En lugar de procesar solo 50 eventos por invocación, el endpoint `/api/scrape/process` debería procesar en loop hasta agotar `pending=0` o hasta acercarse al timeout de Vercel:
+
+```typescript
+let total = { created: 0, merged: 0, ... };
+const startTime = Date.now();
+const MAX_MS = 250_000; // 250s, con margen antes del timeout de 300s
+
+while (Date.now() - startTime < MAX_MS) {
+  const result = await runProcessingPipeline(50);
+  // acumular result en total
+  if (result.pending === 0) break;
+}
+return total;
+```
+
+**4. `mergeEventData`: proteger fecha existente si viene de fuente más confiable**
+
+Agregar un campo de "source trust" o al menos no sobreescribir si la fecha actual viene de CobraTicket/RedTickets (ISO preciso) y la nueva viene de una fuente con texto libre:
+
+```typescript
+// Solo actualizar fecha si la nueva es válida Y la existente no vino de una fuente ISO
+if (normalized.date && existingDateStr !== newDateStr) {
+  // Fuentes con fecha ISO estricta tienen prioridad
+  const trustedSources = new Set(["cobraticket", "redtickets", "ticketfacil"]);
+  if (!trustedSources.has(existingEventSource) || trustedSources.has(incomingSource)) {
+    updates.date = normalized.date;
+  }
 }
 ```
 
-**PROBLEMAS:**
-- **NO extrae coordenadas** (~50-150 eventos afectados)
-- **NO extrae precios**
+**5. `mergeEventData`: actualizar `eventType` y `confidenceScore` cuando la nueva fuente tiene mayor confianza**
 
-**Irregularidades detectadas:**
-- No extrae coordenadas
-- No extrae precios
-- Fechas pueden venir en múltiples formatos
-- Venue address a veces mezclado con venue name
-
----
-
-#### 📊 Cartelera (Tier: Bueno) - ~100-200 eventos
-
-**Fortalezas:**
-- Extrae elenco (cast) de obras teatrales
-- Soporta múltiples fechas por espectáculo
-- Extrae género y duración
-- Posee mapeo de precios robusto
-
-**Campos extraídos:**
 ```typescript
-{
-  title, genre, duration, description, venueName, venueAddress,
-  imageUrl, prices, cast, dateText, startTime
+if (normalized.confidenceScore > existing.confidenceScore) {
+  updates.confidenceScore = normalized.confidenceScore;
+  // También actualizar tipo si el nuevo viene de fuente confiable y tiene categoría
+  if (incomingClassification.fromSourceCategory) {
+    updates.eventType = incomingClassification.eventType;
+  }
 }
 ```
 
-**PROBLEMAS:**
-- **NO extrae coordenadas** (~100-200 eventos afectados)
-- Dependencia fuerte de clases CSS específicas (punto de rotura)
+**6. KNOWN_VENUES: eliminar o hacer más restrictivos los keys genéricos**
 
-**Irregularidades detectadas:**
-- No extrae coordenadas
-- No extrae categoría
-- Dependencia fuerte de clases CSS específicas (punto de rotura)
-- El parsing de fechas asume año actual o siguiente
+Eliminar entradas como `["espacio cultural"]` que son demasiado genéricas. Reemplazar con nombres completos específicos.
 
----
+**7. Deduplicador: agregar `.limit()` a la query de candidatos**
 
-#### ⚠️ Entraste (Tier: Regular) - ~20-50 eventos
-
-**Fortalezas:**
-- Extrae venue y dirección desde HTML estructurado
-- Posee manejo de URLs relativas de imágenes
-
-**Campos extraídos:**
 ```typescript
-{
-  title, venueName, venueAddress, dateText, imageUrl, prices
+const sameDayEvents = await db.select(...)
+  .from(events)
+  .where(and(eq(events.date, normalized.date), eq(events.city, normalized.city)))
+  .limit(200); // cap razonable
+```
+
+### Prioridad media (mejoras de calidad y robustez)
+
+**8. CobraTicket: obtener precios desde la API de Firebase**
+
+CobraTicket expone precios en `https://app.cobraticket.uy/api/v1/events/{id}/tickets` o similar. Scrapear esa endpoint (si es accesible públicamente) daría precios estructurados en lugar de parseo de texto.
+
+**9. TicketFacil: agregar coordenadas vía venue geocoding**
+
+TicketFacil provee venue name y address. El pipeline ya llama a `geocodeVenue()`, que busca en KNOWN_VENUES y luego en Mapbox. El problema es que KNOWN_VENUES es insuficiente para muchos venues de TicketFacil. La solución es expandir KNOWN_VENUES con los venues más frecuentes de TicketFacil, extrayéndolos de los datos históricos.
+
+**10. Cartelera: sacar `saveExtra()` y usar `BaseScraper.saveRawEvent()` directamente**
+
+Hacer `saveRawEvent` protegido (`protected`) en BaseScraper en lugar de `private`, y llamarlo directamente desde `CarteleraScraper.run()` en lugar de duplicar la query.
+
+**11. `normalizer.ts`: leer `scheduleText` no es suficiente, se necesita una columna en el schema**
+
+O agregar la columna `schedule_text text` a la tabla `events` y al INSERT de `createEvent()`, o eliminar el campo de `NormalizedEventInput` para no generar confusión.
+
+**12. MVD Eventos: mejorar `extractDates()` para no leer `$.text()` completo**
+
+Limitar la extracción de fechas al contenido del article/main, no al `$.root()`.
+
+**13. Entraste: agregar discovery de más páginas**
+
+```typescript
+// Además de la homepage, scrapear páginas de categoría o "ver todos"
+const sections = ["/", "/eventos"];
+for (const section of sections) {
+  const html = await fetchHtml(`${entrasteBaseUrl}${section}`);
+  // ...
 }
 ```
 
-**PROBLEMAS CRÍTICOS (~20-50 eventos afectados):**
-- **NO extrae coordenadas** 
-- **NO extrae categoría**
-- **NO extrae descripción**
-- **NO extrae ciudad/departamento**
-- Patrón de URL limitado
-- Dependencia de estructura HTML específica
-
----
-
-### 1.3 Ranking Final de Scrapers (por volumen × calidad)
-
-| Posición | Scraper | Volumen | Puntuación | Razón |
-|----------|---------|---------|------------|-------|
-| 1 | CobraTicket | ~300-500 | 9/10 | Más campos, coordenadas, city field, fallback robusto |
-| 2 | RedTickets | ~500-800 | 9/10 | Mayor volumen, coordenadas, precios GeneXus, descripción extraída ✅ |
-| 3 | TicketFacil | ~200-400 | 7.5/10 | API estable, filtros buenos, SIN coordenadas, SIN venue address |
-| 4 | Cartelera | ~100-200 | 6.5/10 | Multi-fecha, cast, pero frágil, SIN coordenadas |
-| 5 | MVD Eventos | ~50-150 | 7/10 | Drupal estructurado, SIN coordenadas, SIN precios |
-| 6 | Entraste | ~20-50 | 4/10 | Campos mínimos, sin coordenadas, HTML frágil |
-
-**Nota**: RedTickets es #1 en volumen Y ahora tiene todos los campos. Es el scraper con mayor ROI.
-
----
-
-## 2. El Normalizador (normalizer.ts)
-
-### 2.1 Flujo de Normalización
-
-El normalizador transforma `RawEvent` → `NormalizedEventInput` con los siguientes pasos:
-
-1. **Sanitización de texto**: Limpia espacios extra, normaliza whitespace
-2. **Extracción de fecha**: Intenta múltiples formatos (ISO, DD/MM/YYYY, texto español)
-3. **Fallback de fecha IA**: Si la fecha no se puede parsear, usa GPT-4 para resolver
-4. **Venue cleaning**: Limpia ruido como "Ubicación:", "Ver flyer", etc.
-5. **Normalización de precios**: Convierte arrays de precios a min/max
-6. **Detección de gratuito**: Busca keywords "gratis", "entrada libre", etc.
-7. **Divisa**: Detecta USD vs UYU por keywords o precio bajo (< 50)
-8. **Departamento**: Usa `detectDepartment` para inferir ubicación
-
-### 2.2 Campos Normalizados
+**14. Clasificador: hacer la reclasificación nocturna condicional**
 
 ```typescript
-{
-  name, slug, description, scheduleText, date,
-  startTime, endTime, venueName, venueAddress, city,
-  imageUrl, ticketUrl, priceMin, priceMax,
-  currency, isFree, ageRestriction, latitude, longitude
+// Solo reclasificar si no es teatro ni deportivo (que pueden tener funciones nocturnas)
+const nocturnoExceptions = new Set<EventType>(["teatro", "deportivo", "cultural"]);
+if (!nocturnoExceptions.has(eventType) && shouldReclassifyAsFiesta(eventType, normalized.startTime)) {
+  eventType = "fiesta";
 }
 ```
 
-### 2.3 Problemas y Limitaciones
+### Prioridad baja (deuda técnica)
 
-**Irregularidades detectadas:**
+**15. Eliminar `_MONTHS` muerto en `mvd-eventos.ts`**
 
-1. **Date parsing heurístico**: 
-   - Si la fecha del nombre es más específica que `dateText`, usa la del nombre
-   - Pero esto puede fallar si el nombre contiene fechas de ediciones anteriores
+**16. Documentar el campo `city` como "departamento", no ciudad**
 
-2. **Venue cleaning limitado**:
-   - Solo corta en keywords específicos
-   - No maneja bien venues con información extra concatenada
+El campo `city` en la tabla `events` almacena el departamento de Uruguay (Montevideo, Maldonado, etc.), no la ciudad. El nombre es confuso para quien lee el schema.
 
-3. **Currency detection weak**:
-   - USD detectado solo por keywords o precio < 50
-   - Puede误判 eventos caros en UYU como USD
+**17. Agregar tests para el normalizador y deduplicador**
 
-4. **Fallback IA costoso**:
-   - Cada fecha no parseable = llamada a OpenAI
-   - Impacta en latencia y costo
+Los casos edge de parsing de fechas y deduplicación son los más propensos a regresiones y están completamente sin tests.
 
-5. **NUEVO: Detección de gratuito mejorada** (v2):
-   - Primero consulta `scraperSaysIsFree` (del scraper)
-   - Si no hay precios Y el texto dice "gratis"/"entrada libre" → es gratis
-   - El scraper de RedTickets ahora provee `isFree` directamente desde GeneXus
+**18. Registrar la fuente de geocodificación en `events`**
+
+Sería útil saber si las coordenadas de un evento vienen del scraper, de KNOWN_VENUES o de Mapbox, para poder auditar la calidad de los datos.
 
 ---
 
-## 3. Sistema de Geocodificación (geocoder.ts)
-
-### 3.1 Flujo de Geocodificación
-
-```
-1. ¿Coords del scraper?
-   └─ Sí → Usar coords del scraper (source: "scraper")
-   └─ No → 
-        ├── ¿Venue conocido en KNOWN_VENUES?
-        │   └─ Sí → Usar coords del lookup (source: "lookup")
-        │   └─ No → 
-        │       └── ¿Token Mapbox?
-        │           └─ Sí → Geocodificar con Mapbox (source: "mapbox")
-        │           └─ No → Sin coordenadas (source: "none")
-```
-
-### 3.2 Base de Venues Conocidos
-
-El sistema tiene **~130+ venues pre-mapeados** con coordenadas, incluyendo:
-- 70+ venues de Montevideo
-- 15+ venues de Punta del Este / Maldonado
-- **NUEVO: 20+ venues del interior**: Tacuarembó, Rivera, Salto, Paysandú, Colonia, Durazno, Lavalleja, Rocha
-- Mejora la geocodificación para TicketFacil/Cartelera/MVD eventos sin coords del scraper
-
-### 3.3 Problemas y Limitaciones
-
-**Irregularidades detectadas:**
-
-1. **Dependencia de Mapbox**:
-   - Sin token `NEXT_PUBLIC_MAPBOX_TOKEN` = sin geocodificación
-   - API externa prone a rate limits
-
-2. **Bounding box Uruguay**:
-   - ~~Coordendas fuera de `-36 to -30` lat y `-59 to -53` lng son rechazadas~~
-   - ~~Pero no hay validación de si está dentro del país correctamente~~
-
-3. **KNOWN_VENUES incompleto**:
-   - ~~Solo 109 venues hardcodeados~~ - **Actualizado**: ~130+ venues
-   - **NUEVO**: Agregados 20+ venues del interior (Tacuarembó, Rivera, Salto, Paysandú, Colonia, Durazno, Lavalleja, Rocha)
-   - Venues nuevos no reconocidos
-   - Algunos coordenadas aproximadas
-
-4. **NUEVO: Lógica de detección de departamentos mejorada**:
-   - **Coordenadas siempre tienen prioridad** - son datos objetivos de ubicación real
-   - **Keywords problemáticos identificados**: "colonia", "artigas", "flores", "durazno", etc. son nombres de calles en Montevideo Y departamentos
-   - **Unambiguous keywords**: solo phrases específicas como "colonia del sacramento" pueden detectar departamento sin coords
-   - **Bounding boxes aproximados**: derivamos de datos geográficos generales, no son límites oficiales (para precisión usar GADM/IDE Uruguay)
-
----
-
-## 4. Detector de Departamentos (department-detector.ts)
-
-### 4.1 Flujo de Detección
-
-```
-1. ¿Coords disponibles?
-   └─ Sí → Usar bounding boxes de departamentos (preciso)
-   └─ No → 
-        ├── Buscar en scraperCity
-        ├── Buscar en venueAddress  
-        └── Buscar en venueName
-        └── Buscar en eventName (fallback, menos preciso)
-```
-
-### 4.2 Bounding Boxes por Departamento
-
-19 departamentos con bounding boxes aproximados:
-- Montevideo: `-34.950, -34.705` lat, `-56.410, -56.005` lng
-- Canelones, Maldonado, Colonia, etc.
-
-### 4.3 Problemas y Limitaciones
-
-**Irregularidades detectadas:**
-
-1. **False positives comunes**:
-   - "Colonia" es nombre de calle en Montevideo → puede误判
-   - "Artigas" es nombre de calle → requiere contexto específico
-
-2. **Fallback a Montevideo**:
-   - Si no puede detectar → asume Montevideo
-   - Pero la mayoría de eventos son de Montevideo (sesgo justificado)
-
-3. **Bounding boxes se solapan**:
-   - Algunos departamentos tienen áreas que se solapan
-   - La primera coincidencia gana (orden de prioridad)
-
-4. **Keywords incompletos**:
-   - Muchas ciudades del interior no están en las reglas
-   - Solo las más populares tienen cobertura
-
----
-
-## 5. Clasificador (classifier.ts)
-
-### 5.1 Tipos de Evento Soportados
-
-```typescript
-type EventType = 
-  | "festival" | "concierto" | "recital" | "teatro" | "cultural"
-  | "deportivo" | "gastronomico" | "familiar" | "feria" | "taller"
-  | "fiesta" | "club" | "bar" | "otro";
-```
-
-### 5.2 Sistema de Clasificación
-
-1. **Regex rules**: 14+ categorías con múltiples patrones
-2. **Venue hints**: Mapeo de venue conocido → tipo
-3. **Metadata hints**: Usa categoría del scraper
-4. **Time-based**: Eventos que empiezan >= 22:00 → "fiesta"
-5. **AI fallback**: Si tipo = "otro" o ambiguo → GPT-4
-
-### 5.3 Rechazo de No-Eventos
-
-Patrones que rechazan entradas:
-- Canchas de alquiler
-- Membresías de gyms
-- Turnos disponibles
-- Clases regulares/permanentes
-- Ofertas/descuentos
-- Empleos/convocatorias
-
-### 5.4 Problemas y Limitaciones
-
-**Irregularidades detectadas:**
-
-1. **Regex fragile**:
-   - Orden importa (primer match gana)
-   - "fiesta" puesto primero para vencer "club"/"bar"
-
-2. **False positives theater**:
-   - TeatroCMC puede ser interpretable como "cultural"
-
-3. **AI classification costoso**:
-   - Cada evento "otro" puede generar llamada a OpenAI
-   - Controlado por `AI_CLASSIFICATION_MAX_PER_BATCH`
-
----
-
-## 6. Deduplicador (deduplicator.ts)
-
-### 6.1 Algoritmo de Deduplicación
-
-1. **Eventos recurrentes**: Match por nombre + ciudad (sin fecha)
-2. **Eventos puntuales**: Match por nombre + ciudad + fecha
-3. **Similitud**: Coeficiente de bigrams (Jaccard-like)
-   - Score >= 0.82 = duplicado
-
-### 6.2 Estrategia de Merge
-
-Cuando encuentra duplicado:
-- Actualiza fecha si la nueva es válida
-- Completa precios si no existían
-- Completa coords si no existían
-- Completa venue si era placeholder
-
-### 6.3 Problemas y Limitaciones
-
-**Irregularidades detectadas:**
-
-1. **Score threshold arbitrario**:
-   - 0.82 puede ser muy alto o muy bajo según el caso
-
-2. **No considera fuente**:
-   - No prioriza fuentes más confiables
-   - Un scraper malo puede sobreescribir datos buenos
-
-3. **Solo 2D matching**:
-   - No considera imágenes
-   - No considera descripción
-
----
-
-## 7. Pipeline de Procesamiento (pipeline.ts)
-
-### 7.1 Flujo Completo
-
-```
-1. getPendingRawEvents(batchSize)
-   ↓
-2. para cada rawEvent:
-   ├─→ normalizeRawEvent()
-   │   ├─ Sanitiza texto
-   │   ├─ Parsea fecha (con fallback IA)
-   │   ├─ Limpia venue
-   │   ├─ Normaliza precios
-   │   └─ Detecta departamento
-   │
-   ├─ shouldRejectEvent() → ¿Es válido?
-   │   └─ No → mark processed, skip
-   │
-   ├─ geocodeVenue()
-   │   ├─ ¿Coords del scraper?
-   │   ├─ ¿Venue conocido?
-   │   └─ ¿Mapbox?
-   │
-   ├─ classifyEvent() (heurística)
-   │   └─ ¿Necesita IA?
-   │       └─ classifyEventWithAi() → GPT-4
-   │
-   ├─ findDuplicateEventId()
-   │   └─ ¿Existe?
-   │       ├─ Sí → mergeEventData()
-   │       └─ No → createEvent()
-   │
-   ├─ link raw_event → event
-   └─ mark processed
-```
-
-### 7.2 Métricas del Pipeline
-
-```typescript
-interface PipelineResult {
-  pending: number;      // Raw events pendientes
-  processed: number;   // Procesados en esta tanda
-  created: number;      // Nuevos eventos creados
-  merged: number;       // Duplicados mergeados
-  skipped: number;      // Rechazados
-  errors: number;       // Errores
-  aiClassified: number; // Clasificados con IA
-}
-```
-
-### 7.3 Problemas y Limitaciones
-
-**Irregularidades detectadas:**
-
-1. **Procesamiento secuencial**:
-   - Sin paralelismo
-   - Lento para batches grandes
-
-2. **Retry logic básico**:
-   - Solo 3 reintentos
-   - Backoff fijo de 200ms
-
-3. **No hay validación de calidad post-creación**:
-   - Eventos creados pueden tener datos faltantes
-   - No hay revisión humana
-
----
-
-## 8. Irregularidades y Problemas Sistémicos
-
-### 8.1 Problemas de Datos (con impacto en volumen)
-
-| Problema | Scraper(s) Afectado(s) | Eventos Impactados | Impacto | Severidad |
-|----------|------------------------|-------------------|---------|-----------|
-| ~~Sin descripción~~ | ~~RedTickets~~ | ~~~500-800~~ | ~~No hay detalle del evento~~ | ~~**CRÍTICA**~~ → **RESUELTO** |
-| ~~Venue address null~~ | ~~TicketFacil~~ | ~~200-400~~ | ~~Sin venue address~~ | ~~**ALTA**~~ → **RESUELTO** |
-| Sin coordenadas | TicketFacil, Cartelera, MVD Eventos | ~350-750 | No hay mapa | **ALTA** |
-| Venue address null | MVD Eventos | ~50-150 | Geocodificación worse | Media |
-| Fechas en texto libre | Todos | Variable | Parsing error prone | Media |
-| Sin categoría | Entraste, TicketFacil | ~220-450 | Clasificación harder | Media |
-| Precios faltantes | MVD Eventos, Entraste | ~70-200 | Sin info de entrada | Media |
-| Sin coords | Entraste | ~20-50 | No hay mapa | **ALTA** |
-
-### 8.2 Problemas de Calidad
-
-1. **Venue placeholder "Venue por confirmar"**:
-   - Muchos eventos quedan con este valor
-   - Afecta experiencia de usuario
-
-2. **Departamento default Montevideo**:
-   - Eventos mal geolocalizados se asignan a Montevideo
-   - Inflación artificial de Montevideo
-
-3. **Currency inconsistency**:
-   - Precios en USD/UYU mezclados sin criterio claro
-   - Comparación de precios dificultada
-
-### 8.3 Problemas de Arquitectura
-
-1. **Pipeline síncrono**:
-   - No escala bien
-   - Tiempos de procesamiento largos
-
-2. **Dependencias externas**:
-   - Mapbox (API key necesaria)
-   - OpenAI (costos variables)
-   - accesofacil API (punto de fallo)
-
-3. **Sin validación post-pipeline**:
-   - Eventos creados sin revisión
-   - Errores pueden propagarse
-
-### 8.4 Fixes Recientes (2026-02-21)
-
-1. **Middleware deprecation (Vercel)**:
-   - Renombrado `middleware.ts` → `proxy.ts`
-   - Cambiado `export function middleware()` → `export function proxy()`
-   - Conforme a convención de Next.js 16
-
-2. **TypeScript error**:
-   - Corregido `cheerio.AnyNode` → `AnyNode` en redtickets.ts:376
-   - El tipo ya estaba importado desde domhandler pero referenciado incorrectamente
-
-3. **Lógica de detección de departamentos mejorada**:
-   - **Las coordenadas siempre tienen prioridad** - eliminamos el cross-validation problemático
-   - **Keywords problemáticos**: identificados 11 palabras que son deptos Y calles (colonia, artigas, flores, etc.)
-   - **Solo phrases específicas** pueden detectar depto sin coords (ej: "colonia del sacramento")
-   - **Bounding boxes**: siguen siendo aproximaciones, no datos oficiales (fuente: límites geográficos generales, no INE/GADM)
-
----
-
-## 9. Recomendaciones de Mejora (Priorizadas por Volumen de Impacto)
-
-### IMPACTO POR SCRAPER (volumen × campos faltantes)
-
-| Scraper | Volumen | Problema Principal | Eventos Affected | Prioridad |
-|---------|---------|-------------------|------------------|-----------|
-| **RedTickets** | ~500-800 | ✅ Todo completo (descripción agregada) | ~0 | - |
-| **CobraTicket** | ~300-500 | ✅ Todo completo | ~0 | - |
-| **TicketFacil** | ~200-400 | ✅ Venue address resuelto, ❌ Sin coords | ~200-400 | **#1** |
-| **Cartelera** | ~100-200 | ❌ Sin coords, frágil CSS | ~100-200 | **#2** |
-| **MVD Eventos** | ~50-150 | ❌ Sin coords, sin prices | ~50-150 | MEDIA |
-| **Entraste** | ~20-50 | ❌ Casi todo incompleto | ~20-50 | BAJA |
-
-### Prioridad REAL (volumen × gravedad):
-
-1. **TicketFacil (~200-400 eventos)**: Agregar coordenadas + venue address
-2. **Cartelera (~100-200 eventos)**: Agregar coordenadas + robustizar CSS
-3. **MVD Eventos (~50-150 eventos)**: Agregar coordenadas + precios
-4. **Entraste (~20-50 eventos)**: Reescribir completo o eliminar
-
-### 9.1 Alta Prioridad (MAYOR IMPACTO)
-
-~~#### 1. **[CRÍTICA] Extraer descripción en RedTickets** (~500-800 eventos)~~
-~~**Por qué**: RedTickets es el mayor proveedor pero no extrae descripción.~~
-
-~~**Impacto**: 500-800 eventos × mejora = **mayor ROI**~~
-
-~~```typescript~~
-~~// En redtickets.ts - agregar en scrapeEvent()~~
-~~const description = normalizeWhitespace(~~
-~~  $("[class*='description']").first().text() ||~~
-~~  $("meta[property='og:description']").attr("content") ||~~
-~~  ""~~
-~~) || null;~~
-~~```~~
-
-**YA RESUELTO:** RedTickets ahora extrae descripción correctamente.
-
-#### 1. **[ALTA] Agregar coordenadas a TicketFacil** (~200-400 eventos)
-**Por qué**: Segundo mayor proveedor, sin coords ni venue address.
-
-**Estrategia**: Usar el venue name para geocodificación en el pipeline.
-
-```typescript
-// Alternativa: parsear la dirección del venueText
-// "📍 Teatro Solís - Juan Lindegoyen 1851"
-const venueParts = rawVenue.split(" - ");
-const venueName = venueParts[0]?.replace(/^📍\s*/, "") || null;
-const venueAddress = venueParts[1] || null;
-```
-
-#### 3. **[ALTA] Robustecer Cartelera + agregar coordenadas** (~100-200 eventos)
-**Por qué**: Dependencia frágil de clases CSS, sin coords.
-
-**Estrategia**:
-- Usar selectores más genéricos
-- Agregar lookup en KNOWN_VENUES para teatros conocidos
-
-### 9.2 Media Prioridad
-
-#### 4. **[MEDIA] Agregar coordenadas a MVD Eventos** (~50-150 eventos)
-**Por qué**: Drupal bien estructurado pero sin coords.
-
-**Estrategia**: El venue tiene campos bien definidos, usar para lookup.
-
-#### 5. **[MEDIA] Mejorar parsing de fechas en MVD Eventos**
-**Problema**: Múltiples formatos de fecha = errors de parsing.
-
-### 9.3 Baja Prioridad
-
-#### 6. **[BAJA] Reescribir o eliminar Entraste** (~20-50 eventos)
-**Por qué**: Poca cobertura, campos mínimos, estructura frágil.
-
-**Opciones**:
-- Reescribir completamente el scraper
-- Eliminar si el volumen no justifica el mantenimiento
-
----
-
-## 10. Conclusiones
-
-### 10.1 Estado Actual del Sistema
-
-El sistema de scraping está **funcional pero con limitaciones significativas**:
-
-1. **Scrapers**: 2 de excelente calidad (CobraTicket, RedTickets), 2 buenos, 1 regular
-2. **Coordenadas**: Solo 2/6 scrapers las proveen → ~33% de eventos tienen mapa
-3. **Normalización**: Funciona bien pero depende mucho de IA para fechas difíciles
-4. **Clasificación**: Regex-based robusta pero con casos edge
-5. **Geocodificación**: Limitada por venues conocidos + API externa
-6. **Descripción**: **YA RESUELTO** - RedTickets ahora extrae descripción
-
-### 10.2 Métricas Estimadas
-
-- **Eventos scrapeados por ciclo**: ~1,170-2,100
-- **Eventos válidos tras pipeline**: ~60-80% (20-40% rechazados como no-eventos)
-- **Eventos con coordenadas**: ~40% (solo CobraTicket + RedTickets)
-- **Eventos con precio**: ~70%
-- **Clasificados por IA**: ~15-20%
-
-### 10.3 Área de Mayor Impacto (POR VOLUMEN)
-
-| Prioridad | Mejora | Eventos Affected | Esfuerzo |
-|-----------|--------|------------------|-----------|
-| ~~**#1** | Extraer descripción en RedTickets | ~~500-800~~ | ~~Bajo~~ |
-| **#1** | Agregar coords a TicketFacil | ~200-400 | Medio |
-| **#2** | Robustecer Cartelera | ~100-200 | Medio |
-| **#3** | Agregar coords a MVD Eventos | ~50-150 | Medio |
-| **#4** | Reescribir/eliminar Entraste | ~20-50 | Alto |
-
-### 10.4 Recomendación Estratégica
-
-Dada la distribución de volumen:
-
-**El 90% del volumen viene de solo 3 scrapers:**
-
-| Scraper | Volumen | % Total | Problema Principal | Prioridad |
-|---------|---------|---------|-------------------|-----------|
-| RedTickets | ~500-800 | ~42% | ✅ Ya resuelto (descripción) | - |
-| CobraTicket | ~300-500 | ~23% | ✅ Completo | - |
-| TicketFacil | ~200-400 | ~18% | ✅ Venue address resuelto, ❌ Sin coords | **#1** |
-| Cartelera | ~100-200 | ~9% | Sin coords, frágil | **#2** |
-| MVD Eventos | ~50-150 | ~5% | Sin coords, sin prices | #3 |
-| Entraste | ~20-50 | ~2% | Casi todo incompleto | #4 |
-
-**Invertir en:**
-1. **TicketFacil** = +18% con esfuerzo medio (geocodificación + venue address resuelto ✅)
-2. **Cartelera** = +9% con esfuerzo medio
-
----
-
-## 11. Reanálisis General del Sistema (2026-02-21)
-
-### 11.1 Fortalezas y Cosas Buenas
-
-#### Arquitectura General
-- **Next.js 16 con App Router**: Estructura moderna y escalable
-- **Separación clara de responsabilidades**: Scrapers → Pipeline → UI
-- **TypeScript estricto**: Tipado completo en todo el codebase
-- **ISR (Incremental Static Regeneration)**: Revalidación cada 5 minutos para contenido fresco
-- **Componentes bien organizados**: Separación de lógica y presentación
-
-#### Base de Datos y Queries
-- **Índices bien definidos**: date, status, city, slug, eventType
-- **Consultas optimizadas**: Filtrado en DB, no en memoria
-- **Drizzle ORM**: Type-safe database queries
-- **Migraciones versionadas**: Control de schema con Drizzle Kit
-
-#### Sistema de Procesamiento
-- **Pipeline robusto**: Normalización → Clasificación → Geocodificación → Deduplicación
-- **Reintentos con backoff**: Manejo de errores transitorios
-- **Fallback a IA**: Clasificación cuando heurísticas fallan
-- **Deduplicación inteligente**: Merge de datos incompletos
-
-#### Seguridad y Rate Limiting
-- **Rate limiting con Upstash Redis**: 30 req/min para API, 5/hr para submissions
-- **Autenticación HMAC para admin**: Tokens firmados con secret
-- **Validación con Zod**: Schemas estricta para submissions
-- **Protección CSRF**: Headers de seguridad
-
-#### UI/UX
-- **Diseño consistente**: Tailwind CSS con custom theme
-- **Estados de carga**: Skeletons para suspense
-- **Manejo de errores**: Páginas de error dedicadas
-- **Imágenes optimizadas**: Fallback para imágenes rotas
-- **Sistema de trending**: Redis-based real-time tracking
-
-#### Sistema de Scraping
-- **Base scraper reutilizable**: Herencia y composición
-- **Rate limiting por fuente**: Control de velocidad
-- **Upsert strategy**: Actualización de eventos existentes
-- **Múltiples fuentes**: 6 scrapers para cobertura diversificada
-
----
-
-### 11.2 Inconsistencias y Problemas Detectados
-
-#### Inconsistencias de Datos entre Scrapers
-
-| Scraper | Coordinates | Venue Address | Prices | Category | Description |
-|---------|-------------|---------------|--------|----------|-------------|
-| CobraTicket | ✅ | ✅ | ⚠️ Parcial | ✅ | ✅ |
-| RedTickets | ✅ | ✅ | ✅ | ❌ | ✅ Recientemente agregado |
-| TicketFacil | ❌ | ✅ Resuelto | ⚠️ Parcial | ❌ | ✅ |
-| Cartelera | ❌ | ✅ | ✅ | ❌ | ✅ |
-| MVD Eventos | ❌ | ⚠️ Parcial | ❌ | ✅ | ✅ |
-| Entraste | ❌ | ✅ | ⚠️ Parcial | ❌ | ❌ |
-
-**Problema**: Diferentes niveles de completitud entre scrapers generan experiencia de usuario inconsistente.
-
-#### Problemas de Arquitectura
-
-1. **Dependencias externas críticas**:
-   - Mapbox API: Sin token no hay geocodificación
-   - OpenAI: Costos variables, latencia
-   - Redis: Punto único de fallo para rate limiting
-
-2. **Autenticación de admin simple**:
-   - Solo HMAC token, sin persistencia en DB
-   - No hay roles/permisos granulares
-   - Sesión de 7 días sin refresh
-
-3. **Sin paginación**:
-   - `getEventsByDate` devuelve todos los eventos
-   - Puede ser lento con muchos eventos por fecha
-   - `searchEvents` tiene limit=50 hardcodeado
-
-4. **Timezone handling**:
-   - `getTodayUY()` usa timezone Uruguay pero no hay validación
-   - Servidor puede estar en UTC diferente
-
-#### Problemas de Procesamiento
-
-1. **Clasificación con sesgo**:
-   - Keywords en español pueden perder matices
-   - "Fiesta" puesto primero en regex puede sobreclasificar
-
-2. **Deduplicación arbitraria**:
-   - Threshold 0.82 puede ser muy alto/bajo
-   - No considera fuente como factor de prioridad
-   - Un scraper de baja calidad puede sobrescribir datos buenos
-
-3. **Confidence score opaco**:
-   - No está claro cómo se calcula
-   - No se usa para filtrar eventos de baja calidad
-
-4. **Venue placeholder**:
-   - Muchos eventos quedan con "Venue por confirmar"
-   - Afecta experiencia de usuario
-
-#### Problemas de UI/UX
-
-1. **Sin error boundaries**:
-   - Un error en un componente puede romper toda la página
-   - No hay recuperación automática
-
-2. **Filtros sin feedback**:
-   - Si no hay resultados, el mensaje no es claro
-   - No sugiere alternativas
-
-3. **Mapa limitada**:
-   - Solo ~40% de eventos tienen coordenadas
-   - Solo eventos con coords aparecen en mapa
-
-4. **Trending requiere 10+ views**:
-   - threshold puede ser muy alto para eventos nuevos
-   - Eventos populares pero pocos vistos no aparecen
-
-#### Problemas de Seguridad
-
-1. **Rate limiting configurable**:
-   - Variables de entorno sin validación
-   - Si no hay Redis, el sistema falla completamente
-
-2. **Submissions sin moderation**:
-   - Cualquiera puede enviar eventos
-   - No hay CAPTCHA o verificación
-   - Email de notificación puede fallar silenciosamente
-
----
-
-### 11.3 Recomendaciones de Mejora
-
-#### Alta Prioridad
-
-1. **Unificar completitud de datos entre scrapers**:
-   - Objetivo: Todos los scrapers deben extraer coordinates, venue address, category
-   - Prioridad: TicketFacil, Cartelera
-
-2. **Agregar paginación**:
-   - Implementar cursor-based pagination para eventos
-   - Infinite scroll para event lists
-
-3. **Mejorar sistema de confianza**:
-   - Documentar confidence score
-   - Usar para filtrar eventos de baja calidad
-   - Considerar fuente como factor de peso
-
-#### Media Prioridad
-
-4. **Error boundaries en UI**:
-   - Envolver componentes críticos
-   - Recuperación graceful de errores
-
-5. **Admin con persistencia**:
-   - Guardar sesiones en DB
-   - Agregar roles y permisos
-   - Audit log de acciones
-
-6. **Mejor fallback de imágenes**:
-   - Imágenes por tipo de evento
-   - No depender solo de gradient
-
-#### Baja Prioridad
-
-7. **Dashboard de métricas**:
-   - Scrapers stats en tiempo real
-   - Pipeline metrics
-   - User engagement
-
-8. **Sistema de cache**:
-   - Cachear respuestas de API externas
-   - Reducir costos de Mapbox/OpenAI
-
-9. **Tests**:
-   - Unit tests para scrapers
-   - Integration tests para pipeline
-
----
-
-### 11.4 Estado de Salud General
-
-| Área | Estado | Notas |
-|------|--------|-------|
-| Arquitectura | ✅ Excelente | Next.js 16, App Router, TypeScript |
-| Base de Datos | ✅ Buena | Índices, migraciones, tipos |
-| Pipeline | ✅ Bueno | Retry, deduplicación, IA fallback |
-| Scrapers | ⚠️ Mixto | Diferentes niveles de completitud |
-| UI/UX | ✅ Bueno | Diseño consistente, good UX |
-| Seguridad | ✅ Bueno | Rate limiting, validación |
-| DevEx | ✅ Bueno | TypeScript, ESLint, tooling |
-
-**Puntuación general: 8/10**
-
-El sistema está bien construido y funcional. Las principales áreas de mejora son:
-1. Unificar calidad de datos entre scrapers
-2. Agregar paginación
-3. Mejorar sistema de confianza
-4. Agregar error boundaries
-
----
-
-*Documento actualizado - Fecha: 2026-02-21 (reanalisis completo)*
+*Fin del análisis. Basado en lectura directa del código fuente, sin suposiciones externas.*
