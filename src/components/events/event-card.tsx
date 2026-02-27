@@ -112,8 +112,8 @@ export function EventCard({
                 {name}
               </h3>
               <div className="mt-2 flex items-center gap-4">
-                <div className="flex items-center gap-1.5 text-slate-300">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={2} />
+                <div className="flex items-center gap-1.5 text-slate-200">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} />
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
                 {distance != null && (
@@ -122,8 +122,8 @@ export function EventCard({
                   </span>
                 )}
                 {timeLabel && (
-                  <div className="flex items-center gap-1.5 text-slate-400">
-                    <Clock className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2} />
+                  <div className="flex items-center gap-1.5 text-slate-300">
+                    <Clock className="h-3 w-3 shrink-0 opacity-80" strokeWidth={2} />
                     <span className="font-mono text-[12px]">{timeLabel}</span>
                   </div>
                 )}
@@ -161,8 +161,8 @@ export function EventCard({
 
               {/* Venue + time row */}
               <div className="mt-auto flex items-center gap-4 pt-3">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={2} />
+                <div className="flex items-center gap-1.5 text-[#CBD5E1]">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} />
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
                 {distance != null && (
@@ -171,8 +171,8 @@ export function EventCard({
                   </span>
                 )}
                 {timeLabel && (
-                  <div className="flex items-center gap-1.5 text-text-muted">
-                    <Clock className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2} />
+                  <div className="flex items-center gap-1.5 text-[#A8B8CC]">
+                    <Clock className="h-3 w-3 shrink-0 opacity-80" strokeWidth={2} />
                     <span className="font-mono text-[12px]">{timeLabel}</span>
                   </div>
                 )}
@@ -182,39 +182,39 @@ export function EventCard({
         )}
 
         {/* Bottom info bar */}
-        <div className="flex items-center justify-between border-t border-white/[0.05] px-4 py-2.5">
+        <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
             {isTrending && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-400 shrink-0">
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 border border-orange-500/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 shrink-0">
                 <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
                 Popular
               </span>
             )}
             {/* Department badge — only shown for events outside Montevideo */}
             {city && city !== "Montevideo" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent-light/80 shrink-0">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/35 px-2 py-0.5 text-[10px] font-semibold text-accent-light shrink-0">
                 <MapPin className="h-2.5 w-2.5" strokeWidth={2.5} />
                 {city}
               </span>
             )}
             {musicGenre && (
-              <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted truncate">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-[#A8B8CC] truncate">
                 {musicGenre}
               </span>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <Ticket className={cn("h-3 w-3 shrink-0", price ? "text-text-muted" : "text-white/20")} strokeWidth={2} />
+            <Ticket className={cn("h-3 w-3 shrink-0", price ? "text-[#A8B8CC]" : "text-white/30")} strokeWidth={2} />
             <span
               className={cn(
                 "text-[13px] font-semibold",
                 price
                   ? isFree
                     ? "text-accent-light"
-                    : "text-foreground"
+                    : "text-[#E2E8F0]"
                   : ticketUrl
-                    ? "text-amber-400"
-                    : "text-white/25 font-normal text-[11px]",
+                    ? "text-amber-300"
+                    : "text-white/35 font-normal text-[11px]",
               )}
             >
               {price ?? (ticketUrl ? "Ver precios" : "—")}

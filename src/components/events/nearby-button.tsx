@@ -17,10 +17,10 @@ export function NearbyButton({ active, loading, onClick, className }: NearbyButt
       onClick={onClick}
       disabled={loading}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
         active
-          ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.2)] ring-1 ring-accent/25"
-          : "bg-white/[0.03] border-white/[0.08] text-muted-foreground hover:border-accent/25 hover:text-foreground",
+          ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
+          : "bg-white/[0.08] border-white/[0.22] text-[#CBD5E1] hover:border-accent/40 hover:text-white hover:bg-white/[0.12]",
         className,
       )}
     >

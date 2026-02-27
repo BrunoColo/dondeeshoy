@@ -73,7 +73,7 @@ export function HomeEventsClient({
             <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-indigo-light">
               Eventos únicos de hoy
             </h2>
-            <span className="text-[10px] text-indigo-light/70">
+            <span className="text-[10px] text-indigo-light/85">
               ({events.length})
             </span>
           </div>
@@ -95,11 +95,11 @@ export function HomeEventsClient({
             <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-amber-300">
               Eventos recurrentes
             </h2>
-            <span className="text-[10px] text-amber-200/70">
+            <span className="text-[10px] text-amber-200/85">
               ({recurringEvents.length})
             </span>
           </div>
-          <p className="text-[11px] text-amber-100/70 mb-3">
+          <p className="text-[11px] text-amber-100/80 mb-3">
             Se repiten semanalmente o están disponibles durante gran parte del año
           </p>
           <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.04] p-3 sm:p-4">

@@ -21,20 +21,20 @@ interface EventFiltersProps {
 
 // Chip color classes matching existing badge-* CSS
 const TYPE_CHIP_STYLES: Record<EventType, { bg: string; activeBg: string; text: string }> = {
-  fiesta: { bg: "bg-teal-500/10 border-teal-500/20", activeBg: "bg-teal-500/25 border-teal-500/50", text: "text-teal-300" },
-  festival: { bg: "bg-pink-500/10 border-pink-500/20", activeBg: "bg-pink-500/25 border-pink-500/50", text: "text-pink-300" },
-  concierto: { bg: "bg-sky-500/10 border-sky-500/20", activeBg: "bg-sky-500/25 border-sky-500/50", text: "text-sky-300" },
-  recital: { bg: "bg-cyan-500/10 border-cyan-500/20", activeBg: "bg-cyan-500/25 border-cyan-500/50", text: "text-cyan-300" },
-  cultural: { bg: "bg-indigo-500/10 border-indigo-500/20", activeBg: "bg-indigo-500/25 border-indigo-500/50", text: "text-indigo-300" },
-  deportivo: { bg: "bg-green-500/10 border-green-500/20", activeBg: "bg-green-500/25 border-green-500/50", text: "text-green-300" },
-  gastronomico: { bg: "bg-orange-500/10 border-orange-500/20", activeBg: "bg-orange-500/25 border-orange-500/50", text: "text-orange-300" },
-  familiar: { bg: "bg-lime-500/10 border-lime-500/20", activeBg: "bg-lime-500/25 border-lime-500/50", text: "text-lime-300" },
-  feria: { bg: "bg-rose-500/10 border-rose-500/20", activeBg: "bg-rose-500/25 border-rose-500/50", text: "text-rose-300" },
-  taller: { bg: "bg-teal-500/10 border-teal-500/20", activeBg: "bg-teal-500/25 border-teal-500/50", text: "text-teal-300" },
-  club: { bg: "bg-blue-500/10 border-blue-500/20", activeBg: "bg-blue-500/25 border-blue-500/50", text: "text-blue-300" },
-  bar: { bg: "bg-amber-500/10 border-amber-500/20", activeBg: "bg-amber-500/25 border-amber-500/50", text: "text-amber-300" },
-  teatro: { bg: "bg-emerald-500/10 border-emerald-500/20", activeBg: "bg-emerald-500/25 border-emerald-500/50", text: "text-emerald-300" },
-  otro: { bg: "bg-slate-500/10 border-slate-500/20", activeBg: "bg-slate-500/25 border-slate-500/50", text: "text-slate-300" },
+  fiesta: { bg: "bg-teal-500/15 border-teal-500/35", activeBg: "bg-teal-500/30 border-teal-400/60", text: "text-teal-300" },
+  festival: { bg: "bg-pink-500/15 border-pink-500/35", activeBg: "bg-pink-500/30 border-pink-400/60", text: "text-pink-300" },
+  concierto: { bg: "bg-sky-500/15 border-sky-500/35", activeBg: "bg-sky-500/30 border-sky-400/60", text: "text-sky-300" },
+  recital: { bg: "bg-cyan-500/15 border-cyan-500/35", activeBg: "bg-cyan-500/30 border-cyan-400/60", text: "text-cyan-300" },
+  cultural: { bg: "bg-indigo-500/15 border-indigo-500/35", activeBg: "bg-indigo-500/30 border-indigo-400/60", text: "text-indigo-300" },
+  deportivo: { bg: "bg-green-500/15 border-green-500/35", activeBg: "bg-green-500/30 border-green-400/60", text: "text-green-300" },
+  gastronomico: { bg: "bg-orange-500/15 border-orange-500/35", activeBg: "bg-orange-500/30 border-orange-400/60", text: "text-orange-300" },
+  familiar: { bg: "bg-lime-500/15 border-lime-500/35", activeBg: "bg-lime-500/30 border-lime-400/60", text: "text-lime-300" },
+  feria: { bg: "bg-rose-500/15 border-rose-500/35", activeBg: "bg-rose-500/30 border-rose-400/60", text: "text-rose-300" },
+  taller: { bg: "bg-teal-500/15 border-teal-500/35", activeBg: "bg-teal-500/30 border-teal-400/60", text: "text-teal-300" },
+  club: { bg: "bg-blue-500/15 border-blue-500/35", activeBg: "bg-blue-500/30 border-blue-400/60", text: "text-blue-300" },
+  bar: { bg: "bg-amber-500/15 border-amber-500/35", activeBg: "bg-amber-500/30 border-amber-400/60", text: "text-amber-300" },
+  teatro: { bg: "bg-emerald-500/15 border-emerald-500/35", activeBg: "bg-emerald-500/30 border-emerald-400/60", text: "text-emerald-300" },
+  otro: { bg: "bg-slate-500/15 border-slate-500/35", activeBg: "bg-slate-500/30 border-slate-400/60", text: "text-slate-300" },
 };
 
 export function EventFilters({
@@ -109,10 +109,10 @@ export function EventFilters({
           onClick={toggleFree}
           aria-pressed={activeFree}
           className={cn(
-            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
             activeFree
-              ? "bg-amber-500/25 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/35"
-              : "bg-amber-500/10 border-amber-500/20 text-amber-400/70 hover:border-amber-500/30",
+              ? "bg-amber-500/30 border-amber-400/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40"
+              : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/55",
           )}
         >
           {activeFree && <Check className="h-3 w-3" strokeWidth={2.8} />}
@@ -125,10 +125,10 @@ export function EventFilters({
           onClick={toggleNight}
           aria-pressed={activeNight}
           className={cn(
-            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
             activeNight
-              ? "bg-indigo-500/25 border-indigo-500/50 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400/35"
-              : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400/70 hover:border-indigo-500/30",
+              ? "bg-indigo-500/30 border-indigo-400/60 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.3)] ring-1 ring-indigo-400/40"
+              : "bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400/55",
           )}
         >
           {activeNight && <Check className="h-3 w-3" strokeWidth={2.8} />}
@@ -152,10 +152,10 @@ export function EventFilters({
               onClick={() => toggleType(type)}
               aria-pressed={isActive}
               className={cn(
-                "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+                "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
                 isActive
-                  ? cn(style.activeBg, style.text, "shadow-sm ring-1 ring-white/20")
-                  : cn(style.bg, style.text, "opacity-70 hover:opacity-100"),
+                  ? cn(style.activeBg, style.text, "shadow-sm ring-1 ring-white/25")
+                  : cn(style.bg, style.text, "hover:brightness-125"),
               )}
             >
               {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
@@ -176,10 +176,10 @@ export function EventFilters({
                 onClick={() => toggleDepartment(department)}
                 aria-pressed={isActive}
                 className={cn(
-                  "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200",
+                  "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200 cursor-pointer",
                   isActive
-                    ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.18)] ring-1 ring-accent/25"
-                    : "bg-white/[0.03] border-white/[0.06] text-muted-foreground hover:border-accent/20 hover:text-foreground",
+                    ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.22)] ring-1 ring-accent/30"
+                    : "bg-white/[0.07] border-white/[0.18] text-[#CBD5E1] hover:border-accent/35 hover:text-white hover:bg-white/[0.10]",
                 )}
               >
                 {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
@@ -203,7 +203,7 @@ export function EventFilters({
           </p>
           <button
             onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] border border-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-white/[0.15] transition-all duration-200"
+            className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/[0.20] px-2.5 py-1 text-[11px] font-medium text-[#CBD5E1] hover:text-white hover:border-white/[0.35] hover:bg-white/[0.12] transition-all duration-200 cursor-pointer"
           >
             <X className="h-3 w-3" />
             Limpiar
