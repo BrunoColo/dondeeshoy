@@ -60,11 +60,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     <>
       {/* Hero tagline */}
       <section className="pt-4 pb-2 fade-up">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neon-cyan/80">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-accent-light/80">
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
-          <span className="bg-gradient-to-r from-neon-violet via-neon-magenta to-neon-cyan bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-accent-light via-accent2 to-white/90 bg-clip-text text-transparent">
             Donde comienza tu próxima salida
           </span>
         </h1>
@@ -77,11 +77,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
       <div className="mb-4 pt-4 fade-up">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neon-violet/20 to-neon-magenta/10 border border-neon-violet/20 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-              <Zap className="h-4.5 w-4.5 text-neon-violet drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]" strokeWidth={2.5} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent/20 to-accent-light/10 border border-accent/20 shadow-[0_0_20px_rgba(13,148,136,0.15)]">
+              <Zap className="h-4.5 w-4.5 text-accent-light drop-shadow-[0_0_6px_rgba(20,184,166,0.5)]" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] bg-gradient-to-r from-neon-violet to-neon-magenta bg-clip-text text-transparent">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-accent-light">
                 HOY
               </p>
               <p className="text-[13px] font-medium text-muted-foreground capitalize">

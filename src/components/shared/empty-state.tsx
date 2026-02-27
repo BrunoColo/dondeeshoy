@@ -11,19 +11,19 @@ const VARIANTS = {
     icon: Music,
     title: "No hay eventos hoy",
     description: "Parece que hoy Uruguay descansa. Revisá los próximos días para planear tu salida.",
-    accentColor: "text-neon-violet",
+    accentColor: "text-accent-light",
   },
   upcoming: {
     icon: CalendarOff,
     title: "No hay eventos próximos",
     description: "Todavía no tenemos eventos cargados para los próximos días. Volvé pronto.",
-    accentColor: "text-neon-cyan",
+    accentColor: "text-accent2",
   },
   search: {
     icon: Sparkles,
     title: "Sin resultados",
     description: "No encontramos eventos que coincidan. Probá con otro filtro.",
-    accentColor: "text-neon-magenta",
+    accentColor: "text-accent3",
   },
 } as const;
 
@@ -46,9 +46,9 @@ export function EmptyState({ variant = "today", className }: EmptyStateProps) {
         <div
           className={cn(
             "absolute inset-0 -z-10 rounded-2xl opacity-20 blur-2xl",
-            variant === "today" && "bg-neon-violet",
-            variant === "upcoming" && "bg-neon-cyan",
-            variant === "search" && "bg-neon-magenta",
+            variant === "today" && "bg-accent",
+            variant === "upcoming" && "bg-accent2",
+            variant === "search" && "bg-accent3",
           )}
         />
       </div>

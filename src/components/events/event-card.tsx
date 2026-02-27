@@ -12,7 +12,7 @@ import type { EventType } from "@/types/events";
 import { useState } from "react";
 
 const TYPE_GRADIENT: Record<string, string> = {
-  fiesta: "from-violet-600/30 via-fuchsia-600/20 to-transparent",
+  fiesta: "from-teal-600/30 via-emerald-600/20 to-transparent",
   festival: "from-pink-600/30 via-rose-600/20 to-transparent",
   concierto: "from-sky-600/30 via-blue-600/20 to-transparent",
   recital: "from-cyan-500/30 via-sky-600/20 to-transparent",
@@ -117,7 +117,7 @@ export function EventCard({
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
                 {distance != null && (
-                  <span className="text-[10px] font-semibold text-neon-cyan">
+                  <span className="text-[10px] font-semibold text-accent2">
                     📍 {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
                   </span>
                 )}
@@ -166,7 +166,7 @@ export function EventCard({
                   <span className="text-[13px] font-medium truncate">{venueName}</span>
                 </div>
                 {distance != null && (
-                  <span className="text-[10px] font-semibold text-neon-cyan">
+                  <span className="text-[10px] font-semibold text-accent2">
                     📍 {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
                   </span>
                 )}
@@ -192,7 +192,7 @@ export function EventCard({
             )}
             {/* Department badge — only shown for events outside Montevideo */}
             {city && city !== "Montevideo" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 px-2 py-0.5 text-[10px] font-semibold text-neon-cyan/80 shrink-0">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent-light/80 shrink-0">
                 <MapPin className="h-2.5 w-2.5" strokeWidth={2.5} />
                 {city}
               </span>

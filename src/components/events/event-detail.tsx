@@ -98,8 +98,8 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Date & Time */}
           <div className="glass-card rounded-xl p-4">
             <div className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neon-violet/10">
-                <Calendar className="h-5 w-5 text-neon-violet" strokeWidth={1.8} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                <Calendar className="h-5 w-5 text-accent-light" strokeWidth={1.8} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground capitalize">
@@ -119,8 +119,8 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Venue */}
           <div className="glass-card rounded-xl p-4">
             <div className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neon-cyan/10">
-                <MapPin className="h-5 w-5 text-neon-cyan" strokeWidth={1.8} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent2/10">
+                <MapPin className="h-5 w-5 text-accent2" strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">
@@ -232,7 +232,7 @@ export function EventDetail({ event }: EventDetailProps) {
       {/* Fixed CTA button — mobile only */}
       {event.ticketUrl && (
         <div className="fixed bottom-0 left-0 right-0 z-40 p-4 lg:hidden"
-          style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(to top, rgba(6,6,12,0.95) 60%, transparent)" }}
+          style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(to top, rgba(8,12,14,0.95) 60%, transparent)" }}
         >
           <div className="mx-auto max-w-2xl">
             <TicketButton ticketUrl={event.ticketUrl} />

@@ -94,11 +94,11 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
       {/* Page header */}
       <div className="mb-4 pt-4 fade-up">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-blue/10 border border-neon-cyan/20 shadow-[0_0_20px_rgba(34,211,238,0.15)]">
-            <CalendarDays className="h-4.5 w-4.5 text-neon-cyan drop-shadow-[0_0_6px_rgba(34,211,238,0.5)]" strokeWidth={2.5} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent/20 to-accent-light/10 border border-accent/20 shadow-[0_0_20px_rgba(13,148,136,0.15)]">
+            <CalendarDays className="h-4.5 w-4.5 text-accent-light drop-shadow-[0_0_6px_rgba(20,184,166,0.5)]" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] bg-gradient-to-r from-neon-cyan to-neon-blue bg-clip-text text-transparent">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-accent-light">
               PRÓXIMOS
             </p>
             <p className="text-[13px] font-medium text-muted-foreground">

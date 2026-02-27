@@ -43,7 +43,7 @@ interface EventMapWrapperProps {
 
 /** Color per event type */
 const TYPE_COLORS: Record<string, string> = {
-  fiesta: "#A855F7",
+  fiesta: "#14B8A6",    // teal (was violet — aligned with new accent)
   festival: "#EC4899",
   concierto: "#0EA5E9",
   recital: "#06B6D4",
@@ -92,7 +92,7 @@ function SidebarEventRow({
       className={cn(
         "card-animate w-full text-left rounded-xl border transition-all duration-200 group overflow-hidden",
         isSelected
-          ? "bg-white/[0.09] border-white/25 shadow-[0_0_0_1px_rgba(168,85,247,0.4),0_4px_20px_rgba(0,0,0,0.4)] ring-1 ring-inset ring-white/5"
+          ? "bg-white/[0.09] border-white/25 shadow-[0_0_0_1px_rgba(13,148,136,0.4),0_4px_20px_rgba(0,0,0,0.4)] ring-1 ring-inset ring-white/5"
           : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.15]",
       )}
     >
@@ -158,7 +158,7 @@ function SidebarEventRow({
               className={cn(
                 "h-3.5 w-3.5 shrink-0 mt-0.5 transition-all duration-200",
                 isSelected
-                  ? "text-[#A855F7] opacity-100 translate-x-0"
+                  ? "text-[#14B8A6] opacity-100 translate-x-0"
                   : "text-[#475569] opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0",
               )}
               strokeWidth={2.5}
@@ -170,7 +170,7 @@ function SidebarEventRow({
             <Link
               href={`/evento/${event.slug}`}
               onClick={(e) => e.stopPropagation()}
-              className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-[#A855F7]/20 border border-[#A855F7]/40 px-3 py-1.5 text-[11px] font-semibold text-[#C084FC] hover:bg-[#A855F7]/30 hover:border-[#A855F7]/60 transition-all"
+              className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-[#0D9488]/20 border border-[#0D9488]/40 px-3 py-1.5 text-[11px] font-semibold text-[#14B8A6] hover:bg-[#0D9488]/30 hover:border-[#0D9488]/60 transition-all"
             >
               Ver evento completo
               <ExternalLink className="h-3 w-3" />
@@ -309,7 +309,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             <h2 className="text-[13px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <span
                 className="inline-block h-2 w-2 rounded-full animate-pulse"
-                style={{ backgroundColor: "#A855F7", boxShadow: "0 0 8px #A855F7" }}
+                style={{ backgroundColor: "#0D9488", boxShadow: "0 0 8px #0D9488" }}
               />
               Eventos en el mapa
             </h2>
@@ -320,7 +320,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               </span>{" "}
               {filteredEvents.length === 1 ? "evento" : "eventos"}
               {(searchQuery || activeTypeFilter) && (
-                <span className="text-[#A855F7]"> filtrados</span>
+                <span className="text-[#14B8A6]"> filtrados</span>
               )}
             </p>
           </div>
@@ -344,7 +344,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar evento o lugar..."
-            className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#A855F7]/50 focus:bg-white/[0.08] transition-all"
+            className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#0D9488]/50 focus:bg-white/[0.08] transition-all"
           />
           {searchQuery && (
             <button
@@ -366,7 +366,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                 Filtrar por tipo
               </span>
               {activeTypeFilter && (
-                <span className="rounded-full bg-[#A855F7]/20 border border-[#A855F7]/40 px-1.5 py-0.5 text-[9px] text-[#C084FC]">
+                <span className="rounded-full bg-[#0D9488]/20 border border-[#0D9488]/40 px-1.5 py-0.5 text-[9px] text-[#14B8A6]">
                   1 activo
                 </span>
               )}
@@ -418,7 +418,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                   setSearchQuery("");
                   setActiveTypeFilter(null);
                 }}
-                className="mt-2 text-[11px] text-[#A855F7] hover:text-[#C084FC] transition-colors"
+                className="mt-2 text-[11px] text-[#0D9488] hover:text-[#14B8A6] transition-colors"
               >
                 Limpiar filtros
               </button>
@@ -453,8 +453,8 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
       {/* ── Sidebar (desktop only) ── */}
       <aside className="hidden lg:flex flex-col w-[340px] xl:w-[380px] shrink-0 overflow-hidden relative"
         style={{
-          background: "linear-gradient(180deg, #0F0F1E 0%, #0A0A16 100%)",
-          borderRight: "1px solid rgba(168, 85, 247, 0.15)",
+          background: "linear-gradient(180deg, #0D1519 0%, #0A1214 100%)",
+          borderRight: "1px solid rgba(13, 148, 136, 0.15)",
           boxShadow: "inset -1px 0 0 rgba(255,255,255,0.04), 4px 0 24px rgba(0,0,0,0.4)",
         }}
       >
@@ -462,7 +462,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         <div
           className="absolute top-0 left-0 right-0 h-[2px] z-10"
           style={{
-            background: "linear-gradient(90deg, transparent 0%, #A855F7 40%, #22D3EE 70%, transparent 100%)",
+            background: "linear-gradient(90deg, transparent 0%, #0D9488 40%, #6EE7B7 70%, transparent 100%)",
             opacity: 0.6,
           }}
         />
@@ -473,7 +473,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
       <div className="relative flex-1 min-w-0">
         {/* Mobile toggle bar */}
         <div className="lg:hidden absolute top-0 left-0 right-0 z-[1001] flex items-center justify-center gap-1 backdrop-blur-sm border-b border-white/10 py-1.5 px-3"
-          style={{ background: "rgba(10, 10, 22, 0.9)" }}
+          style={{ background: "rgba(8, 12, 14, 0.9)" }}
         >
           <button
             type="button"
@@ -482,7 +482,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all",
               mobileView === "map"
-                ? "bg-[#22D3EE]/20 border border-[#22D3EE]/40 text-[#22D3EE]"
+                ? "bg-accent/20 border border-accent/40 text-accent-light"
                 : "text-white/50 hover:text-white",
             )}
           >
@@ -496,7 +496,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all",
               mobileView === "list"
-                ? "bg-[#22D3EE]/20 border border-[#22D3EE]/40 text-[#22D3EE]"
+                ? "bg-accent/20 border border-accent/40 text-accent-light"
                 : "text-white/50 hover:text-white",
             )}
           >
@@ -533,7 +533,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         {/* Mobile list view */}
         {mobileView === "list" && (
           <div className="lg:hidden flex flex-col h-full overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #0F0F1E 0%, #0A0A16 100%)" }}
+            style={{ background: "linear-gradient(180deg, #0D1519 0%, #0A1214 100%)" }}
           >
             {/* Offset for toggle bar */}
             <div className="h-[36px] shrink-0" />
@@ -547,7 +547,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar evento o lugar..."
-                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#A855F7]/50 transition-all"
+                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#0D9488]/50 transition-all"
                 />
                 {searchQuery && (
                   <button

@@ -10,9 +10,9 @@ import Link from "next/link";
 import type { EventType } from "@/types/events";
 import "leaflet/dist/leaflet.css";
 
-/** Marker color per event type (neon palette) */
+/** Marker color per event type */
 const TYPE_COLORS: Record<string, string> = {
-  fiesta: "#A855F7",    // violet
+  fiesta: "#14B8A6",    // teal (was violet — aligned with new accent)
   festival: "#EC4899",  // pink
   concierto: "#0EA5E9", // sky
   recital: "#06B6D4",   // cyan
@@ -309,7 +309,7 @@ export function EventMap({
 
               <Link
                 href={`/evento/${selectedEvent.slug}`}
-                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-violet-100 border border-violet-300 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-200 transition-colors"
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-teal-50 border border-teal-300 px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-100 transition-colors"
               >
                 Ver evento
                 <ExternalLink className="h-3 w-3" />
@@ -367,12 +367,12 @@ export function EventMap({
                   onClick={() => handleDateChange(f)}
                   className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all ${
                     dateFilter === f
-                      ? "bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan shadow-sm"
+                      ? "bg-accent/20 border border-accent/40 text-accent-light shadow-sm"
                       : "text-white/50 hover:text-white"
                   }`}
                 >
                   {labels[f]}
-                  <span className={`text-[9px] font-semibold ${dateFilter === f ? "text-neon-cyan/70" : "text-white/30"}`}>
+                  <span className={`text-[9px] font-semibold ${dateFilter === f ? "text-accent-light/70" : "text-white/30"}`}>
                     {counts[f]}
                   </span>
                 </button>
@@ -385,7 +385,7 @@ export function EventMap({
             <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm whitespace-nowrap">
               {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
               {activeTypeFilter && (
-                <span className="ml-1.5 text-[10px] text-neon-violet font-semibold">
+                <span className="ml-1.5 text-[10px] text-accent-light font-semibold">
                   · {activeTypeFilter}
                 </span>
               )}
@@ -397,7 +397,7 @@ export function EventMap({
                 title={hideRecurring ? "Mostrar eventos recurrentes" : "Ocultar eventos recurrentes"}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-all shadow-lg backdrop-blur-sm whitespace-nowrap ${
                   hideRecurring
-                    ? "bg-neon-violet/25 border border-neon-violet/50 text-neon-violet"
+                    ? "bg-accent/25 border border-accent/50 text-accent-light"
                     : "bg-black/80 border border-white/20 text-white/70 hover:text-white hover:border-white/40"
                 }`}
               >

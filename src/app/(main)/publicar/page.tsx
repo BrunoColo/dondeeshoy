@@ -85,10 +85,10 @@ type FormValues = z.infer<typeof schema>;
 const inputBase = (hasError?: boolean) =>
   cn(
     "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
-    "bg-[#1a1a2a] border transition-all duration-150",
+    "bg-[#111A1C] border transition-all duration-150",
     "placeholder:text-[#475569]",
-    "focus:outline-none focus:bg-[#1e1e30]",
-    "focus:border-[rgba(255,255,255,0.3)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]",
+    "focus:outline-none focus:bg-[#151F22]",
+    "focus:border-[rgba(255,255,255,0.3)] focus:shadow-[0_0_0_3px_rgba(13,148,136,0.08)]",
     hasError
       ? "border-[rgba(239,68,68,0.45)] shadow-[0_0_0_3px_rgba(239,68,68,0.06)]"
       : "border-[rgba(255,255,255,0.1)]"
@@ -109,7 +109,7 @@ function Section({
   icon: Icon,
   title,
   subtitle,
-  accent = "#6366f1",
+  accent = "#0D9488",
   children,
 }: {
   icon: React.ElementType;
@@ -121,7 +121,7 @@ function Section({
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)", borderLeft: `3px solid ${accent}` }}>
       {/* Section header */}
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.08)]" style={{ backgroundColor: "#13131f" }}>
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.08)]" style={{ backgroundColor: "#0D1214" }}>
         <div
           className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${accent}18`, border: `1px solid ${accent}35` }}
@@ -136,7 +136,7 @@ function Section({
         </div>
       </div>
       {/* Section body */}
-      <div className="p-5 sm:p-6" style={{ backgroundColor: "#0f0f1a" }}>
+      <div className="p-5 sm:p-6" style={{ backgroundColor: "#0D1519" }}>
         {children}
       </div>
     </div>
@@ -275,7 +275,7 @@ export default function PublicarPage() {
 
       {/* ── Page header ── */}
       <div className="mb-8 border-b border-[rgba(255,255,255,0.06)] pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6366f1] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#14B8A6] mb-3">
           Publicación de eventos
         </p>
         <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">
@@ -301,7 +301,7 @@ export default function PublicarPage() {
           icon={CalendarDays}
           title="Tu evento"
           subtitle="Información principal del evento"
-          accent="#6366f1"
+          accent="#0D9488"
         >
           <div className="flex flex-col gap-5">
             <Field label="Nombre del evento" required error={errors.eventName?.message}>
@@ -338,13 +338,13 @@ export default function PublicarPage() {
                 <select
                   {...register("eventType")}
                   className={selectBase(!!errors.eventType)}
-                  style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#111A1C", color: "#F1F5F9" }}
                 >
                   {EVENT_TYPES.map((t) => (
                     <option
                       key={t.value}
                       value={t.value}
-                      style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#111A1C", color: "#F1F5F9" }}
                     >
                       {t.label}
                     </option>
@@ -399,13 +399,13 @@ export default function PublicarPage() {
                 <select
                   {...register("city")}
                   className={selectBase(!!errors.city)}
-                  style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#111A1C", color: "#F1F5F9" }}
                 >
                   {DEPARTMENTS.map((d) => (
                     <option
                       key={d}
                       value={d}
-                      style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#111A1C", color: "#F1F5F9" }}
                     >
                       {d}
                     </option>
@@ -565,7 +565,7 @@ export default function PublicarPage() {
           icon={User}
           title="Contacto"
           subtitle="¿Quién organiza el evento?"
-          accent="#8b5cf6"
+          accent="#0D9488"
         >
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -614,8 +614,8 @@ export default function PublicarPage() {
             "disabled:opacity-40 disabled:cursor-not-allowed"
           )}
           style={{
-            backgroundColor: "rgba(99,102,241,0.2)",
-            border: "1px solid rgba(99,102,241,0.4)",
+            backgroundColor: "rgba(13,148,136,0.25)",
+            border: "1px solid rgba(13,148,136,0.4)",
           }}
         >
           {isSubmitting ? (

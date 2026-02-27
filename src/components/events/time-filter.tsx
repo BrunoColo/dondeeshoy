@@ -113,8 +113,8 @@ export function TimeFilter({ className }: TimeFilterProps) {
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
               isActive
-                ? "bg-neon-cyan/20 border-neon-cyan/45 text-neon-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)] ring-1 ring-neon-cyan/25"
-                : "bg-neon-cyan/10 border-neon-cyan/20 text-neon-cyan/80 hover:border-neon-cyan/30",
+                ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.2)] ring-1 ring-accent/25"
+                : "bg-accent/10 border-accent/20 text-accent-light/80 hover:border-accent/30",
             )}
           >
             {isActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}
@@ -130,8 +130,8 @@ export function TimeFilter({ className }: TimeFilterProps) {
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
             isDateActive
-              ? "bg-neon-cyan/20 border-neon-cyan/45 text-neon-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)] ring-1 ring-neon-cyan/25"
-              : "bg-neon-cyan/10 border-neon-cyan/20 text-neon-cyan/80 hover:border-neon-cyan/30",
+              ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.2)] ring-1 ring-accent/25"
+              : "bg-accent/10 border-accent/20 text-accent-light/80 hover:border-accent/30",
           )}
         >
           {isDateActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}

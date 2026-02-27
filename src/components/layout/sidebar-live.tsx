@@ -55,7 +55,7 @@ export function SidebarLiveClock() {
         <span className="text-2xl font-bold text-white tracking-tight">{hours}</span>
         <span
           className="text-2xl font-bold mx-[1px] transition-opacity duration-200"
-          style={{ opacity: showColon ? 1 : 0.25, color: "#818cf8" }}
+          style={{ opacity: showColon ? 1 : 0.25, color: "#14B8A6" }}
         >
           :
         </span>
@@ -109,7 +109,7 @@ export function AnimatedStat({ value, label }: { value: number; label: string })
     <div
       className="flex flex-col items-center gap-1 rounded-lg py-3 px-2"
       style={{
-        backgroundColor: "#1a1a2a",
+        backgroundColor: "#111A1C",
         border: "1px solid rgba(255,255,255,0.09)",
       }}
     >

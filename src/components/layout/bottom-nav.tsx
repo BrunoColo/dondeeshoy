@@ -27,21 +27,21 @@ export function BottomNav() {
               className={cn(
                 "relative flex flex-col items-center justify-center gap-1 px-4 py-1.5 transition-colors duration-200 min-w-[80px]",
                 isActive
-                  ? "text-neon-violet"
+                  ? "text-accent-light"
                   : "text-text-muted hover:text-muted-foreground",
               )}
             >
               <Icon
                 className={cn(
                   "h-[22px] w-[22px] transition-all duration-200",
-                  isActive && "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]",
+                  isActive && "drop-shadow-[0_0_8px_rgba(20,184,166,0.4)]",
                 )}
                 strokeWidth={isActive ? 2.2 : 1.8}
               />
               <span
                 className={cn(
                   "text-[10px] font-semibold uppercase tracking-widest transition-colors duration-200 whitespace-nowrap",
-                  isActive ? "text-neon-violet" : "text-text-muted",
+                  isActive ? "text-accent-light" : "text-text-muted",
                 )}
               >
                 {item.label}
@@ -49,7 +49,7 @@ export function BottomNav() {
 
               {/* Active indicator dot */}
               {isActive && (
-                <span className="absolute -top-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-neon-violet shadow-[0_0_12px_rgba(168,85,247,0.6)]" />
+                <span className="absolute -top-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-accent-light shadow-[0_0_12px_rgba(20,184,166,0.5)]" />
               )}
             </Link>
           );
