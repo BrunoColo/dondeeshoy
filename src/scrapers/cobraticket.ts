@@ -163,42 +163,124 @@ export class CobraTicketScraper extends BaseScraper {
   /* ------------------------------------------------------------------ */
 
   /**
-   * The SvelteKit SSR injects a block like:
-   *   const data = [null, {...}, {"type":"data","data":{props:{...}}}];
+   * Extract the structured event props from the SvelteKit SSR payload.
    *
-   * The data uses JS object notation (some keys are unquoted), so we
-   * cannot use JSON.parse directly. We use `new Function()` to evaluate
-   * the literal safely on the server side.
+   * Strategy (in order of preference):
+   *
+   *  1. `<script type="application/json" data-sveltekit-fetched>` — SvelteKit ≥2
+   *     injects prefetched data as plain JSON inside these script tags.
+   *     We look for the one that contains the event props object.
+   *
+   *  2. Inline JS `const data = [...]` block — classic SvelteKit SSR uses JS
+   *     object literal notation (unquoted keys) that requires `new Function()`
+   *     to evaluate. This is kept as a fallback for older page versions.
+   *
+   *  3. Returns null → caller falls back to DOM parsing.
+   *
+   * If strategy 1 succeeds, strategy 2 is never attempted, avoiding the
+   * `new Function()` eval. If both fail, logging clearly identifies which
+   * strategy was tried, so a future format change is easier to diagnose.
    */
   private extractSvelteKitProps(html: string): CobraEventProps | null {
+    // ── Strategy 1: <script type="application/json" data-sveltekit-fetched> ──
+    const jsonScriptProps = this.extractFromJsonScripts(html);
+    if (jsonScriptProps) return jsonScriptProps;
+
+    // ── Strategy 2: inline `const data = [...]` JS literal ──
+    return this.extractFromInlineDataLiteral(html);
+  }
+
+  /**
+   * Strategy 1: parse `<script type="application/json">` blocks that SvelteKit
+   * injects for SSR hydration. Each tag contains a JSON object; we look for
+   * one that has a `props` key containing event-like fields (name, startAt, etc.).
+   */
+  private extractFromJsonScripts(html: string): CobraEventProps | null {
+    // Match all <script type="application/json" ...> blocks
+    const scriptRegex = /<script[^>]+type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = scriptRegex.exec(html)) !== null) {
+      const content = match[1]?.trim();
+      if (!content) continue;
+
+      try {
+        const parsed = JSON.parse(content) as unknown;
+
+        // The payload can be wrapped: { type: "data", data: { props: {...} } }
+        // or just the props object directly.
+        const props = this.findPropsInParsed(parsed);
+        if (props && props.name) {
+          return props;
+        }
+      } catch {
+        // Not valid JSON — skip this script block
+      }
+    }
+
+    return null;
+  }
+
+  /** Walk a parsed JSON value looking for a CobraEventProps-shaped object. */
+  private findPropsInParsed(value: unknown): CobraEventProps | null {
+    if (!value || typeof value !== "object") return null;
+
+    const obj = value as Record<string, unknown>;
+
+    // Direct props object: has at least `name` and `startAt`
+    if (typeof obj.name === "string" && obj.startAt !== undefined) {
+      return obj as CobraEventProps;
+    }
+
+    // Wrapped: { type: "data", data: { props: { ... } } }
+    if (obj.type === "data") {
+      const data = obj.data as Record<string, unknown> | undefined;
+      if (data?.props && typeof data.props === "object") {
+        const props = data.props as CobraEventProps;
+        if (typeof props.name === "string") return props;
+      }
+    }
+
+    // Array: walk each element
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = this.findPropsInParsed(item);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Strategy 2: evaluate the inline `const data = [...]` JS literal using
+   * `new Function()`. This handles the older SvelteKit SSR format where keys
+   * are unquoted JS identifiers that JSON.parse cannot handle.
+   *
+   * Risk: if the regex stops matching (e.g. SvelteKit changes the variable name
+   * or the surrounding structure), this silently returns null and the scraper
+   * falls back to DOM parsing. The warn log below makes that visible.
+   */
+  private extractFromInlineDataLiteral(html: string): CobraEventProps | null {
     try {
-      // Match the data assignment in the script block.
       const dataMatch = html.match(
         /const\s+data\s*=\s*(\[[\s\S]*?\])\s*;\s*(?:\r?\n|\s*Promise)/,
       );
-      if (!dataMatch?.[1]) return null;
+
+      if (!dataMatch?.[1]) {
+        // Neither JSON scripts nor the inline data block were found.
+        // The page structure may have changed — DOM fallback will be used.
+        console.warn("[cobraticket] No SvelteKit data payload found (neither JSON scripts nor inline data literal). DOM fallback will be used.");
+        return null;
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-implied-eval
       const dataArray = new Function("return " + dataMatch[1])() as unknown[];
       if (!Array.isArray(dataArray)) return null;
 
-      // Walk the array to find the element with props
-      for (const item of dataArray) {
-        if (!item || typeof item !== "object") continue;
-
-        const record = item as Record<string, unknown>;
-        // SvelteKit data node: { type: "data", data: { props: { ... } } }
-        if (record.type === "data") {
-          const data = record.data as Record<string, unknown> | undefined;
-          if (data?.props) {
-            return data.props as CobraEventProps;
-          }
-        }
-      }
-
-      return null;
+      return this.findPropsInParsed(dataArray);
     } catch (error) {
-      console.error("[cobraticket] Error parsing SvelteKit data:", error);
+      console.error("[cobraticket] Error evaluating inline data literal:", error);
       return null;
     }
   }

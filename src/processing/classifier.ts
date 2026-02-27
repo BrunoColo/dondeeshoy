@@ -283,8 +283,12 @@ const REJECT_PATTERNS = [
   /\bse\s+busca\b.*\b(personal|empleado|mozo|cocinero)\b/i,
   /\bcontratamos\b/i,
   /\benviar?\s+cv\b/i,
-  // Shipping / delivery (not events)
-  /\benv[ií]os?\b/i,
+  // Shipping / delivery listings (not events).
+  // Must be combined with "gratis", "a domicilio" or "express" to avoid
+  // false positives in phrases like "el envío del elenco a gira" or
+  // "envío de señales en vivo".
+  /\benv[ií]os?\s+(gratis|gratuito|a\s+domicilio|express)\b/i,
+  /\benv[ií]os?\s+a\s+todo\s+el\s+pa[ií]s\b/i,
   // Pure ads / promos without event
   /\bdescuento\s+\d+%/i,
   /\bpromoci[oó]n\s+(especial|exclusiva|del\s+d[ií]a)\b/i,
@@ -299,7 +303,9 @@ const REJECT_PATTERNS = [
  * Detect if the event is likely a recurring activity rather than a one-time event.
  */
 export function detectRecurrence(normalized: NormalizedEventInput): boolean {
-  const text = `${normalized.name} ${normalized.description ?? ""} ${normalized.scheduleText ?? ""}`;
+  // scheduleText was removed from NormalizedEventInput (it was never persisted).
+  // Recurrence patterns appear in the event name or description when present.
+  const text = `${normalized.name} ${normalized.description ?? ""}`;
 
   // Only flag as recurring when explicit year-round schedule patterns are found
   return RECURRENCE_PATTERNS.some((p) => p.test(text));
