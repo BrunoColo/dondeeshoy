@@ -174,8 +174,8 @@ export function Header() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-200",
                   isActive
-                    ? "bg-accent/15 border border-accent/30 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.15)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05] border border-transparent",
+                    ? "bg-accent/20 border border-accent/40 text-accent-light shadow-[0_0_16px_rgba(13,148,136,0.25)] font-bold"
+                    : "text-[#B8C5D6] hover:text-foreground hover:bg-white/[0.06] border border-transparent",
                 )}
               >
                 <Icon

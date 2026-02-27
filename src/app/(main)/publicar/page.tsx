@@ -86,12 +86,12 @@ const inputBase = (hasError?: boolean) =>
   cn(
     "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
     "bg-[#111120] border transition-all duration-150",
-    "placeholder:text-[#475569]",
-    "focus:outline-none focus:bg-[#15151E]",
-    "focus:border-[rgba(255,255,255,0.3)] focus:shadow-[0_0_0_3px_rgba(13,148,136,0.08)]",
+    "placeholder:text-[#5A6A80]",
+    "focus:outline-none focus:bg-[#16162A]",
+    "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
     hasError
       ? "border-[rgba(239,68,68,0.45)] shadow-[0_0_0_3px_rgba(239,68,68,0.06)]"
-      : "border-[rgba(255,255,255,0.1)]"
+      : "border-[rgba(255,255,255,0.15)]"
   );
 
 // ─── Select class ─────────────────────────────────────────────────────────────
@@ -608,14 +608,15 @@ export default function PublicarPage() {
           type="submit"
           disabled={isSubmitting}
           className={cn(
-            "w-full flex items-center justify-center gap-2.5 rounded-xl py-3.5 px-6",
-            "text-[14px] font-semibold text-white tracking-wide",
-            "transition-all duration-150 active:scale-[0.99]",
-            "disabled:opacity-40 disabled:cursor-not-allowed"
+            "w-full flex items-center justify-center gap-2.5 rounded-xl py-4 px-6",
+            "text-[15px] font-bold text-white tracking-wide",
+            "transition-all duration-200 active:scale-[0.99]",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+            "hover:-translate-y-0.5"
           )}
           style={{
-            backgroundColor: "rgba(13,148,136,0.25)",
-            border: "1px solid rgba(13,148,136,0.4)",
+            background: "linear-gradient(135deg, #0D9488 0%, #6366F1 100%)",
+            boxShadow: "0 4px 20px rgba(13,148,136,0.3), 0 4px 20px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
           }}
         >
           {isSubmitting ? (

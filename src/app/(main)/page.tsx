@@ -68,7 +68,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             Donde comienza tu próxima salida
           </span>
         </h1>
-        <p className="mt-2 max-w-2xl text-[13px] sm:text-sm text-muted-foreground">
+        <p className="mt-2 max-w-2xl text-[13px] sm:text-sm text-[#B8C5D6]">
           Todo lo que pasa en Uruguay, en un solo lugar: conciertos, ferias, teatro, deporte y más.
         </p>
       </section>
@@ -91,9 +91,9 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           </div>
 
 {allEvents.length > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/[0.12] px-3 py-1.5 whitespace-nowrap">
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 whitespace-nowrap">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
-              <span className="text-[11px] font-bold text-white/80">
+              <span className="text-[11px] font-bold text-emerald-400">
                 {events.length > 0 ? (
                   <>
                     {events.length} {events.length === 1 ? "evento" : "eventos"}
