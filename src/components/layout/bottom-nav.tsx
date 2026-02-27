@@ -28,7 +28,7 @@ export function BottomNav() {
                 "relative flex flex-col items-center justify-center gap-1 px-4 py-1.5 transition-colors duration-200 min-w-[80px]",
                 isActive
                   ? "text-accent-light"
-                  : "text-text-muted hover:text-muted-foreground",
+                  : "text-[#A8B8CC] hover:text-[#CBD5E1]",
               )}
             >
               <Icon
@@ -41,7 +41,7 @@ export function BottomNav() {
               <span
                 className={cn(
                   "text-[10px] font-semibold uppercase tracking-widest transition-colors duration-200 whitespace-nowrap",
-                  isActive ? "text-accent-light" : "text-text-muted",
+                  isActive ? "text-accent-light" : "text-[#A8B8CC]",
                 )}
               >
                 {item.label}

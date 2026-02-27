@@ -13,21 +13,21 @@ function getBadgeStyles(status: TimeStatus) {
     case "now":
       return {
         text: "AHORA",
-        containerClass: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
+        containerClass: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
         dotClass: "live-dot",
         showDot: true,
       };
     case "soon":
       return {
         text: status.label,
-        containerClass: "bg-amber-500/15 text-amber-300 border border-amber-500/25",
+        containerClass: "bg-amber-500/20 text-amber-300 border border-amber-500/40",
         dotClass: "",
         showDot: false,
       };
     case "later":
       return {
         text: status.label,
-        containerClass: "bg-white/5 text-slate-300 border border-white/8",
+        containerClass: "bg-white/[0.08] text-slate-200 border border-white/[0.18]",
         dotClass: "",
         showDot: false,
       };

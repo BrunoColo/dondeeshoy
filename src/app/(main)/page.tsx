@@ -60,7 +60,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     <>
       {/* Hero tagline */}
       <section className="pt-4 pb-2 fade-up">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light/80">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light">
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
@@ -68,7 +68,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             Donde comienza tu próxima salida
           </span>
         </h1>
-        <p className="mt-2 max-w-2xl text-[13px] sm:text-sm text-[#B8C5D6]">
+        <p className="mt-2 max-w-2xl text-[13px] sm:text-sm text-[#CBD5E1]">
           Todo lo que pasa en Uruguay, en un solo lugar: conciertos, ferias, teatro, deporte y más.
         </p>
       </section>
@@ -84,7 +84,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
               <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light">
                 HOY
               </p>
-              <p className="text-[13px] font-medium text-muted-foreground capitalize">
+              <p className="text-[13px] font-medium text-[#CBD5E1] capitalize">
                 {dateLabel}
               </p>
             </div>

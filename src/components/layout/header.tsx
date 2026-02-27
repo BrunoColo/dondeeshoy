@@ -139,16 +139,16 @@ export function Header() {
             </Link>
             <button
               onClick={() => setSearchOpen(true)}
-              className="ml-auto flex h-10 items-center gap-2 rounded-full px-4 transition-all duration-200 active:scale-[0.97]"
+              className="ml-auto flex h-10 items-center gap-2 rounded-full px-4 transition-all duration-200 active:scale-[0.97] cursor-pointer"
               style={{
                 background: "rgba(4,4,12,0.80)",
-                border: "1px solid rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.22)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
               }}
               aria-label="Buscar"
             >
               <Search className="h-4 w-4 text-accent-light" strokeWidth={2} />
-              <span className="text-[12px] text-[#8A9BB0] font-medium">Buscar…</span>
+              <span className="text-[12px] text-[#A8B8CC] font-medium">Buscar…</span>
             </button>
           </div>
         )}

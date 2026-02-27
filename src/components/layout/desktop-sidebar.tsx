@@ -122,12 +122,12 @@ export async function DesktopSidebar() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <EventTypeBadge type={event.eventType} size="sm" />
                           {time && (
-                            <span className="text-[10px] text-[#94A3B8] font-mono">
+                            <span className="text-[10px] text-[#A8B8CC] font-mono">
                               {time}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
+                        <div className="flex items-center gap-1 text-[10px] text-[#A8B8CC]">
                           <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                           <span className="truncate">{event.venueName}</span>
                         </div>
@@ -225,7 +225,7 @@ export async function DesktopSidebar() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
+                      <div className="flex items-center gap-1 text-[10px] text-[#A8B8CC]">
                         <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                         <span className="truncate">{event.venueName}</span>
                       </div>
@@ -241,7 +241,7 @@ export async function DesktopSidebar() {
             >
               <Link
                 href="/proximos"
-                className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#818CF8]/60 hover:text-[#818CF8] transition-colors group"
+                className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#818CF8]/80 hover:text-[#818CF8] transition-colors group"
               >
                 <CalendarDays className="h-3.5 w-3.5" />
                 Ver todos los próximos
@@ -286,7 +286,7 @@ export async function DesktopSidebar() {
                 <p className="text-[14px] font-bold text-white leading-tight">
                   ¿Tenés un evento?
                 </p>
-                <p className="text-[11px] text-[#94A3B8] leading-snug">
+                <p className="text-[11px] text-[#A8B8CC] leading-snug">
                   Publicalo gratis y llegá a miles
                 </p>
               </div>
@@ -299,12 +299,12 @@ export async function DesktopSidebar() {
                 <span className="text-[11px] text-[#34D399] font-semibold">Gratis para eventos sin costo</span>
               </div>
               <div className="flex items-center gap-2">
-                <BadgeCheck className="h-3.5 w-3.5 text-[#94A3B8] shrink-0" />
-                <span className="text-[11px] text-[#B8C5D6]">Aparecé en el mapa y en búsquedas</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-[#A8B8CC] shrink-0" />
+                <span className="text-[11px] text-[#CBD5E1]">Aparecé en el mapa y en búsquedas</span>
               </div>
               <div className="flex items-center gap-2">
-                <BadgeCheck className="h-3.5 w-3.5 text-[#94A3B8] shrink-0" />
-                <span className="text-[11px] text-[#B8C5D6]">Llegá a toda Uruguay</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-[#A8B8CC] shrink-0" />
+                <span className="text-[11px] text-[#CBD5E1]">Llegá a toda Uruguay</span>
               </div>
             </div>
 
@@ -359,10 +359,10 @@ export async function DesktopSidebar() {
                 <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">Magma Futura</span>
                 <ExternalLink className="h-3 w-3 text-[#94A3B8] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
               </div>
-              <span className="text-[11px] text-[#94A3B8] leading-snug">
+              <span className="text-[11px] text-[#A8B8CC] leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
               </span>
-              <span className="text-[10px] font-semibold text-[#14B8A6]/60 mt-0.5 group-hover:text-[#14B8A6] transition-colors">magmafutura.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#14B8A6]/75 mt-0.5 group-hover:text-[#14B8A6] transition-colors">magmafutura.com.uy →</span>
             </div>
           </a>
 
@@ -385,10 +385,10 @@ export async function DesktopSidebar() {
                 <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">RedTickets</span>
                 <ExternalLink className="h-3 w-3 text-[#94A3B8] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
               </div>
-              <span className="text-[11px] text-[#94A3B8] leading-snug">
+              <span className="text-[11px] text-[#A8B8CC] leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
               </span>
-              <span className="text-[10px] font-semibold text-[#818CF8]/60 mt-0.5 group-hover:text-[#818CF8] transition-colors">redtickets.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#818CF8]/75 mt-0.5 group-hover:text-[#818CF8] transition-colors">redtickets.com.uy →</span>
             </div>
           </a>
 
@@ -396,7 +396,7 @@ export async function DesktopSidebar() {
           <div className="px-3.5 py-2.5 border-t border-white/[0.06]">
             <Link
               href="/publicar#contacto"
-              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#94A3B8] hover:text-[#B8C5D6] transition-colors border border-white/[0.08] hover:border-white/[0.15]"
+              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#A8B8CC] hover:text-[#E2E8F0] transition-colors border border-white/[0.15] hover:border-white/[0.28] hover:bg-white/[0.05]"
             >
               <Tag className="h-3 w-3" />
               Anunciá tu negocio aquí
@@ -455,33 +455,33 @@ export async function DesktopSidebar() {
           <div className="p-1.5 flex flex-col gap-0.5">
             <Link
               href="/"
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#CBD5E1] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
               <div
                 className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-                style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.20)" }}
+                style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.30)" }}
               >
                 <Zap className="h-3.5 w-3.5 text-[#FBBF24]" strokeWidth={2} />
               </div>
               Eventos de hoy
-              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
+              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/40 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/proximos"
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#CBD5E1] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
               <div
                 className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-                style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.20)" }}
+                style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.30)" }}
               >
                 <CalendarDays className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
               </div>
               Próximos eventos
-              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
+              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/40 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/mapa"
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#CBD5E1] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
               <div
                 className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"

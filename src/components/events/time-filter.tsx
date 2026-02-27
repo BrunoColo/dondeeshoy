@@ -111,10 +111,10 @@ export function TimeFilter({ className }: TimeFilterProps) {
             key={option.value}
             onClick={() => updateWhen(isActive ? null : option.value)}
             className={cn(
-              "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+              "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
               isActive
-                ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.2)] ring-1 ring-accent/25"
-                : "bg-accent/10 border-accent/20 text-accent-light/80 hover:border-accent/30",
+                ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
+                : "bg-accent/15 border-accent/35 text-accent-light hover:bg-accent/22 hover:border-accent/50",
             )}
           >
             {isActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}
@@ -128,10 +128,10 @@ export function TimeFilter({ className }: TimeFilterProps) {
         <button
           onClick={handleDateClick}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
             isDateActive
-              ? "bg-accent/20 border-accent/45 text-accent-light shadow-[0_0_10px_rgba(13,148,136,0.2)] ring-1 ring-accent/25"
-              : "bg-accent/10 border-accent/20 text-accent-light/80 hover:border-accent/30",
+              ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
+              : "bg-accent/15 border-accent/35 text-accent-light hover:bg-accent/22 hover:border-accent/50",
           )}
         >
           {isDateActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}
