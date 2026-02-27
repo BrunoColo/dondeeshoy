@@ -40,6 +40,17 @@ const listColumns = {
 /* ─── Base conditions ─── */
 const activeStatus = eq(events.status, "active");
 
+/**
+ * Composite ranking score: 60% confidence score + 40% normalised view count.
+ * LOG(viewCount + 1) / 5.0 smooths the view signal so a single viral event
+ * doesn't bury everything else; dividing by 5 keeps the range sensible up to
+ * ~150 views before saturating.
+ */
+const rankingScore = sql`(
+  COALESCE(${events.confidenceScore}, 0) * 0.6
+  + (LOG(COALESCE(${events.viewCount}, 0) + 1) / 5.0) * 0.4
+)`;
+
 /* ─── Filter builder ─── */
 function buildFilterConditions(filters?: EventFilters) {
   const conditions = [];
@@ -186,7 +197,7 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
     .select(listColumns)
     .from(events)
     .where(and(eq(events.date, date), activeStatus, eq(events.isRecurring, false), ...filterConditions))
-    .orderBy(desc(events.viewCount), asc(events.startTime), asc(events.name));
+    .orderBy(desc(rankingScore), asc(events.startTime), asc(events.name));
 
   // Recurring events: always show regardless of stored date
   // (they were scraped on a specific day but repeat weekly/daily)
@@ -194,7 +205,7 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
     .select(listColumns)
     .from(events)
     .where(and(activeStatus, eq(events.isRecurring, true), ...filterConditions))
-    .orderBy(desc(events.viewCount), asc(events.startTime), asc(events.name));
+    .orderBy(desc(rankingScore), asc(events.startTime), asc(events.name));
 
   return [...oneTimeEvents, ...recurringEvents];
 }
@@ -209,7 +220,7 @@ export async function getEventsBetweenDates(startDate: string, endDate: string, 
     .select(listColumns)
     .from(events)
     .where(and(gte(events.date, startDate), lte(events.date, endDate), activeStatus, ...filterConditions))
-    .orderBy(asc(events.date), desc(events.viewCount), asc(events.startTime), asc(events.name));
+    .orderBy(asc(events.date), desc(rankingScore), asc(events.startTime), asc(events.name));
 }
 
 /**
@@ -248,7 +259,7 @@ export async function getUpcomingEvents(startDate: string, daysAhead: number = 7
     .select(listColumns)
     .from(events)
     .where(and(gte(events.date, startDate), lte(events.date, endDate), activeStatus, ...filterConditions))
-    .orderBy(asc(events.date), desc(events.viewCount), asc(events.startTime), asc(events.name));
+    .orderBy(asc(events.date), desc(rankingScore), asc(events.startTime), asc(events.name));
 
   // Group by date
   const grouped = new Map<string, typeof results>();
@@ -290,7 +301,7 @@ export async function searchEvents(filters: EventFilters, limit: number = 50, of
     .select(listColumns)
     .from(events)
     .where(and(activeStatus, ...filterConditions))
-    .orderBy(desc(events.viewCount), asc(events.date), asc(events.startTime))
+    .orderBy(desc(rankingScore), asc(events.date), asc(events.startTime))
     .limit(limit)
     .offset(offset);
 }
