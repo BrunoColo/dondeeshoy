@@ -427,22 +427,22 @@ Si un evento falla, el pipeline registra el error en `processingError` y continu
 
 ## 8. Tabla de defectos por impacto
 
-| # | Defecto | Impacto | Afecta | Severidad |
-|---|---------|---------|--------|-----------|
-| 1 | MiEntrada: `lat`/`lng` ≠ `latitude`/`longitude` en normalizador | Coordenadas nunca se usan | Todos los eventos de MiEntrada | **Crítica** |
-| 2 | MiEntrada: `dates[]` no se lee como `dateText` en normalizador | Fecha siempre hoy, gasta AI budget | Todos los eventos de MiEntrada | **Crítica** |
-| 3 | MiEntrada: `department` no se lee como `city` en normalizador | Departamento incorrecto | Todos los eventos de MiEntrada | **Alta** |
-| 4 | TicketFacil: `isFreeText` no coincide con `isFree` en normalizador | Eventos gratuitos no detectados | ~200-400 eventos/ciclo | **Alta** |
-| 5 | Pipeline `batchSize=50` con un solo cron diario | 500+ pendientes → demora días en procesar | Todo el sistema | **Alta** |
-| 6 | `deduplicator`: sin limit en query de candidatos | Escala mal con volumen alto | Todo el sistema | **Media** |
-| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** |
-| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** |
-| 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** |
-| 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** |
-| 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** |
-| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** |
-| 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** |
-| 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** |
+| # | Defecto | Impacto | Afecta | Severidad | Estado |
+|---|---------|---------|--------|-----------|--------|
+| 1 | MiEntrada: `lat`/`lng` ≠ `latitude`/`longitude` en normalizador | Coordenadas nunca se usan | Todos los eventos de MiEntrada | **Crítica** | ✅ Corregido |
+| 2 | MiEntrada: `dates[]` no se lee como `dateText` en normalizador | Fecha siempre hoy, gasta AI budget | Todos los eventos de MiEntrada | **Crítica** | ✅ Corregido |
+| 3 | MiEntrada: `department` no se lee como `city` en normalizador | Departamento incorrecto | Todos los eventos de MiEntrada | **Alta** | ✅ Corregido |
+| 4 | TicketFacil: `isFreeText` no coincide con `isFree` en normalizador | Eventos gratuitos no detectados | ~200-400 eventos/ciclo | **Alta** | ✅ Corregido |
+| 5 | Pipeline `batchSize=50` con un solo cron diario | 500+ pendientes → demora días en procesar | Todo el sistema | **Alta** | ✅ Corregido |
+| 6 | `deduplicator`: sin limit en query de candidatos | Escala mal con volumen alto | Todo el sistema | **Media** | ✅ Corregido |
+| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** | Pendiente |
+| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** | Pendiente |
+| 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** | Pendiente |
+| 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** | Pendiente |
+| 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** | Pendiente |
+| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** | Pendiente |
+| 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** | Pendiente |
+| 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** | Pendiente |
 
 ---
 
@@ -467,60 +467,19 @@ Hay que ser justo: el sistema tiene partes bien diseñadas.
 
 ### Prioridad crítica (bugs que producen datos incorrectos ahora mismo)
 
-**1. Mapear campos de MiEntrada en el normalizador**
+**1. Mapear campos de MiEntrada en el normalizador** ✅ *Implementado — commit 94f38e6*
 
-En `normalizer.ts`, agregar lectura de los campos específicos de MiEntrada:
+`normalizer.ts` ahora lee `rawData.lat`/`rawData.lng`, `rawData.dates[]` y `rawData.department` de MiEntrada correctamente. Además pasa las coordenadas a `detectDepartment()` para priorizar GPS sobre texto.
 
-```typescript
-// Soporte para MiEntrada (lat/lng → latitude/longitude, dates[] → dateText)
-const rawLat = typeof rawData.lat === "number" ? rawData.lat : rawLatitude;
-const rawLng = typeof rawData.lng === "number" ? rawData.lng : rawLongitude;
+**2. Corregir `isFreeText` de TicketFacil** ✅ *Implementado — commit 94f38e6*
 
-// MiEntrada guarda dates como array; usar el primer elemento como dateText
-const rawDates = Array.isArray(rawData.dates) ? rawData.dates : null;
-const effectiveDateText = dateText || (rawDates?.[0] ?? "");
-
-// MiEntrada guarda department como 'department', no 'city'
-const scraperDept = typeof rawData.department === "string" ? rawData.department : null;
-const effectiveScraperCity = scraperCity || scraperDept;
-```
-
-**2. Corregir `isFreeText` de TicketFacil**
-
-En `ticketfacil.ts`, cambiar el nombre del campo:
-
-```typescript
-rawData: {
-  ...
-  isFree: isFreeText,  // era: isFreeText: isFreeText
-  ...
-}
-```
-
-O bien, en `normalizer.ts`, leer también `rawData.isFreeText`:
-
-```typescript
-const scraperSaysIsFree = rawData.isFree === true || rawData.isFreeText === true;
-```
+`normalizer.ts` ahora lee `rawData.isFree === true || rawData.isFreeText === true`.
 
 ### Prioridad alta (impacto en calidad de datos)
 
-**3. Pipeline: ejecutar hasta agotar la cola en un solo cron**
+**3. Pipeline: ejecutar hasta agotar la cola en un solo cron** ✅ *Implementado — commit 94f38e6*
 
-En lugar de procesar solo 50 eventos por invocación, el endpoint `/api/scrape/process` debería procesar en loop hasta agotar `pending=0` o hasta acercarse al timeout de Vercel:
-
-```typescript
-let total = { created: 0, merged: 0, ... };
-const startTime = Date.now();
-const MAX_MS = 250_000; // 250s, con margen antes del timeout de 300s
-
-while (Date.now() - startTime < MAX_MS) {
-  const result = await runProcessingPipeline(50);
-  // acumular result en total
-  if (result.pending === 0) break;
-}
-return total;
-```
+`/api/scrape/process/route.ts` ahora tiene `maxDuration = 300` y un drain loop que procesa batches hasta que `pending === 0` o se acerca al timeout (270s). `runProcessingPipeline` ahora retorna el conteo real de eventos restantes en `result.pending`.
 
 **4. `mergeEventData`: proteger fecha existente si viene de fuente más confiable**
 
@@ -553,14 +512,9 @@ if (normalized.confidenceScore > existing.confidenceScore) {
 
 Eliminar entradas como `["espacio cultural"]` que son demasiado genéricas. Reemplazar con nombres completos específicos.
 
-**7. Deduplicador: agregar `.limit()` a la query de candidatos**
+**7. Deduplicador: agregar `.limit()` a la query de candidatos** ✅ *Implementado — commit 94f38e6*
 
-```typescript
-const sameDayEvents = await db.select(...)
-  .from(events)
-  .where(and(eq(events.date, normalized.date), eq(events.city, normalized.city)))
-  .limit(200); // cap razonable
-```
+Ambas queries en `deduplicator.ts` tienen `.limit(300)` ahora.
 
 ### Prioridad media (mejoras de calidad y robustez)
 
