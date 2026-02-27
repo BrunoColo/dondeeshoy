@@ -98,8 +98,8 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Date & Time */}
           <div className="glass-card rounded-xl p-4">
             <div className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-                <Calendar className="h-5 w-5 text-accent-light" strokeWidth={1.8} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo/10">
+                <Calendar className="h-5 w-5 text-indigo-light" strokeWidth={1.8} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground capitalize">

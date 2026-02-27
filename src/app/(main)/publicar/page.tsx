@@ -275,7 +275,7 @@ export default function PublicarPage() {
 
       {/* ── Page header ── */}
       <div className="mb-8 border-b border-[rgba(255,255,255,0.06)] pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#14B8A6] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#818CF8] mb-3">
           Publicación de eventos
         </p>
         <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">

@@ -52,7 +52,7 @@ export async function DesktopSidebar() {
       <div className="sticky top-[60px] flex flex-col gap-3 overflow-x-hidden py-4 pr-1">
 
         {/* ── LIVE CLOCK + DATE ── */}
-        <div style={{ ...cardStyle, borderLeft: "3px solid #0D9488" }}>
+        <div style={{ ...cardStyle, borderLeft: "3px solid #6366F1" }}>
           <SidebarLiveClock />
         </div>
 
@@ -106,8 +106,8 @@ export async function DesktopSidebar() {
         {highlights.length > 0 && (
           <div style={cardStyle}>
             <div className="flex items-center gap-2 mb-3">
-              <CalendarCheck className="h-4 w-4 text-[#14b8a6]" strokeWidth={2} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#14b8a6]">
+              <CalendarCheck className="h-4 w-4 text-[#818CF8]" strokeWidth={2} />
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#818CF8]">
                 Próximos destacados
               </h2>
             </div>
@@ -125,11 +125,11 @@ export async function DesktopSidebar() {
                     <div
                       className="shrink-0 flex flex-col items-center justify-center rounded-lg px-2 py-1.5 min-w-[40px]"
                       style={{
-                        backgroundColor: isToday ? "rgba(20,184,166,0.12)" : isTomorrow ? "rgba(148,163,184,0.08)" : "rgba(255,255,255,0.04)",
-                        border: isToday ? "1px solid rgba(20,184,166,0.3)" : isTomorrow ? "1px solid rgba(148,163,184,0.2)" : "1px solid rgba(255,255,255,0.09)",
+                        backgroundColor: isToday ? "rgba(20,184,166,0.12)" : isTomorrow ? "rgba(99,102,241,0.10)" : "rgba(255,255,255,0.04)",
+                        border: isToday ? "1px solid rgba(20,184,166,0.3)" : isTomorrow ? "1px solid rgba(99,102,241,0.25)" : "1px solid rgba(255,255,255,0.09)",
                       }}
                     >
-                      <span className="text-[9px] font-bold uppercase leading-none" style={{ color: isToday ? "#14B8A6" : isTomorrow ? "#94A3B8" : "#64748B" }}>
+                      <span className="text-[9px] font-bold uppercase leading-none" style={{ color: isToday ? "#14B8A6" : isTomorrow ? "#818CF8" : "#64748B" }}>
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
                       {time && (

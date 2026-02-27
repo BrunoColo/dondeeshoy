@@ -128,7 +128,7 @@ export function Header() {
               <span className="font-display text-[17px] font-extrabold tracking-tight text-[#E2E8F0]">
                 ¿Dónde es
               </span>
-              <span className="font-display text-[17px] font-extrabold tracking-tight bg-gradient-to-r from-accent via-accent-light to-accent2 bg-clip-text text-transparent">
+              <span className="font-display text-[17px] font-extrabold tracking-tight gradient-animated">
                 hoy?
               </span>
             </Link>
@@ -153,7 +153,7 @@ export function Header() {
             <span className="font-display text-[17px] font-extrabold tracking-tight text-[#E2E8F0]">
               ¿Dónde es
             </span>
-            <span className="font-display text-[17px] font-extrabold tracking-tight bg-gradient-to-r from-accent via-accent-light to-accent2 bg-clip-text text-transparent">
+            <span className="font-display text-[17px] font-extrabold tracking-tight gradient-animated">
               hoy?
             </span>
           </Link>

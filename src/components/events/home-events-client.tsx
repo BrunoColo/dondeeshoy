@@ -69,11 +69,11 @@ export function HomeEventsClient({
       {(events.length > 0 || hasFilters) && (
         <div className="fade-up">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent-light" strokeWidth={2.5} />
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-accent-light">
+            <Sparkles className="h-4 w-4 text-indigo-light" strokeWidth={2.5} />
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-indigo-light">
               Eventos únicos de hoy
             </h2>
-            <span className="text-[10px] text-accent-light/70">
+            <span className="text-[10px] text-indigo-light/70">
               ({events.length})
             </span>
           </div>

@@ -47,9 +47,11 @@ export function BottomNav() {
                 {item.label}
               </span>
 
-              {/* Active indicator dot */}
+              {/* Active indicator dot — gradient teal→indigo */}
               {isActive && (
-                <span className="absolute -top-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-accent-light shadow-[0_0_12px_rgba(20,184,166,0.5)]" />
+                <span className="absolute -top-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                  style={{ background: "linear-gradient(90deg, #14B8A6, #818CF8)" }}
+                />
               )}
             </Link>
           );
