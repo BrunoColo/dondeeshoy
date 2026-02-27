@@ -47,7 +47,7 @@ export async function DesktopSidebar() {
         <div
           className="relative overflow-hidden rounded-xl p-4"
           style={{
-            background: "linear-gradient(135deg, rgba(3,3,10,0.98) 0%, rgba(5,4,14,0.98) 50%, rgba(3,5,10,0.98) 100%)",
+            background: "linear-gradient(135deg, rgba(2,2,7,0.99) 0%, rgba(3,2,10,0.99) 50%, rgba(2,3,8,0.99) 100%)",
             border: "1px solid rgba(99,102,241,0.35)",
             boxShadow: "0 6px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.10), inset 0 1px 0 rgba(255,255,255,0.07)",
           }}
@@ -75,7 +75,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
               border: "1px solid rgba(255,255,255,0.12)",
               boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
             }}
@@ -146,7 +146,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
               border: "1px solid rgba(255,255,255,0.10)",
               boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
             }}
@@ -255,7 +255,7 @@ export async function DesktopSidebar() {
         <div
           className="relative overflow-hidden rounded-xl p-4"
           style={{
-            background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
             border: "1px solid rgba(13,148,136,0.25)",
             boxShadow: "0 4px 24px rgba(13,148,136,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
           }}
@@ -328,7 +328,7 @@ export async function DesktopSidebar() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
@@ -409,7 +409,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
               border: "1px solid rgba(255,255,255,0.10)",
             }}
           >
@@ -443,7 +443,7 @@ export async function DesktopSidebar() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
+            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
