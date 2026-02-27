@@ -30,7 +30,8 @@ export async function findDuplicateEventId(normalized: NormalizedEventInput): Pr
       venueName: events.venueName,
     })
     .from(events)
-    .where(and(eq(events.date, normalized.date), eq(events.city, normalized.city)));
+    .where(and(eq(events.date, normalized.date), eq(events.city, normalized.city)))
+    .limit(300);
 
   if (sameDayEvents.length === 0) {
     return null;
@@ -49,7 +50,8 @@ async function findRecurringDuplicate(normalized: NormalizedEventInput): Promise
       venueName: events.venueName,
     })
     .from(events)
-    .where(and(eq(events.city, normalized.city), eq(events.isRecurring, true)));
+    .where(and(eq(events.city, normalized.city), eq(events.isRecurring, true)))
+    .limit(300);
 
   if (sameCityEvents.length === 0) {
     return null;

@@ -34,6 +34,8 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
   const linkedRawEventIds: string[] = [];
 
   const result: PipelineResult = {
+    // 'pending' will be updated at the end to reflect remaining unprocessed events.
+    // Set to the batch size for now as a conservative estimate.
     pending: pendingRawEvents.length,
     processed: 0,
     created: 0,
@@ -114,8 +116,18 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
     remainingOtro = Number(rows[0]?.count ?? 0);
   }
 
+  // Count remaining unprocessed events so the drain loop in the route can decide
+  // whether to keep going or stop.
+  const remainingRows = await withTransientRetry("pipeline-count-pending", async () =>
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(rawEvents)
+      .where(eq(rawEvents.processed, false)),
+  );
+  result.pending = Number(remainingRows[0]?.count ?? 0);
+
   console.info(
-    `[pipeline] Clasificación: ${heuristicCount} heurística, ${result.aiClassified} IA, ${remainingOtro} quedó otro`,
+    `[pipeline] Clasificación: ${heuristicCount} heurística, ${result.aiClassified} IA, ${remainingOtro} quedó otro. Pendientes restantes: ${result.pending}`,
   );
 
   return result;
@@ -158,10 +170,13 @@ async function processRawEvent(
     longitude: geocode.longitude,
   };
 
-  // Re-detect department using coordinates (more reliable than text matching)
+  // Re-detect department using coordinates (more reliable than text matching).
+  // Read both rawData.city and rawData.department (MiEntrada uses the latter).
   if (enriched.latitude != null && enriched.longitude != null) {
     const rawData2 = rawEvent.rawData as Record<string, unknown>;
-    const scraperCity = typeof rawData2.city === "string" ? rawData2.city : null;
+    const scraperCity =
+      (typeof rawData2.city === "string" ? rawData2.city : null) ||
+      (typeof rawData2.department === "string" ? rawData2.department : null);
     enriched.city = detectDepartment(
       enriched.venueName !== "Venue por confirmar" ? enriched.venueName : null,
       enriched.venueAddress,

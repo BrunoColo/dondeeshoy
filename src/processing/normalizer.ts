@@ -50,8 +50,12 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     throw new Error("No se pudo normalizar el nombre del evento");
   }
 
-  const dateText = sanitizeText((rawData.dateText as string) ?? "");
-  
+  // ── MiEntrada stores dates as an array (rawData.dates: string[]).
+  // Pick the first element and use it as dateText when the standard field is missing.
+  const rawDatesArray = Array.isArray(rawData.dates) ? (rawData.dates as string[]) : null;
+  const rawDateText = sanitizeText((rawData.dateText as string) ?? "");
+  const dateText = rawDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "");
+
   // Always try to parse date from the event title/name - many scrapers put the date in the title
   // like "EVENT NAME - Viernes 20/02/26" but only put generic text in dateText like "VIERNES DE EVENT"
   const dateFromName = parseUruguayDateTime(name);
@@ -98,11 +102,13 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   const priceMin = prices.length > 0 ? Math.min(...prices) : null;
   const priceMax = prices.length > 0 ? Math.max(...prices) : null;
 
-  // Mark as free if: scraper explicitly says so, OR text says free + no prices
+  // Mark as free if: scraper explicitly says so, OR text says free + no prices.
+  // NOTE: TicketFacil stores this as rawData.isFreeText (not rawData.isFree) —
+  // we read both to avoid missing free events from that source.
   const bodyText = sanitizeText(
     `${(rawData.title as string) ?? ""} ${(rawData.description as string) ?? ""} ${(rawData.dateText as string) ?? ""}`,
   ).toLowerCase();
-  const scraperSaysIsFree = rawData.isFree === true;
+  const scraperSaysIsFree = rawData.isFree === true || rawData.isFreeText === true;
   const textSaysFree = /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);
   const isFree =
     scraperSaysIsFree || (prices.length === 0 && textSaysFree);
@@ -113,19 +119,37 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
       ? "USD"
       : "UYU";
 
-  // Use pre-extracted coordinates from scrapers that provide them (e.g., CobraTicket)
-  const rawLatitude = typeof rawData.latitude === "number" ? rawData.latitude : null;
-  const rawLongitude = typeof rawData.longitude === "number" ? rawData.longitude : null;
+  // Use pre-extracted coordinates from scrapers that provide them.
+  // CobraTicket / RedTickets / TicketFacil use rawData.latitude / rawData.longitude.
+  // MiEntrada uses rawData.lat / rawData.lng — support both field names.
+  const rawLatitude =
+    typeof rawData.latitude === "number"
+      ? rawData.latitude
+      : typeof rawData.lat === "number"
+        ? rawData.lat
+        : null;
+  const rawLongitude =
+    typeof rawData.longitude === "number"
+      ? rawData.longitude
+      : typeof rawData.lng === "number"
+        ? rawData.lng
+        : null;
 
   // Detect the Uruguay department from venue/address/city/name data.
-  // CobraTicket provides a `city` field (e.g. "Punta del Este, Maldonado"),
-  // other scrapers rely on venue name + address detection.
-  const scraperCity = sanitizeText((rawData.city as string) ?? "") || null;
+  // CobraTicket provides a `city` field (e.g. "Punta del Este, Maldonado").
+  // MiEntrada provides a `department` field directly (e.g. "Montevideo").
+  // Other scrapers rely on venue name + address detection.
+  const scraperCity =
+    sanitizeText((rawData.city as string) ?? "") ||
+    sanitizeText((rawData.department as string) ?? "") ||
+    null;
   const department = detectDepartment(
     venueName !== "Venue por confirmar" ? venueName : null,
     venueAddress,
     scraperCity,
     name,
+    rawLatitude,
+    rawLongitude,
   );
 
   return {
