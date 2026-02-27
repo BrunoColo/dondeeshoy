@@ -64,7 +64,7 @@ export function SidebarLiveClock() {
       {/* Date — a la derecha */}
       <div className="flex flex-col items-end leading-none gap-0.5">
         <span className="text-[12px] font-semibold text-[#B8C5D6]">{dayName}</span>
-        <span className="text-[11px] text-[#7A8FA6] font-mono">{dayNum} de {monthName}</span>
+        <span className="text-[11px] text-[#94A3B8] font-mono">{dayNum} de {monthName}</span>
       </div>
     </div>
   );
@@ -117,7 +117,7 @@ export function AnimatedStat({ value, label }: { value: number; label: string })
       <span className="text-[22px] font-black text-white font-mono leading-none tabular-nums">
         {displayed}
       </span>
-      <span className="text-[9px] text-[#7A8FA6] text-center leading-tight uppercase tracking-wider font-bold">
+      <span className="text-[9px] text-[#94A3B8] text-center leading-tight uppercase tracking-wider font-bold">
         {label}
       </span>
     </div>

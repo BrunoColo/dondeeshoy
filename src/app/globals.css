@@ -51,8 +51,8 @@
 
   /* Text — más contraste */
   --text-primary: #F8FAFC;
-  --text-secondary: #B8C5D6;
-  --text-muted: #7A8FA6;
+  --text-secondary: #C4D0E0;
+  --text-muted: #8A9BB0;
 
   /* Fonts */
   --font-display: var(--font-outfit);

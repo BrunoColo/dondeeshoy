@@ -131,7 +131,7 @@ function Section({
         <div>
           <h2 className="text-[13px] font-semibold text-[#E2E8F0] tracking-wide">{title}</h2>
           {subtitle && (
-            <p className="text-[11px] text-[#64748B] mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-[#B8C5D6] mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
@@ -160,13 +160,13 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
+      <label className="text-[11px] font-semibold text-[#B8C5D6] uppercase tracking-wider">
         {label}
-        {required && <span className="text-[#94A3B8] ml-1">*</span>}
+        {required && <span className="text-[#B8C5D6] ml-1">*</span>}
       </label>
       {children}
       {hint && !error && (
-        <p className="text-[11px] text-[#475569]">{hint}</p>
+        <p className="text-[11px] text-[#B8C5D6]">{hint}</p>
       )}
       {error && (
         <p className="text-[11px] text-[#F87171] flex items-center gap-1">
@@ -241,7 +241,7 @@ export default function PublicarPage() {
             <h1 className="text-[26px] font-bold text-foreground">
               Solicitud enviada
             </h1>
-            <p className="text-[14px] text-[#94A3B8] leading-relaxed">
+            <p className="text-[14px] text-[#B8C5D6] leading-relaxed">
               Tu solicitud fue recibida.{" "}
               <span className="text-foreground font-medium">
                 Te contactaremos por email cuando sea revisada.
@@ -250,16 +250,16 @@ export default function PublicarPage() {
           </div>
 
           <div className="w-full rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] px-5 py-4 flex items-center gap-3">
-            <BadgeCheck className="h-5 w-5 text-[#94A3B8] shrink-0" />
+            <BadgeCheck className="h-5 w-5 text-[#B8C5D6] shrink-0" />
             <div className="text-left">
               <p className="text-[13px] font-semibold text-[#E2E8F0]">Revisamos en menos de 48 horas</p>
-              <p className="text-[11px] text-[#64748B] mt-0.5">Te avisamos al email que ingresaste</p>
+              <p className="text-[11px] text-[#B8C5D6] mt-0.5">Te avisamos al email que ingresaste</p>
             </div>
           </div>
 
           <Link
             href="/"
-            className="flex items-center gap-2 text-[13px] text-[#64748B] hover:text-[#94A3B8] transition-colors"
+            className="flex items-center gap-2 text-[13px] text-[#B8C5D6] hover:text-[#B8C5D6] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver al inicio
@@ -281,14 +281,14 @@ export default function PublicarPage() {
         <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">
           Publicá tu evento
         </h1>
-        <p className="text-[14px] text-[#64748B] leading-relaxed max-w-lg mb-5">
+        <p className="text-[14px] text-[#B8C5D6] leading-relaxed max-w-lg mb-5">
           Completá el formulario y lo revisamos en menos de 48 horas.
           Los eventos gratuitos son publicados sin costo.
         </p>
 
-        <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] px-3.5 py-2">
+        <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.12)] px-3.5 py-2">
           <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
-          <span className="text-[12px] text-[#94A3B8]">
+          <span className="text-[12px] text-[#B8C5D6]">
             Gratis para eventos sin costo de entrada
           </span>
         </div>
@@ -323,7 +323,7 @@ export default function PublicarPage() {
 
               <Field label="Hora de inicio" hint="Opcional" error={errors.eventTime?.message}>
                 <div className="relative">
-                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
                   <input
                     type="time"
                     {...register("eventTime")}
@@ -350,7 +350,7 @@ export default function PublicarPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
               </div>
             </Field>
 
@@ -411,7 +411,7 @@ export default function PublicarPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
               </div>
             </Field>
           </div>
@@ -444,12 +444,12 @@ export default function PublicarPage() {
                     <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <Gift className={cn("h-5 w-5", isFree ? "text-[#E2E8F0]" : "text-[#475569]")} />
+                <Gift className={cn("h-5 w-5", isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")} />
                 <div>
-                  <p className={cn("text-[13px] font-semibold", isFree ? "text-[#E2E8F0]" : "text-[#64748B]")}>
+                  <p className={cn("text-[13px] font-semibold", isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")}>
                     Gratuito
                   </p>
-                  <p className="text-[10px] text-[#475569] mt-0.5">Sin costo de entrada</p>
+                  <p className="text-[10px] text-[#B8C5D6] mt-0.5">Sin costo de entrada</p>
                 </div>
               </button>
 
@@ -469,12 +469,12 @@ export default function PublicarPage() {
                     <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <DollarSign className={cn("h-5 w-5", !isFree ? "text-[#E2E8F0]" : "text-[#475569]")} />
+                <DollarSign className={cn("h-5 w-5", !isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")} />
                 <div>
-                  <p className={cn("text-[13px] font-semibold", !isFree ? "text-[#E2E8F0]" : "text-[#64748B]")}>
+                  <p className={cn("text-[13px] font-semibold", !isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")}>
                     Con costo
                   </p>
-                  <p className="text-[10px] text-[#475569] mt-0.5">Tiene precio de entrada</p>
+                  <p className="text-[10px] text-[#B8C5D6] mt-0.5">Tiene precio de entrada</p>
                 </div>
               </button>
             </div>
@@ -485,7 +485,7 @@ export default function PublicarPage() {
             {/* Paid-only fields */}
             {!isFree && (
               <div className="rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] p-4 flex flex-col gap-4">
-                <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
+                <p className="text-[11px] font-semibold text-[#B8C5D6] uppercase tracking-wider">
                   Detalles del precio
                 </p>
                 <Field
@@ -495,7 +495,7 @@ export default function PublicarPage() {
                   hint="Ej: $300 – $600 UYU · Entrada general $400"
                 >
                   <div className="relative">
-                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
                     <input
                       {...register("priceRange")}
                       placeholder="Ej: $300 – $600 UYU"
@@ -510,7 +510,7 @@ export default function PublicarPage() {
                   error={errors.ticketUrl?.message}
                 >
                   <div className="relative">
-                    <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                    <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
                     <input
                       {...register("ticketUrl")}
                       type="url"
@@ -530,7 +530,7 @@ export default function PublicarPage() {
                 error={errors.ticketUrl?.message}
               >
                 <div className="relative">
-                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
                   <input
                     {...register("ticketUrl")}
                     type="url"
@@ -548,7 +548,7 @@ export default function PublicarPage() {
               error={errors.imageUrl?.message}
             >
               <div className="relative">
-                <Image className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
+                <Image className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B8C5D6] pointer-events-none" />
                 <input
                   {...register("imageUrl")}
                   type="url"
@@ -588,7 +588,7 @@ export default function PublicarPage() {
             </div>
 
             <div className="rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] px-4 py-3">
-              <p className="text-[12px] text-[#475569] leading-relaxed">
+              <p className="text-[12px] text-[#B8C5D6] leading-relaxed">
                 Tu email solo se usa para notificarte sobre el estado de tu solicitud. No lo compartimos con terceros.
               </p>
             </div>
@@ -632,7 +632,7 @@ export default function PublicarPage() {
           )}
         </button>
 
-        <p className="text-center text-[11px] text-[#475569]">
+        <p className="text-center text-[11px] text-[#B8C5D6]">
           Al enviar aceptás que revisemos tu evento antes de publicarlo en ¿Dónde es Hoy?
         </p>
       </form>
