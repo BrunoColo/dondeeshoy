@@ -172,14 +172,17 @@ export class CarteleraScraper extends BaseScraper {
 
   /**
    * Override run to handle multi-date events.
-   * After scraping all URLs, save all pending multi-date events.
+   * After scraping all URLs, save all pending multi-date events using the
+   * base class saveRawEvent (avoids duplicating the UPSERT logic).
    */
   async run() {
     this._pendingMultiDateEvents = [];
     const result = await super.run();
 
-    // The base class already saved the first event per URL.
-    // Now save remaining multi-date events (skip first per show since it's already saved).
+    // The base class already saved the first event per URL via scrapeEvent().
+    // Now persist the remaining date entries for each multi-date show.
+    let extraSaved = 0;
+    let extraErrors = 0;
     const savedIds = new Set<string>();
 
     for (const event of this._pendingMultiDateEvents) {
@@ -187,45 +190,20 @@ export class CarteleraScraper extends BaseScraper {
       savedIds.add(event.sourceId);
 
       try {
-        // Use the base class saveRawEvent indirectly by re-running through the save
-        await this.saveExtra(event);
+        await this.saveRawEvent(event);
+        extraSaved += 1;
       } catch (error) {
+        extraErrors += 1;
         console.error(`[cartelera] error guardando evento extra ${event.sourceId}`, error);
       }
     }
 
     return {
       ...result,
-      scraped: savedIds.size,
-      saved: savedIds.size,
+      scraped: result.scraped + extraSaved,
+      saved: result.saved + extraSaved,
+      errors: result.errors + extraErrors,
     };
-  }
-
-  private async saveExtra(event: ScrapedRawEvent): Promise<void> {
-    const { db } = await import("@/lib/db");
-    const { rawEvents } = await import("@/lib/db/schema");
-
-    await db
-      .insert(rawEvents)
-      .values({
-        source: event.source,
-        sourceId: event.sourceId,
-        sourceUrl: event.sourceUrl,
-        rawData: event.rawData,
-        scrapedAt: new Date(),
-        processed: false,
-        processingError: null,
-      })
-      .onConflictDoUpdate({
-        target: [rawEvents.source, rawEvents.sourceId],
-        set: {
-          sourceUrl: event.sourceUrl,
-          rawData: event.rawData,
-          scrapedAt: new Date(),
-          processed: false,
-          processingError: null,
-        },
-      });
   }
 
   private extractShowId(url: string): string | null {

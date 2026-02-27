@@ -58,7 +58,7 @@ export abstract class BaseScraper {
     };
   }
 
-  private async saveRawEvent(payload: ScrapedRawEvent): Promise<void> {
+  protected async saveRawEvent(payload: ScrapedRawEvent): Promise<void> {
     await db
       .insert(rawEvents)
       .values({

@@ -306,15 +306,30 @@ export function detectRecurrence(normalized: NormalizedEventInput): boolean {
 }
 
 /**
+ * Event types that legitimately have late-night start times and should NOT be
+ * auto-reclassified as "fiesta" just because they start after 23:00.
+ * Examples: late-night theater shows, nocturnal sports (MMA, boxing), cultural events.
+ */
+const LATE_NIGHT_RECLASSIFY_EXCEPTIONS = new Set<EventType>([
+  "teatro",
+  "deportivo",
+  "cultural",
+  "festival",   // festivals can have late headline acts
+]);
+
+/**
  * Check if the startTime indicates a late-night fiesta.
- * Any event (regardless of scraper or current type) starting between
- * 23:00 and 01:59 is unconditionally classified as "fiesta".
+ * Events starting between 23:00 and 01:59 are reclassified as "fiesta",
+ * UNLESS the current type is one that legitimately runs late (theater, sports, etc.).
  */
 function shouldReclassifyAsFiesta(
-  _eventType: EventType,
+  eventType: EventType,
   startTime: string | null,
 ): boolean {
   if (!startTime) return false;
+
+  // Don't reclassify types that can legitimately have late-night starts.
+  if (LATE_NIGHT_RECLASSIFY_EXCEPTIONS.has(eventType)) return false;
 
   const hourMatch =
     startTime.match(/^(\d{1,2}):/) ??
@@ -325,7 +340,7 @@ function shouldReclassifyAsFiesta(
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
 
-  // 23:00–01:59 → always fiesta, regardless of type or scraper
+  // 23:00–01:59 → reclassify as fiesta
   return hour === 23 || hour === 0 || hour === 1;
 }
 

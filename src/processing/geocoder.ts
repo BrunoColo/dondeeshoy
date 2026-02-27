@@ -66,7 +66,8 @@ const KNOWN_VENUES: KnownVenue[] = [
   { keys: ["teatro del anglo"], latitude: -34.9070, longitude: -56.1920 },
   { keys: ["teatro 18 de julio"], latitude: -34.9060, longitude: -56.1870 },
   { keys: ["teatro camara"], latitude: -34.9055, longitude: -56.1910 },
-  { keys: ["espacio cultural"], latitude: -34.9060, longitude: -56.1900 },
+  // NOTE: "espacio cultural" was removed — too generic, would match any venue
+  // containing those words and assign arbitrary Montevideo coordinates.
   // ── Teatros Montevideo (cartelera.montevideo.com.uy) ────
   { keys: ["teatro circular", "circular de montevideo"], latitude: -34.9076, longitude: -56.1923 },
   { keys: ["la gringa teatro", "la gringa"], latitude: -34.9102, longitude: -56.1886 },

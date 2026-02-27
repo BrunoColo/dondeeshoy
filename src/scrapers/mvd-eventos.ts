@@ -6,24 +6,6 @@ import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
 import { extractBestImageUrl, fetchHtml, normalizeWhitespace, unique } from "./utils";
 
-// Months mapping for future use in date parsing
-const _MONTHS: Record<string, string> = {
-  enero: "01",
-  febrero: "02",
-  marzo: "03",
-  abril: "04",
-  mayo: "05",
-  junio: "06",
-  julio: "07",
-  agosto: "08",
-  septiembre: "09",
-  setiembre: "09",
-  octubre: "10",
-  noviembre: "11",
-  diciembre: "12",
-};
-void _MONTHS;
-
 const CATEGORY_PAGES = [
   "/categoria/musica",
   "/categoria/artes-escenicas",
@@ -183,7 +165,7 @@ export class MvdEventosScraper extends BaseScraper {
   }
 
   private extractDates($: cheerio.CheerioAPI): string | null {
-    // Try to find dates from Drupal date fields
+    // 1. Try to find dates from Drupal date fields (most reliable — structured data)
     const dateField = $(".field--name-field-fechas");
     if (dateField.length > 0) {
       const dateItems = dateField.find(".field__item, .datetime");
@@ -195,23 +177,19 @@ export class MvdEventosScraper extends BaseScraper {
       if (dates.length > 0) return dates.join("; ");
     }
 
-    // Try field--name-field-resumen which sometimes has date info
-    const resumen = normalizeWhitespace(
-      $(".field--name-field-resumen .field__item").first().text() || "",
-    );
-    if (resumen && /\d{1,2}\s+de\s+\w+/i.test(resumen)) {
-      return resumen;
-    }
+    // 2. Look for date patterns only inside the main article/content area,
+    //    NOT in the full page text (which includes nav, footer, related events, etc.)
+    const mainContent = $("article, main, .node__content, #content, .view-content").first();
+    const searchScope = mainContent.length ? mainContent : $("body");
+    const scopeText = normalizeWhitespace(searchScope.text());
 
-    // Try to find date from general content
-    const mainText = normalizeWhitespace($.text());
-    const dateMatch = mainText.match(
+    const dateMatch = scopeText.match(
       /(?:Viernes|Sábado|Domingo|Lunes|Martes|Miércoles|Jueves)[,\s]+(\d{1,2}(?:\/\d{2})?(?:\/\d{2,4})?)/i,
     );
     if (dateMatch) return dateMatch[0];
 
-    // Look for DD/MM/YYYY patterns
-    const ddmmMatch = mainText.match(/\d{2}\/\d{2}\/\d{4}/);
+    // 3. Look for DD/MM/YYYY pattern within the same restricted scope
+    const ddmmMatch = scopeText.match(/\d{2}\/\d{2}\/\d{4}/);
     if (ddmmMatch) return ddmmMatch[0];
 
     return null;

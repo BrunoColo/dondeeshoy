@@ -231,7 +231,11 @@ async function processRawEvent(
   const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore, isRecurring));
 
   if (duplicateEventId) {
-    await mergeEventData(duplicateEventId, enriched);
+    await mergeEventData(duplicateEventId, enriched, {
+      source: rawEvent.source,
+      classification,
+      confidenceScore,
+    });
   }
 
   const alreadyLinked = await withTransientRetry("already-linked", async () =>
@@ -337,9 +341,21 @@ async function createEvent(
   throw new Error(`[pipeline] no se pudo generar slug único para ${normalized.name}`);
 }
 
+/**
+ * Sources whose date fields come from ISO-formatted structured data (not free text).
+ * Dates from these sources are considered more reliable than dates parsed from
+ * free text (e.g. MVD Eventos, Entraste, Cartelera).
+ */
+const TRUSTED_DATE_SOURCES = new Set(["cobraticket", "redtickets", "ticketfacil", "mientrada"]);
+
 async function mergeEventData(
   eventId: string,
   normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
+  incoming: {
+    source: string;
+    classification: { eventType: ReturnType<typeof classifyEvent>["eventType"]; musicGenre: string | null };
+    confidenceScore: string;
+  },
 ): Promise<void> {
   const existingRows = await withTransientRetry("load-existing-event", async () =>
     db
@@ -357,6 +373,8 @@ async function mergeEventData(
         latitude: events.latitude,
         longitude: events.longitude,
         city: events.city,
+        eventType: events.eventType,
+        confidenceScore: events.confidenceScore,
       })
       .from(events)
       .where(eq(events.id, eventId))
@@ -371,16 +389,27 @@ async function mergeEventData(
   const existingPriceMin = existing.priceMin ?? null;
   const existingCurrency = existing.currency ?? "UYU";
 
-  // Update date if we have a valid new date and the existing one is different
-  // This handles cases where the old date was wrong
+  // ── Date update with source-trust protection ──────────────────────────────
+  // Only overwrite the date when the incoming source is more trustworthy than
+  // the existing one, OR when the existing date is missing.
+  // This prevents free-text date parses (MVD Eventos, Cartelera) from
+  // overwriting ISO dates from CobraTicket / RedTickets / TicketFacil.
   if (normalized.date) {
     const existingDateStr = existing.date ? existing.date.split('T')[0] : null;
     const newDateStr = normalized.date.split('T')[0];
-    // Update if dates are different (fixing wrong date)
-    if (existingDateStr && existingDateStr !== newDateStr) {
+
+    if (!existingDateStr) {
+      // No existing date — always fill it in.
       updates.date = normalized.date;
-    } else if (!existingDateStr) {
-      updates.date = normalized.date;
+    } else if (existingDateStr !== newDateStr) {
+      // Dates differ: only update if the incoming source is trusted OR the
+      // existing source is not trusted (we don't track which source created the
+      // event, so we use a conservative rule: trusted sources always win over
+      // non-trusted ones, but two trusted sources don't overwrite each other).
+      if (TRUSTED_DATE_SOURCES.has(incoming.source)) {
+        updates.date = normalized.date;
+      }
+      // If incoming is not trusted, keep the existing date as-is.
     }
   }
 
@@ -440,6 +469,25 @@ async function mergeEventData(
   // Also update city if it was previously null/empty and we have it now
   if (normalized.city && !existing.city) {
     updates.city = normalized.city;
+  }
+
+  // ── eventType: update when the incoming classification is more confident ──
+  // "otro" is the lowest-confidence catch-all type. If the existing event is
+  // "otro" and the incoming source has a real type, upgrade it.
+  // Also upgrade if the incoming confidence score is meaningfully higher.
+  const existingConfidence = Number.parseFloat(existing.confidenceScore ?? "0");
+  const incomingConfidence = Number.parseFloat(incoming.confidenceScore);
+
+  if (existing.eventType === "otro" && incoming.classification.eventType !== "otro") {
+    updates.eventType = incoming.classification.eventType;
+    if (incoming.classification.musicGenre) {
+      updates.musicGenre = incoming.classification.musicGenre;
+    }
+  }
+
+  // ── confidenceScore: update when the incoming score is higher ────────────
+  if (incomingConfidence > existingConfidence) {
+    updates.confidenceScore = incoming.confidenceScore;
   }
 
   if (Object.keys(updates).length === 0) return;
