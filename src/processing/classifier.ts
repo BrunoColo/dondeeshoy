@@ -297,6 +297,25 @@ const REJECT_PATTERNS = [
   // Generic placeholder / test entries
   /\bevento\s+de\s+prueba\b/i,
   /\btest\s+event\b/i,
+  // Restaurant / food service packages (not public events)
+  // e.g. "Almuerzo Buffet para 2 personas", "Cena romántica para 2"
+  /\b(almuerzo|cena|desayuno)\s+(buffet|romántic[oa]|para\s+\d+\s+personas?)\b/i,
+  /\bbuffet\s+para\s+\d+\s+personas?\b/i,
+  /\bmen[uú]\s+para\s+\d+\s+personas?\b/i,
+  // Private celebration packages sold as tickets (not public events)
+  // e.g. "Celebración de 15 años", "Quinceañera"
+  // Note: "Celebración de 15 años" is a private party package, not a public event
+  /\bcelebraci[oó]n\s+de\s+(15|quince)\s+a[nñ]os?\b/i,
+  /\bquincea[nñ]era\b/i,
+  // "Band x Venue - Edición Especial" promotional format — not a real ticketed event listing
+  // e.g. "CERRO LARGO x THE LA PLANTA - Edición Especial"
+  // These are artist/venue cross-promotion promotional posts, not standalone ticketed events
+  /\bx\s+(?:the\s+)?(?:la\s+planta|music\s+box|antel\s+arena|sala\s+zitarrosa)\b.*\b(edici[oó]n\s+especial|collab|colaboraci[oó]n)\b/i,
+  // Gift vouchers / experience packages (not events)
+  /\bvoucher\s+de\s+(experiencia|regalo|cena|almuerzo)\b/i,
+  /\btarjeta\s+de\s+regalo\b/i,
+  /\bexperiencia\s+para\s+\d+\s+personas?\b/i,
+  /\bregalo\s+para\s+(dos|2|pareja|ella|[eé]l)\b/i,
 ];
 
 /**
