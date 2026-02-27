@@ -109,7 +109,7 @@ export function AnimatedStat({ value, label }: { value: number; label: string })
     <div
       className="flex flex-col items-center gap-1 rounded-lg py-3 px-2"
       style={{
-        backgroundColor: "#111A1C",
+        backgroundColor: "#111120",
         border: "1px solid rgba(255,255,255,0.09)",
       }}
     >

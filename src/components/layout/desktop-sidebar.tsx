@@ -31,7 +31,7 @@ import {
 
 // Shared card style — solid dark background, subtle border
 const cardStyle: React.CSSProperties = {
-  backgroundColor: "#0D1519",
+  backgroundColor: "#0D0D1A",
   border: "1px solid rgba(255,255,255,0.09)",
   borderRadius: "12px",
   padding: "16px",
@@ -173,7 +173,7 @@ export async function DesktopSidebar() {
         {/* ── PUBLICITAR TU EVENTO ── */}
         <div
           style={{
-            backgroundColor: "#0D1519",
+            backgroundColor: "#0D0D1A",
             border: "1px solid rgba(13,148,136,0.25)",
             borderLeft: "3px solid #0D9488",
             borderRadius: "12px",

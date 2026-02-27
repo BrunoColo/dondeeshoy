@@ -111,8 +111,8 @@ export function EventFilters({
           className={cn(
             "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
             activeFree
-              ? "bg-emerald-500/25 border-emerald-500/50 text-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.2)] ring-1 ring-emerald-400/35"
-              : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400/70 hover:border-emerald-500/30",
+              ? "bg-amber-500/25 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/35"
+              : "bg-amber-500/10 border-amber-500/20 text-amber-400/70 hover:border-amber-500/30",
           )}
         >
           {activeFree && <Check className="h-3 w-3" strokeWidth={2.8} />}

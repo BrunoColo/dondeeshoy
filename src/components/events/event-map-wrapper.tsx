@@ -453,7 +453,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
       {/* ── Sidebar (desktop only) ── */}
       <aside className="hidden lg:flex flex-col w-[340px] xl:w-[380px] shrink-0 overflow-hidden relative"
         style={{
-          background: "linear-gradient(180deg, #0D1519 0%, #0A1214 100%)",
+          background: "linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)",
           borderRight: "1px solid rgba(13, 148, 136, 0.15)",
           boxShadow: "inset -1px 0 0 rgba(255,255,255,0.04), 4px 0 24px rgba(0,0,0,0.4)",
         }}
@@ -533,7 +533,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         {/* Mobile list view */}
         {mobileView === "list" && (
           <div className="lg:hidden flex flex-col h-full overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #0D1519 0%, #0A1214 100%)" }}
+            style={{ background: "linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)" }}
           >
             {/* Offset for toggle bar */}
             <div className="h-[36px] shrink-0" />

@@ -97,7 +97,7 @@ export function ShareButton({
         {/* Dropdown for icon variant (shown when no native share) */}
         {open && (
           <div
-            className="absolute right-0 bottom-10 z-50 min-w-[160px] rounded-xl border border-white/[0.1] bg-[#0D1519]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+            className="absolute right-0 bottom-10 z-50 min-w-[160px] rounded-xl border border-white/[0.1] bg-[#0D0D1A]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
             onClick={(e) => { if (stopPropagation) { e.preventDefault(); e.stopPropagation(); } }}
           >
             <button
@@ -148,7 +148,7 @@ export function ShareButton({
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-10 z-50 min-w-[180px] rounded-xl border border-white/[0.1] bg-[#0D1519]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="absolute left-0 bottom-10 z-50 min-w-[180px] rounded-xl border border-white/[0.1] bg-[#0D0D1A]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           <button
             type="button"
             onClick={handleWhatsapp}

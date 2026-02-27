@@ -60,7 +60,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     <>
       {/* Hero tagline */}
       <section className="pt-4 pb-2 fade-up">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-accent-light/80">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light/80">
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
@@ -91,9 +91,9 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           </div>
 
 {allEvents.length > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 whitespace-nowrap">
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/[0.12] px-3 py-1.5 whitespace-nowrap">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
-              <span className="text-[11px] font-bold text-emerald-400">
+              <span className="text-[11px] font-bold text-white/80">
                 {events.length > 0 ? (
                   <>
                     {events.length} {events.length === 1 ? "evento" : "eventos"}

@@ -3,14 +3,14 @@
 
 /* ─── Design Tokens ─── */
 :root {
-  /* Backgrounds */
-  --bg-deep: #080C0E;
-  --bg-surface: #0D1214;
-  --bg-elevated: #141C1F;
+  /* Backgrounds — charcoal neutro, sin tinte verde */
+  --bg-deep: #080810;
+  --bg-surface: #0D0D18;
+  --bg-elevated: #141420;
   --bg-card: rgba(255, 255, 255, 0.06);
   --bg-card-hover: rgba(255, 255, 255, 0.10);
   --border-subtle: rgba(255, 255, 255, 0.12);
-  --border-glow: rgba(13, 148, 136, 0.30);
+  --border-glow: rgba(99, 102, 241, 0.30);
 
   /* Accent Palette — Teal/Jade primary */
   --accent: #0D9488;
@@ -149,17 +149,17 @@ body::after {
   opacity: 1;
   background: radial-gradient(
     ellipse at 20% 15%,
-    rgba(13, 148, 136, 0.22) 0%,
+    rgba(13, 148, 136, 0.20) 0%,
     transparent 50%
   ),
   radial-gradient(
     ellipse at 78% 20%,
-    rgba(99, 102, 241, 0.20) 0%,
+    rgba(99, 102, 241, 0.22) 0%,
     transparent 45%
   ),
   radial-gradient(
     ellipse at 50% 45%,
-    rgba(6, 78, 59, 0.12) 0%,
+    rgba(79, 70, 229, 0.10) 0%,
     transparent 50%
   );
   filter: blur(80px);
@@ -295,19 +295,19 @@ body::after {
 
 /* ─── Glass nav ─── */
 .glass-nav {
-  background: rgba(8, 12, 14, 0.88);
+  background: rgba(8, 8, 16, 0.90);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-top: 1px solid rgba(13, 148, 136, 0.18);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(99, 102, 241, 0.15);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .glass-header {
-  background: rgba(8, 12, 14, 0.80);
+  background: rgba(8, 8, 16, 0.82);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(13, 148, 136, 0.15);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Pulse animation ─── */

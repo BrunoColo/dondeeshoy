@@ -210,7 +210,7 @@ export function EventCard({
                 "text-[13px] font-semibold",
                 price
                   ? isFree
-                    ? "text-neon-green"
+                    ? "text-accent-light"
                     : "text-foreground"
                   : ticketUrl
                     ? "text-amber-400"

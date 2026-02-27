@@ -151,12 +151,12 @@ export function EventDetail({ event }: EventDetailProps) {
               <div className="flex items-start gap-3.5">
                 <div className={cn(
                   "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                  event.isFree ? "bg-neon-green/10" : "bg-neon-amber/10",
+                  event.isFree ? "bg-accent/10" : "bg-neon-amber/10",
                 )}>
                   <Ticket
                     className={cn(
                       "h-5 w-5",
-                      event.isFree ? "text-neon-green" : "text-neon-amber",
+                      event.isFree ? "text-accent-light" : "text-neon-amber",
                     )}
                     strokeWidth={1.8}
                   />
@@ -164,7 +164,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 <div>
                   <p className={cn(
                     "text-sm font-semibold",
-                    event.isFree ? "text-neon-green" : "text-foreground",
+                    event.isFree ? "text-accent-light" : "text-foreground",
                   )}>
                     {price}
                   </p>
