@@ -149,20 +149,20 @@ body::after {
   opacity: 1;
   background: radial-gradient(
     ellipse at 20% 15%,
-    rgba(13, 148, 136, 0.20) 0%,
+    rgba(13, 148, 136, 0.28) 0%,
     transparent 50%
   ),
   radial-gradient(
     ellipse at 78% 20%,
-    rgba(99, 102, 241, 0.22) 0%,
+    rgba(99, 102, 241, 0.30) 0%,
     transparent 45%
   ),
   radial-gradient(
     ellipse at 50% 45%,
-    rgba(79, 70, 229, 0.10) 0%,
+    rgba(79, 70, 229, 0.14) 0%,
     transparent 50%
   );
-  filter: blur(80px);
+  filter: blur(75px);
   animation: ambient-drift 20s ease-in-out infinite alternate;
 }
 
@@ -180,26 +180,26 @@ body::after {
   inset: -25%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.28;
-  filter: blur(70px) saturate(130%);
+  opacity: 0.35;
+  filter: blur(65px) saturate(135%);
   will-change: transform;
   transform-origin: center;
   background:
-    radial-gradient(circle at 18% 28%, rgba(13, 148, 136, 0.85) 0%, transparent 45%),
-    radial-gradient(circle at 78% 22%, rgba(99, 102, 241, 0.70) 0%, transparent 42%),
-    radial-gradient(circle at 62% 76%, rgba(13, 148, 136, 0.50) 0%, transparent 44%);
+    radial-gradient(circle at 18% 28%, rgba(13, 148, 136, 0.90) 0%, transparent 45%),
+    radial-gradient(circle at 78% 22%, rgba(99, 102, 241, 0.80) 0%, transparent 42%),
+    radial-gradient(circle at 62% 76%, rgba(13, 148, 136, 0.55) 0%, transparent 44%);
 }
 
 .neon-web-bg--alt,
 .ambient-bg--alt {
-  opacity: 0.22;
-  filter: blur(88px) saturate(120%);
+  opacity: 0.28;
+  filter: blur(80px) saturate(125%);
   mix-blend-mode: normal;
   transform-origin: center;
   background:
-    radial-gradient(circle at 22% 68%, rgba(99, 102, 241, 0.60) 0%, transparent 42%),
-    radial-gradient(circle at 84% 58%, rgba(20, 83, 45, 0.55) 0%, transparent 40%),
-    radial-gradient(circle at 52% 12%, rgba(13, 148, 136, 0.55) 0%, transparent 46%);
+    radial-gradient(circle at 22% 68%, rgba(99, 102, 241, 0.70) 0%, transparent 42%),
+    radial-gradient(circle at 84% 58%, rgba(20, 83, 45, 0.60) 0%, transparent 40%),
+    radial-gradient(circle at 52% 12%, rgba(13, 148, 136, 0.65) 0%, transparent 46%);
 }
 
 /* ─── Scrollbar hide utility ─── */
@@ -678,14 +678,14 @@ body::after {
 
   .neon-web-bg,
   .ambient-bg {
-    filter: blur(48px) saturate(120%);
-    opacity: 0.20;
+    filter: blur(48px) saturate(125%);
+    opacity: 0.25;
   }
 
   .neon-web-bg--alt,
   .ambient-bg--alt {
-    filter: blur(60px) saturate(110%);
-    opacity: 0.16;
+    filter: blur(60px) saturate(115%);
+    opacity: 0.20;
   }
 }
 
