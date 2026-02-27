@@ -208,11 +208,15 @@ async function processRawEvent(
   const rawData = rawEvent.rawData as Record<string, unknown>;
   const category = typeof rawData.category === "string" ? rawData.category : null;
   const genre = typeof rawData.genre === "string" ? rawData.genre : null;
+  // dateText may contain schedule info like "lunes a viernes" or "sábados y domingos"
+  // that is critical for recurrence detection but not stored in NormalizedEventInput.
+  const dateText = typeof rawData.dateText === "string" ? rawData.dateText : null;
 
   const heuristic = classifyEvent(enriched, {
     source: rawEvent.source,
     category,
     genre,
+    dateText,
   });
   let classification = {
     eventType: heuristic.eventType,

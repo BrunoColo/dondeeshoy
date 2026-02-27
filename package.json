@@ -9,6 +9,7 @@
     "lint": "eslint",
     "rescrape:targeted": "node scripts/rescrape-targeted.mjs",
     "fix:recurring": "node scripts/fix-recurring-events.mjs",
+    "fix:familiar": "node scripts/fix-familiar-misclassified.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

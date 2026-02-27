@@ -15,6 +15,8 @@ export interface ClassificationContext {
   source?: string;
   category?: string | null;
   genre?: string | null;
+  /** Raw dateText from the scraper — used for recurrence detection */
+  dateText?: string | null;
 }
 
 /* ─── Source category → EventType direct mapping ───
@@ -320,11 +322,14 @@ const REJECT_PATTERNS = [
 
 /**
  * Detect if the event is likely a recurring activity rather than a one-time event.
+ * @param normalized - The normalized event input (name + description are checked)
+ * @param extraText - Additional text to check (e.g. rawData.dateText from the scraper)
  */
-export function detectRecurrence(normalized: NormalizedEventInput): boolean {
-  // scheduleText was removed from NormalizedEventInput (it was never persisted).
-  // Recurrence patterns appear in the event name or description when present.
-  const text = `${normalized.name} ${normalized.description ?? ""}`;
+export function detectRecurrence(normalized: NormalizedEventInput, extraText?: string | null): boolean {
+  // Check name, description, AND any extra text (e.g. dateText from the scraper).
+  // Many scrapers put the schedule ("lunes a viernes", "sábados y domingos") in
+  // the dateText field which is NOT part of NormalizedEventInput.
+  const text = `${normalized.name} ${normalized.description ?? ""} ${extraText ?? ""}`;
 
   // Only flag as recurring when explicit year-round schedule patterns are found
   return RECURRENCE_PATTERNS.some((p) => p.test(text));
@@ -400,6 +405,19 @@ function inferTypeFromMetadata(context?: ClassificationContext): EventType | nul
   return match?.type ?? null;
 }
 
+/**
+ * High-priority types that should override a source category when the text
+ * strongly signals them. These are types where the source category is often
+ * wrong (e.g. a venue with a restaurant gets tagged "Gastronomía" even though
+ * the event itself is a trampoline park or adventure park).
+ */
+const SOURCE_CATEGORY_OVERRIDE_TYPES = new Set<EventType>([
+  "familiar",
+  "deportivo",
+  "teatro",
+  "festival",
+]);
+
 export function classifyEvent(normalized: NormalizedEventInput, context?: ClassificationContext): ClassificationResult {
   const text = `${normalized.name} ${normalized.description ?? ""} ${normalized.venueName}`;
 
@@ -408,23 +426,39 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     .map((rule) => rule.type);
 
   const musicGenre = GENRE_RULES.find((rule) => rule.regex.test(text))?.genre ?? null;
-  const isRecurring = detectRecurrence(normalized);
+  // Pass dateText so schedule patterns like "lunes a viernes" or "sábados y domingos"
+  // in the scraper's dateText field are also considered for recurrence detection.
+  const isRecurring = detectRecurrence(normalized, context?.dateText);
 
   // ── 1. Source category: trust the scraper's own classification first ──
+  // Exception: if the text heuristics strongly indicate a high-priority type
+  // (e.g. "familiar" for a trampoline park), that overrides the source category.
+  // This prevents venues with food/restaurant areas from being tagged "gastronomico"
+  // when the actual event is a family/adventure activity.
   const sourceMapped = mapSourceCategory(context?.category);
   if (sourceMapped && sourceMapped !== "otro") {
-    // Still apply late-night reclassification for edge cases
-    let finalType = sourceMapped;
-    if (shouldReclassifyAsFiesta(finalType, normalized.startTime)) {
-      finalType = "fiesta";
+    // Check if text heuristics strongly indicate a different high-priority type
+    const strongTextType = matchedTypes[0];
+    const textOverridesSource =
+      strongTextType !== undefined &&
+      SOURCE_CATEGORY_OVERRIDE_TYPES.has(strongTextType) &&
+      strongTextType !== sourceMapped;
+
+    if (!textOverridesSource) {
+      // Still apply late-night reclassification for edge cases
+      let finalType = sourceMapped;
+      if (shouldReclassifyAsFiesta(finalType, normalized.startTime)) {
+        finalType = "fiesta";
+      }
+      return {
+        eventType: finalType,
+        musicGenre,
+        matchedTypes,
+        isRecurring,
+        fromSourceCategory: true,
+      };
     }
-    return {
-      eventType: finalType,
-      musicGenre,
-      matchedTypes,
-      isRecurring,
-      fromSourceCategory: true,
-    };
+    // Fall through to text heuristics — source category is overridden
   }
 
   // ── 2. Text heuristics (regex rules on name + description + venue) ──
