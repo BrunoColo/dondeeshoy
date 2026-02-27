@@ -93,8 +93,21 @@ export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxL
   // Bounding boxes for each Uruguay department.
   // Boundaries are set to avoid overlaps between adjacent departments,
   // using rivers/roads as natural boundaries where possible.
-  "Montevideo":    { minLat: -34.950, maxLat: -34.705, minLng: -56.410, maxLng: -56.005 },
-  "Canelones":     { minLat: -34.895, maxLat: -34.080, minLng: -56.530, maxLng: -55.340 },
+  //
+  // IMPORTANT: Montevideo is a small department fully surrounded by Canelones.
+  // The Montevideo box must be checked FIRST (it is, in detectDepartmentFromCoordinates)
+  // and the Canelones box deliberately excludes the Montevideo area to prevent
+  // false positives (e.g. venues in Montevideo being classified as Canelones).
+  //
+  // Montevideo real boundaries (approx):
+  //   Lat: -34.950 (south coast) to -34.705 (north border with Canelones)
+  //   Lng: -56.410 (west, Río Santa Lucía area) to -56.005 (east, Punta Carretas)
+  "Montevideo":    { minLat: -34.950, maxLat: -34.700, minLng: -56.415, maxLng: -56.000 },
+  // Canelones surrounds Montevideo on the north/east/west.
+  // The southern boundary is set NORTH of Montevideo's northern boundary to avoid overlap.
+  // minLng is set to match Montevideo's western boundary so western Canelones towns
+  // (e.g. Ciudad de la Costa, Solymar) are included but Montevideo venues are not.
+  "Canelones":     { minLat: -34.700, maxLat: -34.080, minLng: -56.530, maxLng: -55.340 },
   "Maldonado":     { minLat: -35.030, maxLat: -34.170, minLng: -55.460, maxLng: -54.500 },
   "Colonia":       { minLat: -34.520, maxLat: -33.780, minLng: -58.450, maxLng: -57.020 },
   "San José":      { minLat: -34.620, maxLat: -33.770, minLng: -57.120, maxLng: -56.090 },
