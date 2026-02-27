@@ -435,14 +435,14 @@ Si un evento falla, el pipeline registra el error en `processingError` y continu
 | 4 | TicketFacil: `isFreeText` no coincide con `isFree` en normalizador | Eventos gratuitos no detectados | ~200-400 eventos/ciclo | **Alta** | ✅ Corregido |
 | 5 | Pipeline `batchSize=50` con un solo cron diario | 500+ pendientes → demora días en procesar | Todo el sistema | **Alta** | ✅ Corregido |
 | 6 | `deduplicator`: sin limit en query de candidatos | Escala mal con volumen alto | Todo el sistema | **Media** | ✅ Corregido |
-| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** | Pendiente |
-| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** | Pendiente |
+| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** | ✅ Corregido |
+| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** | ✅ Corregido |
 | 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** | Pendiente |
-| 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** | Pendiente |
-| 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** | Pendiente |
+| 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** | ✅ Corregido |
+| 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** | ✅ Corregido |
 | 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** | Pendiente |
 | 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** | Pendiente |
-| 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** | Pendiente |
+| 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** | ✅ Corregido |
 
 ---
 
@@ -481,36 +481,20 @@ Hay que ser justo: el sistema tiene partes bien diseñadas.
 
 `/api/scrape/process/route.ts` ahora tiene `maxDuration = 300` y un drain loop que procesa batches hasta que `pending === 0` o se acerca al timeout (270s). `runProcessingPipeline` ahora retorna el conteo real de eventos restantes en `result.pending`.
 
-**4. `mergeEventData`: proteger fecha existente si viene de fuente más confiable**
+**4. `mergeEventData`: proteger fecha existente si viene de fuente más confiable** ✅ *Implementado — commit 8eab296*
 
-Agregar un campo de "source trust" o al menos no sobreescribir si la fecha actual viene de CobraTicket/RedTickets (ISO preciso) y la nueva viene de una fuente con texto libre:
+`mergeEventData` recibe ahora `incoming.source`. Solo `TRUSTED_DATE_SOURCES` (`cobraticket`, `redtickets`, `ticketfacil`, `mientrada`) pueden sobreescribir una fecha existente cuando difieren. Fuentes de texto libre (MVD Eventos, Cartelera, Entraste) nunca pisan una fecha ya guardada.
 
-```typescript
-// Solo actualizar fecha si la nueva es válida Y la existente no vino de una fuente ISO
-if (normalized.date && existingDateStr !== newDateStr) {
-  // Fuentes con fecha ISO estricta tienen prioridad
-  const trustedSources = new Set(["cobraticket", "redtickets", "ticketfacil"]);
-  if (!trustedSources.has(existingEventSource) || trustedSources.has(incomingSource)) {
-    updates.date = normalized.date;
-  }
-}
-```
+**5. `mergeEventData`: actualizar `eventType` y `confidenceScore` cuando la nueva fuente tiene mayor confianza** ✅ *Implementado — commit 8eab296*
 
-**5. `mergeEventData`: actualizar `eventType` y `confidenceScore` cuando la nueva fuente tiene mayor confianza**
+- Si el evento existente tiene `eventType = "otro"` y el nuevo tiene un tipo específico, se actualiza.
+- `confidenceScore` se actualiza siempre que el nuevo sea mayor al existente.
 
-```typescript
-if (normalized.confidenceScore > existing.confidenceScore) {
-  updates.confidenceScore = normalized.confidenceScore;
-  // También actualizar tipo si el nuevo viene de fuente confiable y tiene categoría
-  if (incomingClassification.fromSourceCategory) {
-    updates.eventType = incomingClassification.eventType;
-  }
-}
-```
+### Prioridad media (mejoras de calidad y robustez)
 
-**6. KNOWN_VENUES: eliminar o hacer más restrictivos los keys genéricos**
+**6. KNOWN_VENUES: eliminar o hacer más restrictivos los keys genéricos** ✅ *Implementado — commit 8eab296*
 
-Eliminar entradas como `["espacio cultural"]` que son demasiado genéricas. Reemplazar con nombres completos específicos.
+Eliminada la entrada `["espacio cultural"]`.
 
 **7. Deduplicador: agregar `.limit()` a la query de candidatos** ✅ *Implementado — commit 94f38e6*
 
@@ -526,17 +510,17 @@ CobraTicket expone precios en `https://app.cobraticket.uy/api/v1/events/{id}/tic
 
 TicketFacil provee venue name y address. El pipeline ya llama a `geocodeVenue()`, que busca en KNOWN_VENUES y luego en Mapbox. El problema es que KNOWN_VENUES es insuficiente para muchos venues de TicketFacil. La solución es expandir KNOWN_VENUES con los venues más frecuentes de TicketFacil, extrayéndolos de los datos históricos.
 
-**10. Cartelera: sacar `saveExtra()` y usar `BaseScraper.saveRawEvent()` directamente**
+**10. Cartelera: sacar `saveExtra()` y usar `BaseScraper.saveRawEvent()` directamente** ✅ *Implementado — commit 8eab296*
 
-Hacer `saveRawEvent` protegido (`protected`) en BaseScraper en lugar de `private`, y llamarlo directamente desde `CarteleraScraper.run()` en lugar de duplicar la query.
+`saveRawEvent` es ahora `protected` en BaseScraper. `CarteleraScraper.run()` lo llama directamente; `saveExtra()` eliminado.
 
 **11. `normalizer.ts`: leer `scheduleText` no es suficiente, se necesita una columna en el schema**
 
 O agregar la columna `schedule_text text` a la tabla `events` y al INSERT de `createEvent()`, o eliminar el campo de `NormalizedEventInput` para no generar confusión.
 
-**12. MVD Eventos: mejorar `extractDates()` para no leer `$.text()` completo**
+**12. MVD Eventos: mejorar `extractDates()` para no leer `$.text()` completo** ✅ *Implementado — commit 8eab296*
 
-Limitar la extracción de fechas al contenido del article/main, no al `$.root()`.
+`extractDates()` ahora busca dentro de `article, main, .node__content, #content` primero. Solo cae a `body` si no encuentra contenedor principal.
 
 **13. Entraste: agregar discovery de más páginas**
 
@@ -549,19 +533,13 @@ for (const section of sections) {
 }
 ```
 
-**14. Clasificador: hacer la reclasificación nocturna condicional**
+**14. Clasificador: hacer la reclasificación nocturna condicional** ✅ *Implementado — commit 8eab296*
 
-```typescript
-// Solo reclasificar si no es teatro ni deportivo (que pueden tener funciones nocturnas)
-const nocturnoExceptions = new Set<EventType>(["teatro", "deportivo", "cultural"]);
-if (!nocturnoExceptions.has(eventType) && shouldReclassifyAsFiesta(eventType, normalized.startTime)) {
-  eventType = "fiesta";
-}
-```
+`LATE_NIGHT_RECLASSIFY_EXCEPTIONS` excluye `teatro`, `deportivo`, `cultural` y `festival` de la reclasificación nocturna automática.
 
 ### Prioridad baja (deuda técnica)
 
-**15. Eliminar `_MONTHS` muerto en `mvd-eventos.ts`**
+**15. Eliminar `_MONTHS` muerto en `mvd-eventos.ts`** ✅ *Implementado — commit 8eab296*
 
 **16. Documentar el campo `city` como "departamento", no ciudad**
 
