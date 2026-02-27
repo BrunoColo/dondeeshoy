@@ -437,11 +437,11 @@ Si un evento falla, el pipeline registra el error en `processingError` y continu
 | 6 | `deduplicator`: sin limit en query de candidatos | Escala mal con volumen alto | Todo el sistema | **Media** | ✅ Corregido |
 | 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | Fechas correctas pueden quedar incorrectas | Eventos duplicados entre fuentes | **Media** | ✅ Corregido |
 | 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | Primer scraper gana permanentemente | Eventos duplicados entre fuentes | **Media** | ✅ Corregido |
-| 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** | Pendiente |
+| 9 | CobraTicket usa `new Function()` sobre JS embebido | Fragilidad ante cambios de SvelteKit | CobraTicket DOM fallback silencioso | **Media** | ✅ Corregido |
 | 10 | KNOWN_VENUES: "espacio cultural" como clave demasiado genérica | Coordenadas incorrectas | Venues con esa substring | **Media** | ✅ Corregido |
 | 11 | Cartelera `saveExtra()` duplica lógica de `saveRawEvent()` | Desincronización si cambia el schema | Cartelera multi-fecha | **Baja** | ✅ Corregido |
-| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** | Pendiente |
-| 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** | Pendiente |
+| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | Datos calculados perdidos | Todo el sistema | **Baja** | ✅ Corregido |
+| 13 | REJECT_PATTERN `/\benv[ií]os?\b/` demasiado amplio | Falsos rechazos | Eventos con "envío" en descripción | **Baja** | ✅ Corregido |
 | 14 | `confidenceScore` no se actualiza en merge | Score desactualizado | Eventos mergeados | **Baja** | ✅ Corregido |
 
 ---
@@ -506,6 +506,10 @@ Ambas queries en `deduplicator.ts` tienen `.limit(300)` ahora.
 
 CobraTicket expone precios en `https://app.cobraticket.uy/api/v1/events/{id}/tickets` o similar. Scrapear esa endpoint (si es accesible públicamente) daría precios estructurados en lugar de parseo de texto.
 
+**9. CobraTicket: `new Function()` sobre JS embebido** ✅ *Implementado — commit 3f0aff0*
+
+`extractSvelteKitProps` ahora tiene 3 estrategias en cascada: JSON puro (`<script type="application/json">`) → `new Function()` → DOM. Cada fallo logea su causa explícitamente. El caso más común (SvelteKit ≥2) ya no requiere eval.
+
 **9. TicketFacil: agregar coordenadas vía venue geocoding**
 
 TicketFacil provee venue name y address. El pipeline ya llama a `geocodeVenue()`, que busca en KNOWN_VENUES y luego en Mapbox. El problema es que KNOWN_VENUES es insuficiente para muchos venues de TicketFacil. La solución es expandir KNOWN_VENUES con los venues más frecuentes de TicketFacil, extrayéndolos de los datos históricos.
@@ -514,24 +518,21 @@ TicketFacil provee venue name y address. El pipeline ya llama a `geocodeVenue()`
 
 `saveRawEvent` es ahora `protected` en BaseScraper. `CarteleraScraper.run()` lo llama directamente; `saveExtra()` eliminado.
 
-**11. `normalizer.ts`: leer `scheduleText` no es suficiente, se necesita una columna en el schema**
+**11. `normalizer.ts`: `scheduleText` eliminado de `NormalizedEventInput`** ✅ *Implementado — commit 3f0aff0*
 
-O agregar la columna `schedule_text text` a la tabla `events` y al INSERT de `createEvent()`, o eliminar el campo de `NormalizedEventInput` para no generar confusión.
+Campo eliminado de la interfaz y del retorno del normalizador. `detectRecurrence()` usa `name + description` directamente.
 
 **12. MVD Eventos: mejorar `extractDates()` para no leer `$.text()` completo** ✅ *Implementado — commit 8eab296*
 
 `extractDates()` ahora busca dentro de `article, main, .node__content, #content` primero. Solo cae a `body` si no encuentra contenedor principal.
 
-**13. Entraste: agregar discovery de más páginas**
+**13. REJECT_PATTERN `envíos` acotado** ✅ *Implementado — commit 3f0aff0*
 
-```typescript
-// Además de la homepage, scrapear páginas de categoría o "ver todos"
-const sections = ["/", "/eventos"];
-for (const section of sections) {
-  const html = await fetchHtml(`${entrasteBaseUrl}${section}`);
-  // ...
-}
-```
+Reemplazado `/env[ií]os?/i` por dos patrones que requieren contexto de shipping real: `envíos gratis/a domicilio/express` y `envíos a todo el país`.
+
+**14. Entraste: agregar discovery de más páginas**
+
+Ver sección §1.7 del análisis.
 
 **14. Clasificador: hacer la reclasificación nocturna condicional** ✅ *Implementado — commit 8eab296*
 
