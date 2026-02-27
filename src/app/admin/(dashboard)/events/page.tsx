@@ -42,6 +42,16 @@ type RejectedEvent = {
   processingError: string;
 };
 
+type BannedEvent = {
+  id: string;
+  normalizedName: string;
+  originalName: string;
+  source: string | null;
+  sourceId: string | null;
+  reason: string | null;
+  bannedAt: string;
+};
+
 const EVENT_TYPES = [
   "fiesta",
   "festival",
@@ -84,8 +94,16 @@ export default function EventsPage() {
   const [rejectedTotalPages, setRejectedTotalPages] = useState(1);
   const [rejectedTotal, setRejectedTotal] = useState(0);
 
+  // Banned events
+  const [bannedEvents, setBannedEvents] = useState<BannedEvent[]>([]);
+  const [bannedLoading, setBannedLoading] = useState(false);
+  const [bannedPage, setBannedPage] = useState(1);
+  const [bannedTotalPages, setBannedTotalPages] = useState(1);
+  const [bannedTotal, setBannedTotal] = useState(0);
+  const [unbanning, setUnbanning] = useState<string | null>(null);
+
   // Tab state
-  const [activeTab, setActiveTab] = useState<"events" | "rejected">("events");
+  const [activeTab, setActiveTab] = useState<"events" | "rejected" | "banned">("events");
 
   useEffect(() => {
     loadEvents();
@@ -95,7 +113,10 @@ export default function EventsPage() {
     if (activeTab === "rejected") {
       loadRejectedEvents();
     }
-  }, [activeTab, rejectedPage]);
+    if (activeTab === "banned") {
+      loadBannedEvents();
+    }
+  }, [activeTab, rejectedPage, bannedPage]);
 
   useEffect(() => {
     if (debounceTimeout) {
@@ -157,6 +178,48 @@ export default function EventsPage() {
     }
   }
 
+  async function loadBannedEvents() {
+    setBannedLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", bannedPage.toString());
+      params.set("limit", "50");
+
+      const res = await fetch(`/api/admin/banned?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBannedEvents(data.items || []);
+        setBannedTotalPages(data.totalPages);
+        setBannedTotal(data.total);
+      }
+    } catch (error) {
+      console.error("Failed to load banned events:", error);
+    } finally {
+      setBannedLoading(false);
+    }
+  }
+
+  async function handleUnban(id: string) {
+    if (!confirm("¿Desbanear este evento? Podrá volver a aparecer en el sitio si es scrapeado de nuevo.")) {
+      return;
+    }
+    setUnbanning(id);
+    try {
+      const res = await fetch(`/api/admin/banned/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setBannedEvents(bannedEvents.filter(e => e.id !== id));
+        setBannedTotal(t => t - 1);
+      } else {
+        alert("Error al desbanear");
+      }
+    } catch (error) {
+      console.error("Failed to unban:", error);
+      alert("Error al desbanear");
+    } finally {
+      setUnbanning(null);
+    }
+  }
+
   function handleEdit(event: Event) {
     setSelectedEvent(event);
     setEditForm({
@@ -212,7 +275,7 @@ export default function EventsPage() {
   async function handleDelete() {
     if (!selectedEvent) return;
     
-    if (!confirm(`¿Estás seguro de eliminar "${selectedEvent.name}"? Esta acción no se puede deshacer.`)) {
+    if (!confirm(`¿Eliminar y BANEAR "${selectedEvent.name}"?\n\nEl evento será eliminado y baneado: no volverá a aparecer aunque sea scrapeado de nuevo.\n\nPodés desbanearlo desde la pestaña "Baneados" si cambiás de opinión.`)) {
       return;
     }
     
@@ -267,6 +330,16 @@ export default function EventsPage() {
           }`}
         >
           Rechazados ({rejectedTotal})
+        </button>
+        <button
+          onClick={() => setActiveTab("banned")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "banned"
+              ? "text-zinc-100 border-b-2 border-zinc-100"
+              : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          🚫 Baneados ({bannedTotal})
         </button>
       </div>
 
@@ -455,6 +528,88 @@ export default function EventsPage() {
               <button
                 onClick={() => setRejectedPage(p => Math.min(rejectedTotalPages, p + 1))}
                 disabled={rejectedPage === rejectedTotalPages}
+                className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* BANNED TAB */}
+      {activeTab === "banned" && (
+        <>
+          <div className="text-sm text-zinc-500 mb-4">
+            {bannedTotal} evento{bannedTotal !== 1 ? "s" : ""} baneado{bannedTotal !== 1 ? "s" : ""} — no volverán a aparecer en el sitio aunque sean scrapeados de nuevo.
+          </div>
+
+          <div className="border border-zinc-800 rounded overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-900 text-zinc-400">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium">Nombre original</th>
+                  <th className="text-left px-4 py-3 font-medium">Fuente</th>
+                  <th className="text-left px-4 py-3 font-medium">Source ID</th>
+                  <th className="text-left px-4 py-3 font-medium">Motivo</th>
+                  <th className="text-left px-4 py-3 font-medium">Baneado</th>
+                  <th className="text-left px-4 py-3 font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {bannedLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                      Cargando...
+                    </td>
+                  </tr>
+                ) : bannedEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                      No hay eventos baneados
+                    </td>
+                  </tr>
+                ) : (
+                  bannedEvents.map((event) => (
+                    <tr key={event.id} className="hover:bg-zinc-900/50 transition-colors">
+                      <td className="px-4 py-3 text-zinc-100 max-w-xs truncate">{event.originalName}</td>
+                      <td className="px-4 py-3 text-zinc-400">{event.source ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs font-mono max-w-[120px] truncate">{event.sourceId ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-400 text-xs max-w-xs truncate">{event.reason ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-400 text-xs">
+                        {new Date(event.bannedAt).toLocaleDateString("es-UY")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleUnban(event.id)}
+                          disabled={unbanning === event.id}
+                          className="text-orange-400 hover:text-orange-300 text-xs underline disabled:opacity-50"
+                        >
+                          {unbanning === event.id ? "..." : "Desbanear"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {bannedTotalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              <button
+                onClick={() => setBannedPage(p => Math.max(1, p - 1))}
+                disabled={bannedPage === 1}
+                className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Anterior
+              </button>
+              <span className="px-3 py-1 text-zinc-500">
+                {bannedPage} / {bannedTotalPages}
+              </span>
+              <button
+                onClick={() => setBannedPage(p => Math.min(bannedTotalPages, p + 1))}
+                disabled={bannedPage === bannedTotalPages}
                 className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Siguiente →
@@ -745,7 +900,7 @@ export default function EventsPage() {
                       disabled={deleting}
                       className="flex-1 py-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors disabled:opacity-50"
                     >
-                      {deleting ? "Eliminando..." : "Eliminar evento"}
+                      {deleting ? "Eliminando..." : "🚫 Eliminar y banear"}
                     </button>
                     <button
                       onClick={() => setIsEditing(true)}

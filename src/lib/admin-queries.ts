@@ -1,7 +1,20 @@
 import { db } from "./db";
-import { events, rawEvents, eventSources } from "./db/schema";
+import { events, rawEvents, eventSources, bannedEvents } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
 import { eq, desc, and, gte, lte, sql, count, like, ilike } from "drizzle-orm";
+
+/**
+ * Normalize an event name for ban matching:
+ * lowercase + strip accents + collapse whitespace.
+ */
+function normalizeBanName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
 
@@ -568,7 +581,129 @@ export async function updateEvent(id: string, data: UpdateEventData) {
   return updated ?? null;
 }
 
-export async function deleteEvent(id: string) {
+export async function deleteEvent(id: string, reason?: string) {
+  // 1. Fetch the event before deleting so we can record the ban
+  const [event] = await db.select().from(events).where(eq(events.id, id));
+
+  if (event) {
+    // 2. Fetch all scraper sources linked to this event
+    const sources = await db
+      .select({
+        source: eventSources.source,
+        rawEventId: eventSources.rawEventId,
+      })
+      .from(eventSources)
+      .where(eq(eventSources.eventId, id));
+
+    // 3. Resolve source IDs from raw_events
+    const sourceRows: Array<{ source: typeof eventSources.$inferSelect["source"]; sourceId: string }> = [];
+    for (const s of sources) {
+      const [raw] = await db
+        .select({ sourceId: rawEvents.sourceId })
+        .from(rawEvents)
+        .where(eq(rawEvents.id, s.rawEventId))
+        .limit(1);
+      if (raw) {
+        sourceRows.push({ source: s.source, sourceId: raw.sourceId });
+      }
+    }
+
+    const normalizedName = normalizeBanName(event.name);
+
+    // 4. Insert one ban row per source (or one generic row if no sources)
+    if (sourceRows.length > 0) {
+      for (const sr of sourceRows) {
+        // Avoid duplicate bans for the same source+sourceId
+        const existing = await db
+          .select({ id: bannedEvents.id })
+          .from(bannedEvents)
+          .where(and(eq(bannedEvents.source, sr.source), eq(bannedEvents.sourceId, sr.sourceId)))
+          .limit(1);
+        if (existing.length === 0) {
+          await db.insert(bannedEvents).values({
+            normalizedName,
+            originalName: event.name,
+            source: sr.source,
+            sourceId: sr.sourceId,
+            reason: reason ?? "Eliminado por administrador",
+          });
+        }
+      }
+    }
+
+    // 5. Always insert a name-based ban (catches future re-scrapes with new IDs)
+    const existingNameBan = await db
+      .select({ id: bannedEvents.id })
+      .from(bannedEvents)
+      .where(eq(bannedEvents.normalizedName, normalizedName))
+      .limit(1);
+    if (existingNameBan.length === 0) {
+      await db.insert(bannedEvents).values({
+        normalizedName,
+        originalName: event.name,
+        source: null,
+        sourceId: null,
+        reason: reason ?? "Eliminado por administrador",
+      });
+    }
+  }
+
+  // 6. Delete the event (cascades to event_sources)
   await db.delete(events).where(eq(events.id, id));
   return { success: true };
+}
+
+// ============= Banned Events =============
+
+export async function getBannedEvents(page: number = 1, limit: number = 50) {
+  const offset = (page - 1) * limit;
+
+  const [total] = await db.select({ count: count() }).from(bannedEvents);
+
+  const items = await db
+    .select()
+    .from(bannedEvents)
+    .orderBy(desc(bannedEvents.bannedAt))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    items,
+    total: total?.count ?? 0,
+    page,
+    limit,
+    totalPages: Math.ceil((total?.count ?? 0) / limit),
+  };
+}
+
+export async function unbanEvent(id: string) {
+  await db.delete(bannedEvents).where(eq(bannedEvents.id, id));
+  return { success: true };
+}
+
+/**
+ * Check if an event name is banned.
+ * Used by the pipeline before creating/merging events.
+ */
+export async function isEventBanned(name: string, source?: string, sourceId?: string): Promise<boolean> {
+  const normalizedName = normalizeBanName(name);
+
+  // Check by source+sourceId first (exact match, fastest)
+  if (source && sourceId) {
+    const bySource = await db
+      .select({ id: bannedEvents.id })
+      .from(bannedEvents)
+      .where(and(eq(bannedEvents.source, source as Source), eq(bannedEvents.sourceId, sourceId)))
+      .limit(1);
+    if (bySource.length > 0) return true;
+  }
+
+  // Check by normalized name
+  const byName = await db
+    .select({ id: bannedEvents.id })
+    .from(bannedEvents)
+    .where(eq(bannedEvents.normalizedName, normalizedName))
+    .limit(1);
+
+  return byName.length > 0;
 }

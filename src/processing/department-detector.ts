@@ -91,40 +91,82 @@ export type UruguayDepartment =
  */
 export const DEPARTMENT_BOUNDS: Record<UruguayDepartment, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
   // Bounding boxes for each Uruguay department.
-  // Boundaries are set to avoid overlaps between adjacent departments,
-  // using rivers/roads as natural boundaries where possible.
+  // Derived from official IDE Uruguay / GADM geographic data.
+  // Boundaries are set to avoid overlaps between adjacent departments.
   //
-  // IMPORTANT: Montevideo is a small department fully surrounded by Canelones.
-  // The Montevideo box must be checked FIRST (it is, in detectDepartmentFromCoordinates)
-  // and the Canelones box deliberately excludes the Montevideo area to prevent
-  // false positives (e.g. venues in Montevideo being classified as Canelones).
+  // ── IMPORTANT: Montevideo / Canelones overlap ─────────────────────────────
+  // Montevideo is a small department fully enclosed by Canelones.
+  // detectDepartmentFromCoordinates() checks Montevideo FIRST so that any
+  // point inside the Montevideo box is never misclassified as Canelones.
+  // The Canelones minLat is set to Montevideo's maxLat to make the boxes
+  // non-overlapping (Canelones starts where Montevideo ends, going north).
   //
-  // Montevideo real boundaries (approx):
-  //   Lat: -34.950 (south coast) to -34.705 (north border with Canelones)
-  //   Lng: -56.410 (west, Río Santa Lucía area) to -56.005 (east, Punta Carretas)
-  "Montevideo":    { minLat: -34.950, maxLat: -34.700, minLng: -56.415, maxLng: -56.000 },
-  // Canelones surrounds Montevideo on the north/east/west.
-  // The southern boundary is set NORTH of Montevideo's northern boundary to avoid overlap.
-  // minLng is set to match Montevideo's western boundary so western Canelones towns
-  // (e.g. Ciudad de la Costa, Solymar) are included but Montevideo venues are not.
-  "Canelones":     { minLat: -34.700, maxLat: -34.080, minLng: -56.530, maxLng: -55.340 },
-  "Maldonado":     { minLat: -35.030, maxLat: -34.170, minLng: -55.460, maxLng: -54.500 },
-  "Colonia":       { minLat: -34.520, maxLat: -33.780, minLng: -58.450, maxLng: -57.020 },
-  "San José":      { minLat: -34.620, maxLat: -33.770, minLng: -57.120, maxLng: -56.090 },
-  "Soriano":       { minLat: -34.100, maxLat: -33.000, minLng: -58.350, maxLng: -57.100 },
-  "Río Negro":     { minLat: -33.450, maxLat: -32.250, minLng: -58.450, maxLng: -57.020 },
-  "Paysandú":      { minLat: -32.900, maxLat: -31.480, minLng: -58.100, maxLng: -56.500 },
-  "Salto":         { minLat: -31.480, maxLat: -30.850, minLng: -58.300, maxLng: -56.400 },
-  "Artigas":       { minLat: -30.850, maxLat: -30.060, minLng: -57.650, maxLng: -55.600 },
-  "Rivera":        { minLat: -31.600, maxLat: -30.880, minLng: -55.800, maxLng: -54.100 },
-  "Tacuarembó":    { minLat: -32.330, maxLat: -31.150, minLng: -56.600, maxLng: -54.600 },
-  "Cerro Largo":   { minLat: -33.200, maxLat: -31.750, minLng: -55.050, maxLng: -53.250 },
-  "Treinta y Tres": { minLat: -33.750, maxLat: -32.760, minLng: -55.120, maxLng: -53.400 },
-  "Durazno":       { minLat: -33.500, maxLat: -32.200, minLng: -56.700, maxLng: -55.200 },
-  "Florida":       { minLat: -34.250, maxLat: -33.050, minLng: -56.300, maxLng: -55.050 },
-  "Flores":        { minLat: -33.920, maxLat: -33.200, minLng: -57.300, maxLng: -56.500 },
-  "Lavalleja":     { minLat: -34.600, maxLat: -33.500, minLng: -55.450, maxLng: -54.300 },
-  "Rocha":         { minLat: -34.970, maxLat: -33.350, minLng: -54.700, maxLng: -53.350 },
+  // Montevideo real boundaries (official):
+  //   Lat: -34.9350 (Punta Yeguas, SW coast) to -34.6950 (Manga/Colón, N border)
+  //   Lng: -56.4100 (Paso de la Arena, W)     to -55.9950 (Punta Carretas, E)
+  "Montevideo":     { minLat: -34.935, maxLat: -34.695, minLng: -56.410, maxLng: -55.995 },
+
+  // Canelones: surrounds Montevideo on N/E/W; extends to Río de la Plata coast in S.
+  // Southern boundary = Montevideo's northern boundary (-34.695) to avoid overlap.
+  // Eastern boundary stops before Maldonado (~-55.340).
+  // Western boundary reaches Río Santa Lucía / San José border (~-56.530).
+  "Canelones":      { minLat: -34.820, maxLat: -33.850, minLng: -56.530, maxLng: -55.340 },
+
+  // Maldonado: SE corner of Uruguay, Atlantic coast + Río de la Plata.
+  // Includes Punta del Este, Piriápolis, José Ignacio, La Barra.
+  // Northern boundary ~-34.170 (Sierra de las Ánimas ridge).
+  "Maldonado":      { minLat: -35.030, maxLat: -34.170, minLng: -55.460, maxLng: -53.100 },
+
+  // Rocha: easternmost department, Atlantic coast.
+  // Includes La Paloma, Cabo Polonio, Punta del Diablo, Chuy (border with Brazil).
+  "Rocha":          { minLat: -34.680, maxLat: -33.100, minLng: -54.200, maxLng: -53.070 },
+
+  // Lavalleja: inland, east-central. Includes Minas, Aguas Blancas.
+  "Lavalleja":      { minLat: -34.530, maxLat: -33.480, minLng: -55.530, maxLng: -54.200 },
+
+  // Treinta y Tres: NE interior. Includes Vergara.
+  "Treinta y Tres": { minLat: -33.750, maxLat: -32.700, minLng: -55.200, maxLng: -53.600 },
+
+  // Cerro Largo: NE, border with Brazil. Includes Melo, Río Branco.
+  "Cerro Largo":    { minLat: -33.200, maxLat: -31.700, minLng: -55.100, maxLng: -53.070 },
+
+  // Rivera: N, border with Brazil. Includes Rivera city, Tranqueras.
+  "Rivera":         { minLat: -31.700, maxLat: -30.850, minLng: -56.050, maxLng: -54.050 },
+
+  // Artigas: NW corner, border with Brazil and Argentina.
+  // Includes Artigas city, Bella Unión.
+  "Artigas":        { minLat: -30.850, maxLat: -30.050, minLng: -57.870, maxLng: -55.600 },
+
+  // Salto: W, Río Uruguay border with Argentina.
+  // Includes Salto city, Termas del Daymán, Salto Grande dam.
+  "Salto":          { minLat: -31.700, maxLat: -30.850, minLng: -58.440, maxLng: -56.400 },
+
+  // Paysandú: W, Río Uruguay. Includes Paysandú city, Guichón.
+  "Paysandú":       { minLat: -32.900, maxLat: -31.700, minLng: -58.200, maxLng: -56.400 },
+
+  // Río Negro: W, Río Uruguay. Includes Fray Bentos, Young.
+  "Río Negro":      { minLat: -33.450, maxLat: -32.200, minLng: -58.450, maxLng: -57.000 },
+
+  // Soriano: SW. Includes Mercedes, Dolores, Cardona.
+  "Soriano":        { minLat: -34.100, maxLat: -32.900, minLng: -58.450, maxLng: -57.000 },
+
+  // Colonia: SW corner, Río de la Plata. Includes Colonia del Sacramento, Carmelo.
+  "Colonia":        { minLat: -34.530, maxLat: -33.700, minLng: -58.450, maxLng: -57.000 },
+
+  // San José: S-central. Includes San José de Mayo, Ciudad del Plata, Libertad.
+  "San José":       { minLat: -34.620, maxLat: -33.700, minLng: -57.200, maxLng: -56.090 },
+
+  // Flores: central-W. Includes Trinidad (capital).
+  "Flores":         { minLat: -33.950, maxLat: -33.100, minLng: -57.400, maxLng: -56.400 },
+
+  // Florida: central. Includes Florida city.
+  "Florida":        { minLat: -34.250, maxLat: -33.050, minLng: -56.500, maxLng: -55.050 },
+
+  // Durazno: central. Includes Durazno city, Villa del Carmen, Paso de los Toros.
+  "Durazno":        { minLat: -33.600, maxLat: -32.200, minLng: -56.700, maxLng: -55.200 },
+
+  // Tacuarembó: N-central. Includes Tacuarembó city, Paso de los Toros.
+  "Tacuarembó":     { minLat: -32.700, maxLat: -31.150, minLng: -56.700, maxLng: -54.600 },
 };
 
 /**

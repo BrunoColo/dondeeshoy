@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
+import { isEventBanned } from "@/lib/admin-queries";
 
 import { classifyEvent, shouldRejectEvent, shouldUseAiClassification } from "./classifier";
 import { findDuplicateEventId } from "./deduplicator";
@@ -149,6 +150,23 @@ async function processRawEvent(
         .set({
           processed: true,
           processingError: rejectReason,
+        })
+        .where(eq(rawEvents.id, rawEvent.id)),
+    );
+    return "skipped";
+  }
+
+  // Check if this event has been banned by an admin (deleted + banned)
+  const banned = await isEventBanned(normalized.name, rawEvent.source, rawEvent.sourceId);
+  if (banned) {
+    const banReason = `[BANNED] Evento eliminado por administrador: "${normalized.name}"`;
+    console.log(`[pipeline] skipping banned raw_event ${rawEvent.id}: ${banReason}`);
+    await withTransientRetry("mark-banned", async () =>
+      db
+        .update(rawEvents)
+        .set({
+          processed: true,
+          processingError: banReason,
         })
         .where(eq(rawEvents.id, rawEvent.id)),
     );
