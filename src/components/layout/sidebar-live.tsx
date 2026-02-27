@@ -54,7 +54,7 @@ export function SidebarLiveClock() {
       <div className="flex items-baseline font-mono">
         <span className="text-2xl font-bold text-white tracking-tight">{hours}</span>
         <span
-          className="text-2xl font-bold text-neon-violet mx-[1px] transition-opacity duration-200"
+          className="text-2xl font-bold text-white/30 mx-[1px] transition-opacity duration-200"
           style={{ opacity: showColon ? 1 : 0.2 }}
         >
           :
@@ -63,8 +63,8 @@ export function SidebarLiveClock() {
       </div>
       {/* Date */}
       <div className="flex flex-col leading-none">
-        <span className="text-[11px] font-semibold text-white/70">{dayName}</span>
-        <span className="text-[10px] text-white/40">{dayNum} de {monthName}</span>
+        <span className="text-[11px] font-semibold text-white/60">{dayName}</span>
+        <span className="text-[10px] text-white/30">{dayNum} de {monthName}</span>
       </div>
     </div>
   );
@@ -107,17 +107,16 @@ export function AnimatedStat({ value, label }: { value: number; label: string })
 
   return (
     <div
-      className="flex flex-col items-center gap-1 rounded-xl py-3 px-2"
+      className="flex flex-col items-center gap-1 rounded-lg py-3 px-2"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+        backgroundColor: "#1a1a2a",
+        border: "1px solid rgba(255,255,255,0.09)",
       }}
     >
       <span className="text-xl font-bold text-white font-mono leading-none tabular-nums">
         {displayed}
       </span>
-      <span className="text-[9px] text-white/40 text-center leading-tight uppercase tracking-wide font-semibold">
+      <span className="text-[9px] text-white/35 text-center leading-tight uppercase tracking-wide font-semibold">
         {label}
       </span>
     </div>

@@ -85,13 +85,13 @@ type FormValues = z.infer<typeof schema>;
 const inputBase = (hasError?: boolean) =>
   cn(
     "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
-    "bg-[rgba(255,255,255,0.03)] border transition-all duration-150",
+    "bg-[#1a1a2a] border transition-all duration-150",
     "placeholder:text-[#475569]",
-    "focus:outline-none focus:bg-[rgba(255,255,255,0.05)]",
-    "focus:border-[rgba(255,255,255,0.25)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.04)]",
+    "focus:outline-none focus:bg-[#1e1e30]",
+    "focus:border-[rgba(255,255,255,0.3)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]",
     hasError
       ? "border-[rgba(239,68,68,0.45)] shadow-[0_0_0_3px_rgba(239,68,68,0.06)]"
-      : "border-[rgba(255,255,255,0.08)]"
+      : "border-[rgba(255,255,255,0.1)]"
   );
 
 // ─── Select class ─────────────────────────────────────────────────────────────
@@ -117,10 +117,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.07)]">
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
       {/* Section header */}
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.03)]">
-        <div className="w-7 h-7 rounded-md bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0">
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.08)]" style={{ backgroundColor: "#13131f" }}>
+        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: "#1e1e2e", border: "1px solid rgba(255,255,255,0.1)" }}>
           <Icon className="h-3.5 w-3.5 text-[#94A3B8]" />
         </div>
         <div>
@@ -131,7 +131,7 @@ function Section({
         </div>
       </div>
       {/* Section body */}
-      <div className="bg-[rgba(255,255,255,0.015)] p-5 sm:p-6">
+      <div className="p-5 sm:p-6" style={{ backgroundColor: "#0f0f1a" }}>
         {children}
       </div>
     </div>
@@ -332,13 +332,13 @@ export default function PublicarPage() {
                 <select
                   {...register("eventType")}
                   className={selectBase(!!errors.eventType)}
-                  style={{ backgroundColor: "#0C0C16", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
                 >
                   {EVENT_TYPES.map((t) => (
                     <option
                       key={t.value}
                       value={t.value}
-                      style={{ backgroundColor: "#141424", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
                     >
                       {t.label}
                     </option>
@@ -392,13 +392,13 @@ export default function PublicarPage() {
                 <select
                   {...register("city")}
                   className={selectBase(!!errors.city)}
-                  style={{ backgroundColor: "#0C0C16", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
                 >
                   {DEPARTMENTS.map((d) => (
                     <option
                       key={d}
                       value={d}
-                      style={{ backgroundColor: "#141424", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#1a1a2a", color: "#F1F5F9" }}
                     >
                       {d}
                     </option>
