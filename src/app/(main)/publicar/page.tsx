@@ -109,19 +109,24 @@ function Section({
   icon: Icon,
   title,
   subtitle,
+  accent = "#6366f1",
   children,
 }: {
   icon: React.ElementType;
   title: string;
   subtitle?: string;
+  accent?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)", borderLeft: `3px solid ${accent}` }}>
       {/* Section header */}
       <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.08)]" style={{ backgroundColor: "#13131f" }}>
-        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: "#1e1e2e", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <Icon className="h-3.5 w-3.5 text-[#94A3B8]" />
+        <div
+          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${accent}18`, border: `1px solid ${accent}35` }}
+        >
+          <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
         </div>
         <div>
           <h2 className="text-[13px] font-semibold text-[#E2E8F0] tracking-wide">{title}</h2>
@@ -270,7 +275,7 @@ export default function PublicarPage() {
 
       {/* ── Page header ── */}
       <div className="mb-8 border-b border-[rgba(255,255,255,0.06)] pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#475569] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6366f1] mb-3">
           Publicación de eventos
         </p>
         <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">
@@ -296,6 +301,7 @@ export default function PublicarPage() {
           icon={CalendarDays}
           title="Tu evento"
           subtitle="Información principal del evento"
+          accent="#6366f1"
         >
           <div className="flex flex-col gap-5">
             <Field label="Nombre del evento" required error={errors.eventName?.message}>
@@ -369,6 +375,7 @@ export default function PublicarPage() {
           icon={MapPin}
           title="Ubicación"
           subtitle="¿Dónde se realiza el evento?"
+          accent="#14b8a6"
         >
           <div className="flex flex-col gap-5">
             <Field label="Nombre del venue" required error={errors.venueName?.message}>
@@ -415,6 +422,7 @@ export default function PublicarPage() {
           icon={Ticket}
           title="Entradas"
           subtitle="¿El evento es gratuito o tiene costo?"
+          accent="#10b981"
         >
           <div className="flex flex-col gap-5">
 
@@ -557,6 +565,7 @@ export default function PublicarPage() {
           icon={User}
           title="Contacto"
           subtitle="¿Quién organiza el evento?"
+          accent="#8b5cf6"
         >
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -601,11 +610,13 @@ export default function PublicarPage() {
           className={cn(
             "w-full flex items-center justify-center gap-2.5 rounded-xl py-3.5 px-6",
             "text-[14px] font-semibold text-white tracking-wide",
-            "bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.12)]",
-            "hover:bg-[rgba(255,255,255,0.11)] hover:border-[rgba(255,255,255,0.18)]",
-            "active:scale-[0.99] transition-all duration-150",
+            "transition-all duration-150 active:scale-[0.99]",
             "disabled:opacity-40 disabled:cursor-not-allowed"
           )}
+          style={{
+            backgroundColor: "rgba(99,102,241,0.2)",
+            border: "1px solid rgba(99,102,241,0.4)",
+          }}
         >
           {isSubmitting ? (
             <>

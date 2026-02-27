@@ -54,8 +54,8 @@ export function SidebarLiveClock() {
       <div className="flex items-baseline font-mono">
         <span className="text-2xl font-bold text-white tracking-tight">{hours}</span>
         <span
-          className="text-2xl font-bold text-white/30 mx-[1px] transition-opacity duration-200"
-          style={{ opacity: showColon ? 1 : 0.2 }}
+          className="text-2xl font-bold mx-[1px] transition-opacity duration-200"
+          style={{ opacity: showColon ? 1 : 0.25, color: "#818cf8" }}
         >
           :
         </span>

@@ -52,7 +52,7 @@ export async function DesktopSidebar() {
       <div className="sticky top-[60px] flex flex-col gap-3 overflow-x-hidden py-4 pr-1">
 
         {/* ── LIVE CLOCK + DATE ── */}
-        <div style={cardStyle}>
+        <div style={{ ...cardStyle, borderLeft: "3px solid #6366f1" }}>
           <SidebarLiveClock />
         </div>
 
@@ -106,8 +106,8 @@ export async function DesktopSidebar() {
         {highlights.length > 0 && (
           <div style={cardStyle}>
             <div className="flex items-center gap-2 mb-3">
-              <CalendarCheck className="h-4 w-4 text-[#94A3B8]" strokeWidth={2} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94A3B8]">
+              <CalendarCheck className="h-4 w-4 text-[#14b8a6]" strokeWidth={2} />
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#14b8a6]">
                 Próximos destacados
               </h2>
             </div>
@@ -125,11 +125,11 @@ export async function DesktopSidebar() {
                     <div
                       className="shrink-0 flex flex-col items-center justify-center rounded-lg px-2 py-1.5 min-w-[40px]"
                       style={{
-                        backgroundColor: isToday || isTomorrow ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.1)",
+                        backgroundColor: isToday ? "rgba(20,184,166,0.12)" : isTomorrow ? "rgba(99,102,241,0.1)" : "rgba(255,255,255,0.04)",
+                        border: isToday ? "1px solid rgba(20,184,166,0.3)" : isTomorrow ? "1px solid rgba(99,102,241,0.25)" : "1px solid rgba(255,255,255,0.09)",
                       }}
                     >
-                      <span className="text-[9px] font-bold uppercase leading-none text-[#94A3B8]">
+                      <span className="text-[9px] font-bold uppercase leading-none" style={{ color: isToday ? "#14b8a6" : isTomorrow ? "#818cf8" : "#64748B" }}>
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
                       {time && (
@@ -173,8 +173,9 @@ export async function DesktopSidebar() {
         {/* ── PUBLICITAR TU EVENTO ── */}
         <div
           style={{
-            backgroundColor: "#111120",
-            border: "1px solid rgba(255,255,255,0.12)",
+            backgroundColor: "#0f0f1a",
+            border: "1px solid rgba(99,102,241,0.25)",
+            borderLeft: "3px solid #6366f1",
             borderRadius: "12px",
             padding: "16px",
           }}
@@ -185,11 +186,11 @@ export async function DesktopSidebar() {
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{
-                  backgroundColor: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  backgroundColor: "rgba(99,102,241,0.12)",
+                  border: "1px solid rgba(99,102,241,0.25)",
                 }}
               >
-                <Rocket className="h-4 w-4 text-[#94A3B8]" />
+                <Rocket className="h-4 w-4 text-[#818cf8]" />
               </div>
               <div className="flex flex-col gap-0.5 min-w-0">
                 <p className="text-sm font-bold text-foreground leading-tight">
@@ -220,10 +221,10 @@ export async function DesktopSidebar() {
             {/* CTA button */}
             <Link
               href="/publicar"
-              className="flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-[12px] font-semibold text-white transition-colors"
+              className="flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-[12px] font-semibold text-[#c7d2fe] transition-colors hover:text-white"
               style={{
-                backgroundColor: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.13)",
+                backgroundColor: "rgba(99,102,241,0.15)",
+                border: "1px solid rgba(99,102,241,0.3)",
               }}
             >
               <Send className="h-3.5 w-3.5" />
@@ -317,8 +318,8 @@ export async function DesktopSidebar() {
         {(stats.todayCount > 0 || stats.weekCount > 0) && (
           <div style={cardStyle}>
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="h-4 w-4 text-[#94A3B8]" strokeWidth={2} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94A3B8]">
+              <BarChart3 className="h-4 w-4 text-[#10b981]" strokeWidth={2} />
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#10b981]">
                 En números
               </h2>
             </div>
@@ -344,21 +345,21 @@ export async function DesktopSidebar() {
               href="/"
               className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
             >
-              <Zap className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" strokeWidth={2} />
+              <Zap className="h-3.5 w-3.5 text-[#fbbf24] shrink-0" strokeWidth={2} />
               Eventos de hoy
             </Link>
             <Link
               href="/proximos"
               className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
             >
-              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" strokeWidth={2} />
+              <CalendarDays className="h-3.5 w-3.5 text-[#6366f1] shrink-0" strokeWidth={2} />
               Próximos eventos
             </Link>
             <Link
               href="/mapa"
               className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
             >
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" strokeWidth={2} />
+              <MapPin className="h-3.5 w-3.5 text-[#14b8a6] shrink-0" strokeWidth={2} />
               Ver en el mapa
             </Link>
           </div>
