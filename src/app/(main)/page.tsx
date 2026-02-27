@@ -60,7 +60,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     <>
       {/* Hero tagline */}
       <section className="pt-4 pb-2 fade-up">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white-light">
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">

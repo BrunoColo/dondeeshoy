@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Search, X, Plus, Sparkles } from "lucide-react";
+import { Search, X, Sparkles } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
