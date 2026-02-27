@@ -283,6 +283,8 @@ const REJECT_PATTERNS = [
   /\bse\s+busca\b.*\b(personal|empleado|mozo|cocinero)\b/i,
   /\bcontratamos\b/i,
   /\benviar?\s+cv\b/i,
+  // Shipping / delivery (not events)
+  /\benv[ií]os?\b/i,
   // Pure ads / promos without event
   /\bdescuento\s+\d+%/i,
   /\bpromoci[oó]n\s+(especial|exclusiva|del\s+d[ií]a)\b/i,

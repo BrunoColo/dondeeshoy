@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { events, rawEvents, eventSources } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
-import { eq, desc, and, gte, lte, sql, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, count, like, ilike } from "drizzle-orm";
 
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
 
@@ -200,6 +200,39 @@ export async function getRawEvents(
       title: sql<string>`${rawEvents.rawData}->>'title'`,
       scrapedAt: rawEvents.scrapedAt,
       processed: rawEvents.processed,
+      processingError: rawEvents.processingError,
+    })
+    .from(rawEvents)
+    .where(where)
+    .orderBy(desc(rawEvents.scrapedAt))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    items: items.map((i) => ({ ...i, title: i.title as string })),
+    total: total?.count ?? 0,
+    page,
+    limit,
+    totalPages: Math.ceil((total?.count ?? 0) / limit),
+  };
+}
+
+export async function getRejectedEvents(page: number = 1, limit: number = 50) {
+  const offset = (page - 1) * limit;
+
+  const where = and(
+    eq(rawEvents.processed, true),
+    sql`${rawEvents.processingError} IS NOT NULL`
+  );
+
+  const [total] = await db.select({ count: count() }).from(rawEvents).where(where);
+
+  const items = await db
+    .select({
+      id: rawEvents.id,
+      source: rawEvents.source,
+      sourceId: rawEvents.sourceId,
+      title: sql<string>`${rawEvents.rawData}->>'title'`, scrapedAt: rawEvents.scrapedAt,
       processingError: rawEvents.processingError,
     })
     .from(rawEvents)
@@ -447,4 +480,95 @@ export async function getDailyScrapeCounts(days: number = 7) {
   }
 
   return result;
+}
+
+// ============= Events Admin =============
+
+export interface SearchEventsParams {
+  query?: string;
+  status?: "active" | "cancelled" | "past";
+  page?: number;
+  limit?: number;
+}
+
+export async function searchEvents(params: SearchEventsParams = {}) {
+  const { query, status, page = 1, limit = 20 } = params;
+  const offset = (page - 1) * limit;
+
+  const whereConditions = [];
+
+  if (query) {
+    whereConditions.push(ilike(events.name, `%${query}%`));
+  }
+  if (status) {
+    whereConditions.push(eq(events.status, status));
+  }
+
+  const where = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+  const [total] = await db.select({ count: count() }).from(events).where(where);
+
+  const items = await db
+    .select()
+    .from(events)
+    .where(where)
+    .orderBy(desc(events.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    items,
+    total: total?.count ?? 0,
+    page,
+    limit,
+    totalPages: Math.ceil((total?.count ?? 0) / limit),
+  };
+}
+
+export async function getEventById(id: string) {
+  const [event] = await db.select().from(events).where(eq(events.id, id));
+  return event ?? null;
+}
+
+export interface UpdateEventData {
+  name?: string;
+  description?: string | null;
+  date?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  venueName?: string;
+  venueAddress?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  city?: string;
+  eventType?: string;
+  musicGenre?: string | null;
+  imageUrl?: string | null;
+  ticketUrl?: string | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+  currency?: string;
+  isFree?: boolean;
+  ageRestriction?: number | null;
+  status?: "active" | "cancelled" | "past";
+}
+
+export async function updateEvent(id: string, data: UpdateEventData) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dataAny = data as any;
+  const [updated] = await db
+    .update(events)
+    .set({
+      ...dataAny,
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, id))
+    .returning();
+
+  return updated ?? null;
+}
+
+export async function deleteEvent(id: string) {
+  await db.delete(events).where(eq(events.id, id));
+  return { success: true };
 }

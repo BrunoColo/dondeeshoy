@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "◆" },
+  { href: "/admin/events", label: "Eventos", icon: "◇" },
   { href: "/admin/scrapers", label: "Scrapers", icon: "◇" },
   { href: "/admin/pipeline", label: "Pipeline", icon: "◈" },
   { href: "/admin/submissions", label: "Submissions", icon: "◇" },
