@@ -49,22 +49,22 @@ export function SidebarLiveClock() {
   const monthName = MONTHS_ES[uyTime.getMonth()];
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Time */}
+    <div className="flex items-center justify-between">
+      {/* Time — grande y prominente */}
       <div className="flex items-baseline font-mono">
-        <span className="text-2xl font-bold text-white tracking-tight">{hours}</span>
+        <span className="text-[28px] font-black text-white tracking-tight leading-none">{hours}</span>
         <span
-          className="text-2xl font-bold mx-[1px] transition-opacity duration-200"
-          style={{ opacity: showColon ? 1 : 0.25, color: "#818CF8" }}
+          className="text-[28px] font-black mx-0.5 transition-opacity duration-200 leading-none"
+          style={{ opacity: showColon ? 1 : 0.2, color: "#818CF8" }}
         >
           :
         </span>
-        <span className="text-2xl font-bold text-white tracking-tight">{minutes}</span>
+        <span className="text-[28px] font-black text-white tracking-tight leading-none">{minutes}</span>
       </div>
-      {/* Date */}
-      <div className="flex flex-col leading-none">
-        <span className="text-[11px] font-semibold text-white/60">{dayName}</span>
-        <span className="text-[10px] text-white/30">{dayNum} de {monthName}</span>
+      {/* Date — a la derecha */}
+      <div className="flex flex-col items-end leading-none gap-0.5">
+        <span className="text-[12px] font-semibold text-[#B8C5D6]">{dayName}</span>
+        <span className="text-[11px] text-[#7A8FA6] font-mono">{dayNum} de {monthName}</span>
       </div>
     </div>
   );
@@ -107,16 +107,17 @@ export function AnimatedStat({ value, label }: { value: number; label: string })
 
   return (
     <div
-      className="flex flex-col items-center gap-1 rounded-lg py-3 px-2"
+      className="flex flex-col items-center gap-1.5 rounded-xl py-3.5 px-2"
       style={{
-        backgroundColor: "#111120",
-        border: "1px solid rgba(255,255,255,0.09)",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
       }}
     >
-      <span className="text-xl font-bold text-white font-mono leading-none tabular-nums">
+      <span className="text-[22px] font-black text-white font-mono leading-none tabular-nums">
         {displayed}
       </span>
-      <span className="text-[9px] text-white/35 text-center leading-tight uppercase tracking-wide font-semibold">
+      <span className="text-[9px] text-[#7A8FA6] text-center leading-tight uppercase tracking-wider font-bold">
         {label}
       </span>
     </div>

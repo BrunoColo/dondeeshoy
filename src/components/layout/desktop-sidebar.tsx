@@ -20,22 +20,14 @@ import {
   ExternalLink,
   Tag,
   Send,
+  TrendingUp,
+  ArrowRight,
 } from "lucide-react";
 
 /**
  * Sidebar fijo full-height en desktop (lg+).
- * Ocupa el margen derecho vacío en pantallas anchas.
- * Contiene: trending events, categorías, próximos destacados, ads, stats, CTA publicar.
- * Server component — fetches data directly.
+ * Diseño premium inspirado en Linear/Vercel.
  */
-
-// Shared card style — solid dark background, subtle border
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "#0D0D1A",
-  border: "1px solid rgba(255,255,255,0.09)",
-  borderRadius: "12px",
-  padding: "16px",
-};
 
 export async function DesktopSidebar() {
   const today = getTodayUY();
@@ -49,51 +41,91 @@ export async function DesktopSidebar() {
 
   return (
     <aside className="flex flex-col w-full">
-      <div className="sticky top-[60px] flex flex-col gap-3 overflow-x-hidden py-4 pr-1">
+      <div className="sticky top-[60px] flex flex-col gap-2.5 overflow-x-hidden py-4 pr-1">
 
-        {/* ── LIVE CLOCK + DATE ── */}
-        <div style={{ ...cardStyle, borderLeft: "3px solid #6366F1" }}>
+        {/* ── LIVE CLOCK — Premium card con gradiente ── */}
+        <div
+          className="relative overflow-hidden rounded-xl p-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(13,148,136,0.10) 100%)",
+            border: "1px solid rgba(99,102,241,0.25)",
+            boxShadow: "0 4px 24px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
+          {/* Glow orb */}
+          <div
+            className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
+            style={{
+              background: "radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)",
+              filter: "blur(12px)",
+            }}
+          />
           <SidebarLiveClock />
         </div>
 
-        {/* ── TRENDING HOY ── */}
+        {/* ── TRENDING HOY — Con numeración estilo ranking ── */}
         {trending.length > 0 && (
-          <div style={cardStyle}>
-            <div className="flex items-center gap-2 mb-3">
-              <Flame className="h-4 w-4 text-orange-400" strokeWidth={2.5} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-orange-400">
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
+            }}
+          >
+            {/* Header con gradiente */}
+            <div
+              className="flex items-center gap-2 px-4 py-3 border-b"
+              style={{ borderColor: "rgba(251,146,60,0.15)", background: "rgba(251,146,60,0.05)" }}
+            >
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: "rgba(251,146,60,0.15)", border: "1px solid rgba(251,146,60,0.25)" }}
+              >
+                <Flame className="h-3.5 w-3.5 text-orange-400" strokeWidth={2.5} />
+              </div>
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-400">
                 Más vistos hoy
               </h2>
+              <TrendingUp className="h-3 w-3 text-orange-400/50 ml-auto" strokeWidth={2} />
             </div>
-            <ul className="space-y-0.5">
+
+            <ul className="divide-y divide-white/[0.04]">
               {trending.map((event, i) => {
                 const time = formatTime(event.startTime);
                 return (
                   <li key={event.id}>
                     <Link
                       href={`/evento/${event.slug}`}
-                      className="group flex items-start gap-2.5 rounded-lg p-2.5 transition-colors hover:bg-white/[0.05]"
+                      className="group flex items-start gap-3 px-4 py-3 transition-all duration-200 hover:bg-white/[0.04]"
                     >
-                      <span className="shrink-0 mt-0.5 text-xs font-bold font-mono text-muted-foreground/30 w-4 text-right">
+                      {/* Rank number */}
+                      <span
+                        className="shrink-0 mt-0.5 text-[11px] font-black font-mono w-5 text-center leading-none"
+                        style={{
+                          color: i === 0 ? "#F59E0B" : i === 1 ? "#94A3B8" : i === 2 ? "#CD7C2F" : "rgba(100,116,139,0.4)",
+                        }}
+                      >
                         {i + 1}
                       </span>
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <span className="text-[13px] font-semibold text-foreground leading-snug group-hover:text-white transition-colors line-clamp-2">
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <span className="text-[13px] font-semibold text-[#CBD5E1] leading-snug group-hover:text-white transition-colors line-clamp-2">
                           {event.name}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <EventTypeBadge type={event.eventType} size="sm" />
                           {time && (
-                            <span className="text-[10px] text-muted-foreground/50 font-mono">
+                            <span className="text-[10px] text-[#64748B] font-mono">
                               {time}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
+                        <div className="flex items-center gap-1 text-[10px] text-[#475569]">
                           <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                           <span className="truncate">{event.venueName}</span>
                         </div>
                       </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-white/0 group-hover:text-white/30 transition-all shrink-0 mt-1 -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
                     </Link>
                   </li>
                 );
@@ -104,14 +136,31 @@ export async function DesktopSidebar() {
 
         {/* ── PRÓXIMOS DESTACADOS ── */}
         {highlights.length > 0 && (
-          <div style={cardStyle}>
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarCheck className="h-4 w-4 text-[#818CF8]" strokeWidth={2} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#818CF8]">
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center gap-2 px-4 py-3 border-b"
+              style={{ borderColor: "rgba(129,140,248,0.15)", background: "rgba(99,102,241,0.06)" }}
+            >
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)" }}
+              >
+                <CalendarCheck className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
+              </div>
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#818CF8]">
                 Próximos destacados
               </h2>
             </div>
-            <div className="space-y-1">
+
+            <div className="divide-y divide-white/[0.04]">
               {highlights.map((event) => {
                 const { label: dateLabel, isToday, isTomorrow } = getDateLabel(event.date);
                 const time = formatTime(event.startTime);
@@ -119,39 +168,57 @@ export async function DesktopSidebar() {
                   <Link
                     key={event.id}
                     href={`/evento/${event.slug}`}
-                    className="group flex items-start gap-2.5 rounded-lg p-2.5 transition-colors hover:bg-white/[0.05]"
+                    className="group flex items-start gap-3 px-4 py-3 transition-all duration-200 hover:bg-white/[0.04]"
                   >
-                    {/* Date pill */}
+                    {/* Date pill — más visual */}
                     <div
-                      className="shrink-0 flex flex-col items-center justify-center rounded-lg px-2 py-1.5 min-w-[40px]"
+                      className="shrink-0 flex flex-col items-center justify-center rounded-lg px-2 py-1.5 min-w-[42px]"
                       style={{
-                        backgroundColor: isToday ? "rgba(20,184,166,0.12)" : isTomorrow ? "rgba(99,102,241,0.10)" : "rgba(255,255,255,0.04)",
-                        border: isToday ? "1px solid rgba(20,184,166,0.3)" : isTomorrow ? "1px solid rgba(99,102,241,0.25)" : "1px solid rgba(255,255,255,0.09)",
+                        backgroundColor: isToday
+                          ? "rgba(20,184,166,0.15)"
+                          : isTomorrow
+                          ? "rgba(99,102,241,0.12)"
+                          : "rgba(255,255,255,0.05)",
+                        border: isToday
+                          ? "1px solid rgba(20,184,166,0.35)"
+                          : isTomorrow
+                          ? "1px solid rgba(99,102,241,0.30)"
+                          : "1px solid rgba(255,255,255,0.10)",
+                        boxShadow: isToday
+                          ? "0 0 12px rgba(20,184,166,0.15)"
+                          : isTomorrow
+                          ? "0 0 12px rgba(99,102,241,0.12)"
+                          : "none",
                       }}
                     >
-                      <span className="text-[9px] font-bold uppercase leading-none" style={{ color: isToday ? "#14B8A6" : isTomorrow ? "#818CF8" : "#64748B" }}>
+                      <span
+                        className="text-[9px] font-black uppercase leading-none tracking-wide"
+                        style={{
+                          color: isToday ? "#14B8A6" : isTomorrow ? "#818CF8" : "#7A8FA6",
+                        }}
+                      >
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
                       {time && (
-                        <span className="text-[9px] font-mono leading-none mt-0.5 text-muted-foreground/50">
+                        <span className="text-[9px] font-mono leading-none mt-0.5 text-[#475569]">
                           {time}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-[13px] font-semibold text-foreground leading-snug group-hover:text-white transition-colors line-clamp-2">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="text-[13px] font-semibold text-[#CBD5E1] leading-snug group-hover:text-white transition-colors line-clamp-2">
                         {event.name}
                       </span>
                       <div className="flex items-center gap-2 flex-wrap">
                         <EventTypeBadge type={event.eventType} size="sm" />
                         {event.isFree && (
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-[#94A3B8] bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded-full">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-[#14B8A6] bg-[rgba(20,184,166,0.10)] border border-[rgba(20,184,166,0.20)] px-1.5 py-0.5 rounded-full">
                             Gratis
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
+                      <div className="flex items-center gap-1 text-[10px] text-[#475569]">
                         <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                         <span className="truncate">{event.venueName}</span>
                       </div>
@@ -160,170 +227,200 @@ export async function DesktopSidebar() {
                 );
               })}
             </div>
-            <Link
-              href="/proximos"
-              className="mt-2 flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+
+            <div
+              className="px-4 py-2.5 border-t"
+              style={{ borderColor: "rgba(255,255,255,0.06)" }}
             >
-              <CalendarDays className="h-3.5 w-3.5" />
-              Ver todos los próximos
-            </Link>
+              <Link
+                href="/proximos"
+                className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#818CF8]/60 hover:text-[#818CF8] transition-colors group"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Ver todos los próximos
+                <ArrowRight className="h-3 w-3 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
           </div>
         )}
 
-        {/* ── PUBLICITAR TU EVENTO ── */}
+        {/* ── CTA PUBLICAR — Diseño premium con gradiente ── */}
         <div
+          className="relative overflow-hidden rounded-xl p-4"
           style={{
-            backgroundColor: "#0D0D1A",
+            background: "linear-gradient(135deg, rgba(13,148,136,0.12) 0%, rgba(99,102,241,0.10) 100%)",
             border: "1px solid rgba(13,148,136,0.25)",
-            borderLeft: "3px solid #0D9488",
-            borderRadius: "12px",
-            padding: "16px",
+            boxShadow: "0 4px 24px rgba(13,148,136,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
           }}
         >
-          <div className="flex flex-col gap-3">
+          {/* Glow orb teal */}
+          <div
+            className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full pointer-events-none"
+            style={{
+              background: "radial-gradient(circle, rgba(13,148,136,0.25) 0%, transparent 70%)",
+              filter: "blur(10px)",
+            }}
+          />
+
+          <div className="relative flex flex-col gap-3">
             {/* Header */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  backgroundColor: "rgba(13,148,136,0.12)",
-                  border: "1px solid rgba(13,148,136,0.25)",
+                  background: "linear-gradient(135deg, rgba(13,148,136,0.25) 0%, rgba(99,102,241,0.15) 100%)",
+                  border: "1px solid rgba(13,148,136,0.30)",
+                  boxShadow: "0 2px 8px rgba(13,148,136,0.15)",
                 }}
               >
-                <Rocket className="h-4 w-4 text-[#14B8A6]" />
+                <Rocket className="h-5 w-5 text-[#14B8A6]" />
               </div>
               <div className="flex flex-col gap-0.5 min-w-0">
-                <p className="text-sm font-bold text-foreground leading-tight">
+                <p className="text-[14px] font-bold text-white leading-tight">
                   ¿Tenés un evento?
                 </p>
-                <p className="text-[11px] text-muted-foreground/60 leading-snug">
+                <p className="text-[11px] text-[#7A8FA6] leading-snug">
                   Publicalo gratis y llegá a miles
                 </p>
               </div>
             </div>
 
             {/* Features */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5">
+            <div className="flex flex-col gap-1.5 pl-1">
+              <div className="flex items-center gap-2">
                 <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
                 <span className="text-[11px] text-[#34D399] font-semibold">Gratis para eventos sin costo</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                <span className="text-[11px] text-muted-foreground/60">Aparecé en el mapa y en búsquedas</span>
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="h-3.5 w-3.5 text-[#7A8FA6] shrink-0" />
+                <span className="text-[11px] text-[#B8C5D6]">Aparecé en el mapa y en búsquedas</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <BadgeCheck className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                <span className="text-[11px] text-muted-foreground/60">Llegá a toda Uruguay</span>
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="h-3.5 w-3.5 text-[#7A8FA6] shrink-0" />
+                <span className="text-[11px] text-[#B8C5D6]">Llegá a toda Uruguay</span>
               </div>
             </div>
 
-            {/* CTA button */}
+            {/* CTA button — gradient sólido */}
             <Link
               href="/publicar"
-              className="flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-[12px] font-semibold text-accent2 transition-colors hover:text-white"
+              className="flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 group"
               style={{
-                backgroundColor: "rgba(13,148,136,0.15)",
-                border: "1px solid rgba(13,148,136,0.3)",
+                background: "linear-gradient(135deg, #0D9488 0%, #6366F1 100%)",
+                boxShadow: "0 4px 16px rgba(13,148,136,0.25), 0 4px 16px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
               <Send className="h-3.5 w-3.5" />
               Publicar mi evento
+              <ArrowRight className="h-3.5 w-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
 
         {/* ── ANUNCIOS ── */}
-        <div style={cardStyle}>
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
           {/* Label */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/40">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#475569]">
               Publicidad
             </span>
-            <Megaphone className="h-3.5 w-3.5 text-muted-foreground/30" />
+            <Megaphone className="h-3.5 w-3.5 text-[#475569]" />
           </div>
 
           {/* Ad 1 — Venue */}
           <a
             href="#"
-            className="group flex items-start gap-3 rounded-lg p-3 mb-2 transition-colors hover:bg-white/[0.04] cursor-pointer"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
+            className="group flex items-start gap-3 p-3.5 border-b border-white/[0.04] transition-all duration-200 hover:bg-white/[0.04] cursor-pointer"
           >
             <div
-              className="shrink-0 w-11 h-11 rounded-lg flex items-center justify-center text-[14px] font-black text-[#94A3B8]"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-black text-[#B8C5D6]"
               style={{
-                backgroundColor: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
+                border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
               MF
             </div>
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[13px] font-bold text-foreground leading-tight">Magma Futura</span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">Magma Futura</span>
+                <ExternalLink className="h-3 w-3 text-[#475569] group-hover:text-[#7A8FA6] shrink-0 transition-colors" />
               </div>
-              <span className="text-[11px] text-muted-foreground/60 leading-snug">
+              <span className="text-[11px] text-[#7A8FA6] leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
               </span>
-              <span className="text-[10px] font-semibold text-muted-foreground/40 mt-0.5">magmafutura.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#14B8A6]/60 mt-0.5 group-hover:text-[#14B8A6] transition-colors">magmafutura.com.uy →</span>
             </div>
           </a>
 
           {/* Ad 2 — Ticketing */}
           <a
             href="#"
-            className="group flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-white/[0.04] cursor-pointer"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
+            className="group flex items-start gap-3 p-3.5 transition-all duration-200 hover:bg-white/[0.04] cursor-pointer"
           >
             <div
-              className="shrink-0 w-11 h-11 rounded-lg flex items-center justify-center text-[14px] font-black text-[#94A3B8]"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-black text-[#B8C5D6]"
               style={{
-                backgroundColor: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
+                border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
               RT
             </div>
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[13px] font-bold text-foreground leading-tight">RedTickets</span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">RedTickets</span>
+                <ExternalLink className="h-3 w-3 text-[#475569] group-hover:text-[#7A8FA6] shrink-0 transition-colors" />
               </div>
-              <span className="text-[11px] text-muted-foreground/60 leading-snug">
+              <span className="text-[11px] text-[#7A8FA6] leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
               </span>
-              <span className="text-[10px] font-semibold text-muted-foreground/40 mt-0.5">redtickets.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#818CF8]/60 mt-0.5 group-hover:text-[#818CF8] transition-colors">redtickets.com.uy →</span>
             </div>
           </a>
 
           {/* CTA para anunciarse */}
-          <Link
-            href="/publicar#contacto"
-            className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
-            style={{ border: "1px solid rgba(255,255,255,0.07)" }}
-          >
-            <Tag className="h-3 w-3" />
-            Anunciá tu negocio aquí
-          </Link>
+          <div className="px-3.5 py-2.5 border-t border-white/[0.06]">
+            <Link
+              href="/publicar#contacto"
+              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#475569] hover:text-[#B8C5D6] transition-colors border border-white/[0.08] hover:border-white/[0.15]"
+            >
+              <Tag className="h-3 w-3" />
+              Anunciá tu negocio aquí
+            </Link>
+          </div>
         </div>
 
-        {/* ── ESTADÍSTICAS ── */}
+        {/* ── ESTADÍSTICAS — Con diseño de métricas ── */}
         {(stats.todayCount > 0 || stats.weekCount > 0) && (
-          <div style={cardStyle}>
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="h-4 w-4 text-[#10b981]" strokeWidth={2} />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#10b981]">
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <div
+              className="flex items-center gap-2 px-4 py-3 border-b"
+              style={{ borderColor: "rgba(16,185,129,0.15)", background: "rgba(16,185,129,0.04)" }}
+            >
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.25)" }}
+              >
+                <BarChart3 className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} />
+              </div>
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">
                 En números
               </h2>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 p-3">
               {[
                 { value: stats.todayCount, label: "hoy" },
                 { value: stats.weekCount, label: "esta semana" },
@@ -335,32 +432,58 @@ export async function DesktopSidebar() {
           </div>
         )}
 
-        {/* ── QUICK LINKS ── */}
-        <div style={cardStyle}>
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 mb-3">
-            Explorar
-          </h2>
-          <div className="space-y-0.5">
+        {/* ── QUICK LINKS — Más visual ── */}
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <div className="px-4 py-2.5 border-b border-white/[0.06]">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#475569]">
+              Explorar
+            </h2>
+          </div>
+          <div className="p-1.5 flex flex-col gap-0.5">
             <Link
               href="/"
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#7A8FA6] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
-              <Zap className="h-3.5 w-3.5 text-[#fbbf24] shrink-0" strokeWidth={2} />
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.20)" }}
+              >
+                <Zap className="h-3.5 w-3.5 text-[#FBBF24]" strokeWidth={2} />
+              </div>
               Eventos de hoy
+              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/proximos"
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#7A8FA6] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
-              <CalendarDays className="h-3.5 w-3.5 text-[#0D9488] shrink-0" strokeWidth={2} />
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.20)" }}
+              >
+                <CalendarDays className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
+              </div>
               Próximos eventos
+              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/mapa"
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#7A8FA6] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
-              <MapPin className="h-3.5 w-3.5 text-[#14B8A6] shrink-0" strokeWidth={2} />
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: "rgba(13,148,136,0.12)", border: "1px solid rgba(13,148,136,0.20)" }}
+              >
+                <MapPin className="h-3.5 w-3.5 text-[#14B8A6]" strokeWidth={2} />
+              </div>
               Ver en el mapa
+              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
           </div>
         </div>
@@ -369,11 +492,11 @@ export async function DesktopSidebar() {
         <div className="flex flex-col gap-1 px-2 pb-2">
           <div className="flex items-center gap-1.5">
             <span className="live-dot w-1.5 h-1.5" />
-            <p className="text-[10px] text-muted-foreground/40 leading-relaxed">
+            <p className="text-[10px] text-[#475569] leading-relaxed">
               Actualizado cada 5 minutos
             </p>
           </div>
-          <p className="text-[10px] text-muted-foreground/25 leading-relaxed">
+          <p className="text-[10px] text-[#2D3748] leading-relaxed">
             Eventos en Uruguay · ¿Dónde es Hoy?
           </p>
         </div>
