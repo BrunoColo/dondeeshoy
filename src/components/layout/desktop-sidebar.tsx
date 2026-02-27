@@ -47,16 +47,16 @@ export async function DesktopSidebar() {
         <div
           className="relative overflow-hidden rounded-xl p-4"
           style={{
-            background: "linear-gradient(135deg, rgba(8,8,20,0.95) 0%, rgba(12,10,28,0.95) 50%, rgba(8,12,20,0.95) 100%)",
-            border: "1px solid rgba(99,102,241,0.30)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
+            background: "linear-gradient(135deg, rgba(3,3,10,0.98) 0%, rgba(5,4,14,0.98) 50%, rgba(3,5,10,0.98) 100%)",
+            border: "1px solid rgba(99,102,241,0.35)",
+            boxShadow: "0 6px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.10), inset 0 1px 0 rgba(255,255,255,0.07)",
           }}
         >
-          {/* Gradient overlay */}
+          {/* Gradient overlay — más intenso para que resalte */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(13,148,136,0.08) 100%)",
+              background: "linear-gradient(135deg, rgba(99,102,241,0.16) 0%, rgba(13,148,136,0.10) 100%)",
             }}
           />
           {/* Glow orb */}
@@ -75,7 +75,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(180deg, rgba(6,6,16,0.92) 0%, rgba(4,4,12,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
               border: "1px solid rgba(255,255,255,0.12)",
               boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
             }}
@@ -116,18 +116,18 @@ export async function DesktopSidebar() {
                         {i + 1}
                       </span>
                       <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <span className="text-[13px] font-semibold text-[#CBD5E1] leading-snug group-hover:text-white transition-colors line-clamp-2">
+                        <span className="text-[13px] font-semibold text-[#E2E8F0] leading-snug group-hover:text-white transition-colors line-clamp-2">
                           {event.name}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <EventTypeBadge type={event.eventType} size="sm" />
                           {time && (
-                            <span className="text-[10px] text-[#64748B] font-mono">
+                            <span className="text-[10px] text-[#94A3B8] font-mono">
                               {time}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
+                        <div className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
                           <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                           <span className="truncate">{event.venueName}</span>
                         </div>
@@ -146,7 +146,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(180deg, rgba(6,6,16,0.92) 0%, rgba(4,4,12,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
               border: "1px solid rgba(255,255,255,0.10)",
               boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
             }}
@@ -207,14 +207,14 @@ export async function DesktopSidebar() {
                         {isToday ? "HOY" : isTomorrow ? "MAÑ" : dateLabel.slice(0, 3).toUpperCase()}
                       </span>
                       {time && (
-                        <span className="text-[9px] font-mono leading-none mt-0.5 text-[#64748B]">
+                        <span className="text-[9px] font-mono leading-none mt-0.5 text-[#94A3B8]">
                           {time}
                         </span>
                       )}
                     </div>
 
                     <div className="flex flex-col gap-1 min-w-0 flex-1">
-                      <span className="text-[13px] font-semibold text-[#CBD5E1] leading-snug group-hover:text-white transition-colors line-clamp-2">
+                      <span className="text-[13px] font-semibold text-[#E2E8F0] leading-snug group-hover:text-white transition-colors line-clamp-2">
                         {event.name}
                       </span>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -225,7 +225,7 @@ export async function DesktopSidebar() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
+                      <div className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
                         <MapPin className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
                         <span className="truncate">{event.venueName}</span>
                       </div>
@@ -328,16 +328,16 @@ export async function DesktopSidebar() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: "rgba(4,4,12,0.90)",
+            background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
           {/* Label */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#64748B]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#94A3B8]">
               Publicidad
             </span>
-            <Megaphone className="h-3.5 w-3.5 text-[#64748B]" />
+            <Megaphone className="h-3.5 w-3.5 text-[#94A3B8]" />
           </div>
 
           {/* Ad 1 — Venue */}
@@ -357,7 +357,7 @@ export async function DesktopSidebar() {
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">Magma Futura</span>
-                <ExternalLink className="h-3 w-3 text-[#64748B] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
+                <ExternalLink className="h-3 w-3 text-[#94A3B8] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
               </div>
               <span className="text-[11px] text-[#94A3B8] leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
@@ -383,7 +383,7 @@ export async function DesktopSidebar() {
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-[13px] font-bold text-[#E2E8F0] leading-tight group-hover:text-white transition-colors">RedTickets</span>
-                <ExternalLink className="h-3 w-3 text-[#64748B] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
+                <ExternalLink className="h-3 w-3 text-[#94A3B8] group-hover:text-[#94A3B8] shrink-0 transition-colors" />
               </div>
               <span className="text-[11px] text-[#94A3B8] leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
@@ -396,7 +396,7 @@ export async function DesktopSidebar() {
           <div className="px-3.5 py-2.5 border-t border-white/[0.06]">
             <Link
               href="/publicar#contacto"
-              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#64748B] hover:text-[#B8C5D6] transition-colors border border-white/[0.08] hover:border-white/[0.15]"
+              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#94A3B8] hover:text-[#B8C5D6] transition-colors border border-white/[0.08] hover:border-white/[0.15]"
             >
               <Tag className="h-3 w-3" />
               Anunciá tu negocio aquí
@@ -409,7 +409,7 @@ export async function DesktopSidebar() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: "linear-gradient(180deg, rgba(6,6,16,0.92) 0%, rgba(4,4,12,0.95) 100%)",
+              background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
               border: "1px solid rgba(255,255,255,0.10)",
             }}
           >
@@ -443,12 +443,12 @@ export async function DesktopSidebar() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: "rgba(4,4,12,0.90)",
+            background: "linear-gradient(135deg, rgba(6,6,16,0.92) 0%, rgba(8,6,18,0.95) 100%)",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
           <div className="px-4 py-2.5 border-b border-white/[0.06]">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#64748B]">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#94A3B8]">
               Explorar
             </h2>
           </div>
@@ -499,7 +499,7 @@ export async function DesktopSidebar() {
         <div className="flex flex-col gap-1 px-2 pb-2">
           <div className="flex items-center gap-1.5">
             <span className="live-dot w-1.5 h-1.5" />
-            <p className="text-[10px] text-[#64748B] leading-relaxed">
+            <p className="text-[10px] text-[#94A3B8] leading-relaxed">
               Actualizado cada 5 minutos
             </p>
           </div>
