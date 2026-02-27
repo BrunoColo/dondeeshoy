@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   CheckCircle,
-  Sparkles,
   CalendarDays,
   MapPin,
   Ticket,
@@ -20,6 +19,7 @@ import {
   Link2,
   Image,
   ArrowLeft,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -84,23 +84,22 @@ type FormValues = z.infer<typeof schema>;
 
 const inputBase = (hasError?: boolean) =>
   cn(
-    "w-full rounded-xl px-4 py-3 text-[14px] text-foreground",
-    "bg-[rgba(255,255,255,0.04)] border transition-all duration-200",
-    "placeholder:text-[#64748B]",
-    "focus:outline-none focus:bg-[rgba(255,255,255,0.06)]",
-    "focus:border-[rgba(168,85,247,0.5)] focus:shadow-[0_0_0_3px_rgba(168,85,247,0.1)]",
+    "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
+    "bg-[rgba(255,255,255,0.03)] border transition-all duration-150",
+    "placeholder:text-[#475569]",
+    "focus:outline-none focus:bg-[rgba(255,255,255,0.05)]",
+    "focus:border-[rgba(255,255,255,0.25)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.04)]",
     hasError
-      ? "border-[rgba(239,68,68,0.5)] shadow-[0_0_0_3px_rgba(239,68,68,0.08)]"
-      : "border-[rgba(255,255,255,0.1)]"
+      ? "border-[rgba(239,68,68,0.45)] shadow-[0_0_0_3px_rgba(239,68,68,0.06)]"
+      : "border-[rgba(255,255,255,0.08)]"
   );
 
-// ─── Select class (dark background for dropdown) ──────────────────────────────
+// ─── Select class ─────────────────────────────────────────────────────────────
 
 const selectBase = (hasError?: boolean) =>
   cn(
     inputBase(hasError),
     "appearance-none pr-10 cursor-pointer",
-    // Force dark background on the select element itself
     "[color-scheme:dark]"
   );
 
@@ -110,29 +109,29 @@ function Section({
   icon: Icon,
   title,
   subtitle,
-  accentColor,
   children,
 }: {
   icon: React.ElementType;
   title: string;
   subtitle?: string;
-  accentColor: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.07)]">
+    <div className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.07)]">
       {/* Section header */}
-      <div className={cn("px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.06)]", accentColor)}>
-        <Icon className="h-4 w-4 shrink-0" />
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.03)]">
+        <div className="w-7 h-7 rounded-md bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0">
+          <Icon className="h-3.5 w-3.5 text-[#94A3B8]" />
+        </div>
         <div>
-          <h2 className="text-[13px] font-bold tracking-wide">{title}</h2>
+          <h2 className="text-[13px] font-semibold text-[#E2E8F0] tracking-wide">{title}</h2>
           {subtitle && (
-            <p className="text-[11px] opacity-70 mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-[#64748B] mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
       {/* Section body */}
-      <div className="bg-[rgba(255,255,255,0.02)] p-5 sm:p-6">
+      <div className="bg-[rgba(255,255,255,0.015)] p-5 sm:p-6">
         {children}
       </div>
     </div>
@@ -155,14 +154,14 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-[12px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
         {label}
-        {required && <span className="text-[#EC4899] ml-1">*</span>}
+        {required && <span className="text-[#94A3B8] ml-1">*</span>}
       </label>
       {children}
       {hint && !error && (
-        <p className="text-[11px] text-[#64748B]">{hint}</p>
+        <p className="text-[11px] text-[#475569]">{hint}</p>
       )}
       {error && (
         <p className="text-[11px] text-[#F87171] flex items-center gap-1">
@@ -228,37 +227,34 @@ export default function PublicarPage() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
         <div className="flex flex-col items-center gap-8 text-center max-w-md">
-          {/* Animated check */}
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-[#34D399]/15 blur-2xl animate-pulse" />
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#34D399]/20 to-[#22D3EE]/10 border border-[#34D399]/30 flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-[#34D399] drop-shadow-[0_0_16px_rgba(52,211,153,0.7)]" />
-            </div>
+          {/* Check icon */}
+          <div className="w-20 h-20 rounded-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
+            <CheckCircle className="h-10 w-10 text-[#34D399]" />
           </div>
 
           <div className="flex flex-col gap-3">
-            <h1 className="text-[28px] font-extrabold text-foreground">
-              ¡Solicitud enviada!
+            <h1 className="text-[26px] font-bold text-foreground">
+              Solicitud enviada
             </h1>
-            <p className="text-[15px] text-[#94A3B8] leading-relaxed">
-              Tu solicitud fue enviada.{" "}
+            <p className="text-[14px] text-[#94A3B8] leading-relaxed">
+              Tu solicitud fue recibida.{" "}
               <span className="text-foreground font-medium">
                 Te contactaremos por email cuando sea revisada.
               </span>
             </p>
           </div>
 
-          <div className="w-full rounded-2xl bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.2)] px-5 py-4 flex items-center gap-3">
-            <BadgeCheck className="h-5 w-5 text-[#34D399] shrink-0" />
+          <div className="w-full rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] px-5 py-4 flex items-center gap-3">
+            <BadgeCheck className="h-5 w-5 text-[#94A3B8] shrink-0" />
             <div className="text-left">
-              <p className="text-[13px] font-semibold text-[#34D399]">Revisamos en menos de 48 horas</p>
+              <p className="text-[13px] font-semibold text-[#E2E8F0]">Revisamos en menos de 48 horas</p>
               <p className="text-[11px] text-[#64748B] mt-0.5">Te avisamos al email que ingresaste</p>
             </div>
           </div>
 
           <Link
             href="/"
-            className="flex items-center gap-2 text-[13px] font-semibold text-[#A855F7]/70 hover:text-[#A855F7] transition-colors"
+            className="flex items-center gap-2 text-[13px] text-[#64748B] hover:text-[#94A3B8] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver al inicio
@@ -273,40 +269,33 @@ export default function PublicarPage() {
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
 
       {/* ── Page header ── */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#A855F7]/25 to-[#EC4899]/15 border border-[#A855F7]/25 flex items-center justify-center">
-            <Sparkles className="h-4.5 w-4.5 text-[#A855F7]" />
-          </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#A855F7]/70">
-            Publicación de eventos
-          </span>
-        </div>
-
-        <h1 className="text-[30px] sm:text-[36px] font-extrabold text-foreground leading-tight mb-3">
+      <div className="mb-8 border-b border-[rgba(255,255,255,0.06)] pb-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#475569] mb-3">
+          Publicación de eventos
+        </p>
+        <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">
           Publicá tu evento
         </h1>
-        <p className="text-[15px] text-[#94A3B8] leading-relaxed max-w-lg mb-5">
+        <p className="text-[14px] text-[#64748B] leading-relaxed max-w-lg mb-5">
           Completá el formulario y lo revisamos en menos de 48 horas.
           Los eventos gratuitos son publicados sin costo.
         </p>
 
-        <div className="inline-flex items-center gap-2 rounded-full bg-[rgba(52,211,153,0.08)] border border-[rgba(52,211,153,0.2)] px-4 py-2">
-          <BadgeCheck className="h-4 w-4 text-[#34D399] shrink-0" />
-          <span className="text-[12px] font-semibold text-[#34D399]">
+        <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] px-3.5 py-2">
+          <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
+          <span className="text-[12px] text-[#94A3B8]">
             Gratis para eventos sin costo de entrada
           </span>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" id="contacto" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" id="contacto" noValidate>
 
         {/* ── 1. Tu evento ── */}
         <Section
           icon={CalendarDays}
           title="Tu evento"
           subtitle="Información principal del evento"
-          accentColor="bg-[rgba(168,85,247,0.08)] text-[#A855F7]"
         >
           <div className="flex flex-col gap-5">
             <Field label="Nombre del evento" required error={errors.eventName?.message}>
@@ -328,7 +317,7 @@ export default function PublicarPage() {
 
               <Field label="Hora de inicio" hint="Opcional" error={errors.eventTime?.message}>
                 <div className="relative">
-                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
                   <input
                     type="time"
                     {...register("eventTime")}
@@ -355,7 +344,7 @@ export default function PublicarPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
               </div>
             </Field>
 
@@ -380,7 +369,6 @@ export default function PublicarPage() {
           icon={MapPin}
           title="Ubicación"
           subtitle="¿Dónde se realiza el evento?"
-          accentColor="bg-[rgba(34,211,238,0.08)] text-[#22D3EE]"
         >
           <div className="flex flex-col gap-5">
             <Field label="Nombre del venue" required error={errors.venueName?.message}>
@@ -416,7 +404,7 @@ export default function PublicarPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
               </div>
             </Field>
           </div>
@@ -427,34 +415,33 @@ export default function PublicarPage() {
           icon={Ticket}
           title="Entradas"
           subtitle="¿El evento es gratuito o tiene costo?"
-          accentColor="bg-[rgba(52,211,153,0.08)] text-[#34D399]"
         >
           <div className="flex flex-col gap-5">
 
-            {/* Free / Paid toggle — two big cards */}
+            {/* Free / Paid toggle */}
             <div className="grid grid-cols-2 gap-3">
               {/* Gratis */}
               <button
                 type="button"
                 onClick={() => setValue("isFree", true, { shouldValidate: true })}
                 className={cn(
-                  "relative flex flex-col items-center gap-2.5 rounded-xl p-4 border-2 transition-all duration-200 text-center",
+                  "relative flex flex-col items-center gap-2 rounded-lg p-4 border transition-all duration-150 text-center",
                   isFree
-                    ? "border-[#34D399] bg-[rgba(52,211,153,0.1)] shadow-[0_0_20px_rgba(52,211,153,0.15)]"
-                    : "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"
+                    ? "border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.06)]"
+                    : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.1)]"
                 )}
               >
                 {isFree && (
-                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#34D399] flex items-center justify-center">
-                    <span className="text-[8px] text-black font-bold">✓</span>
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[rgba(255,255,255,0.15)] flex items-center justify-center">
+                    <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <Gift className={cn("h-6 w-6", isFree ? "text-[#34D399]" : "text-[#64748B]")} />
+                <Gift className={cn("h-5 w-5", isFree ? "text-[#E2E8F0]" : "text-[#475569]")} />
                 <div>
-                  <p className={cn("text-[13px] font-bold", isFree ? "text-[#34D399]" : "text-[#94A3B8]")}>
+                  <p className={cn("text-[13px] font-semibold", isFree ? "text-[#E2E8F0]" : "text-[#64748B]")}>
                     Gratuito
                   </p>
-                  <p className="text-[10px] text-[#64748B] mt-0.5">Sin costo de entrada</p>
+                  <p className="text-[10px] text-[#475569] mt-0.5">Sin costo de entrada</p>
                 </div>
               </button>
 
@@ -463,23 +450,23 @@ export default function PublicarPage() {
                 type="button"
                 onClick={() => setValue("isFree", false, { shouldValidate: true })}
                 className={cn(
-                  "relative flex flex-col items-center gap-2.5 rounded-xl p-4 border-2 transition-all duration-200 text-center",
+                  "relative flex flex-col items-center gap-2 rounded-lg p-4 border transition-all duration-150 text-center",
                   !isFree
-                    ? "border-[#FBBF24] bg-[rgba(251,191,36,0.08)] shadow-[0_0_20px_rgba(251,191,36,0.12)]"
-                    : "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"
+                    ? "border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.06)]"
+                    : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.1)]"
                 )}
               >
                 {!isFree && (
-                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#FBBF24] flex items-center justify-center">
-                    <span className="text-[8px] text-black font-bold">✓</span>
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[rgba(255,255,255,0.15)] flex items-center justify-center">
+                    <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <DollarSign className={cn("h-6 w-6", !isFree ? "text-[#FBBF24]" : "text-[#64748B]")} />
+                <DollarSign className={cn("h-5 w-5", !isFree ? "text-[#E2E8F0]" : "text-[#475569]")} />
                 <div>
-                  <p className={cn("text-[13px] font-bold", !isFree ? "text-[#FBBF24]" : "text-[#94A3B8]")}>
+                  <p className={cn("text-[13px] font-semibold", !isFree ? "text-[#E2E8F0]" : "text-[#64748B]")}>
                     Con costo
                   </p>
-                  <p className="text-[10px] text-[#64748B] mt-0.5">Tiene precio de entrada</p>
+                  <p className="text-[10px] text-[#475569] mt-0.5">Tiene precio de entrada</p>
                 </div>
               </button>
             </div>
@@ -489,8 +476,8 @@ export default function PublicarPage() {
 
             {/* Paid-only fields */}
             {!isFree && (
-              <div className="rounded-xl bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.15)] p-4 flex flex-col gap-4">
-                <p className="text-[11px] font-semibold text-[#FBBF24]/80 uppercase tracking-wider">
+              <div className="rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] p-4 flex flex-col gap-4">
+                <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
                   Detalles del precio
                 </p>
                 <Field
@@ -500,7 +487,7 @@ export default function PublicarPage() {
                   hint="Ej: $300 – $600 UYU · Entrada general $400"
                 >
                   <div className="relative">
-                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
                     <input
                       {...register("priceRange")}
                       placeholder="Ej: $300 – $600 UYU"
@@ -515,7 +502,7 @@ export default function PublicarPage() {
                   error={errors.ticketUrl?.message}
                 >
                   <div className="relative">
-                    <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                    <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
                     <input
                       {...register("ticketUrl")}
                       type="url"
@@ -535,7 +522,7 @@ export default function PublicarPage() {
                 error={errors.ticketUrl?.message}
               >
                 <div className="relative">
-                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
                   <input
                     {...register("ticketUrl")}
                     type="url"
@@ -553,7 +540,7 @@ export default function PublicarPage() {
               error={errors.imageUrl?.message}
             >
               <div className="relative">
-                <Image className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748B] pointer-events-none" />
+                <Image className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569] pointer-events-none" />
                 <input
                   {...register("imageUrl")}
                   type="url"
@@ -570,7 +557,6 @@ export default function PublicarPage() {
           icon={User}
           title="Contacto"
           subtitle="¿Quién organiza el evento?"
-          accentColor="bg-[rgba(236,72,153,0.08)] text-[#EC4899]"
         >
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -592,9 +578,9 @@ export default function PublicarPage() {
               </Field>
             </div>
 
-            <div className="rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] px-4 py-3">
-              <p className="text-[12px] text-[#64748B] leading-relaxed">
-                🔒 Tu email solo se usa para notificarte sobre el estado de tu solicitud. No lo compartimos con terceros.
+            <div className="rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] px-4 py-3">
+              <p className="text-[12px] text-[#475569] leading-relaxed">
+                Tu email solo se usa para notificarte sobre el estado de tu solicitud. No lo compartimos con terceros.
               </p>
             </div>
           </div>
@@ -602,7 +588,7 @@ export default function PublicarPage() {
 
         {/* ── Server error ── */}
         {serverError && (
-          <div className="rounded-xl bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] px-4 py-3.5 flex items-start gap-3">
+          <div className="rounded-lg bg-[rgba(239,68,68,0.06)] border border-[rgba(239,68,68,0.18)] px-4 py-3.5 flex items-start gap-3">
             <span className="text-[#F87171] text-[16px] shrink-0">⚠</span>
             <p className="text-[13px] text-[#F87171] leading-relaxed">{serverError}</p>
           </div>
@@ -613,29 +599,28 @@ export default function PublicarPage() {
           type="submit"
           disabled={isSubmitting}
           className={cn(
-            "w-full flex items-center justify-center gap-2.5 rounded-2xl py-4 px-6",
-            "text-[15px] font-bold text-white tracking-wide",
-            "bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899]",
-            "shadow-[0_4px_24px_rgba(168,85,247,0.4)]",
-            "hover:shadow-[0_6px_32px_rgba(168,85,247,0.55)] hover:opacity-95",
-            "active:scale-[0.98] transition-all duration-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+            "w-full flex items-center justify-center gap-2.5 rounded-xl py-3.5 px-6",
+            "text-[14px] font-semibold text-white tracking-wide",
+            "bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.12)]",
+            "hover:bg-[rgba(255,255,255,0.11)] hover:border-[rgba(255,255,255,0.18)]",
+            "active:scale-[0.99] transition-all duration-150",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
           )}
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Enviando solicitud…
             </>
           ) : (
             <>
-              <Sparkles className="h-5 w-5" />
+              <Send className="h-4 w-4" />
               Enviar solicitud
             </>
           )}
         </button>
 
-        <p className="text-center text-[12px] text-[#64748B]">
+        <p className="text-center text-[11px] text-[#475569]">
           Al enviar aceptás que revisemos tu evento antes de publicarlo en ¿Dónde es Hoy?
         </p>
       </form>
