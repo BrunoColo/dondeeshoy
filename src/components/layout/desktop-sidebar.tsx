@@ -22,6 +22,7 @@ import {
   Send,
   TrendingUp,
   ArrowRight,
+  Mail,
 } from "lucide-react";
 
 /**
@@ -319,6 +320,50 @@ export async function DesktopSidebar() {
             >
               <Send className="h-3.5 w-3.5" />
               Publicar mi evento
+              <ArrowRight className="h-3.5 w-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        </div>
+
+        {/* ── NEWSLETTER CTA ── */}
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
+            border: "1px solid rgba(99,102,241,0.18)",
+          }}
+        >
+          <div
+            className="px-4 py-3 border-b"
+            style={{ borderColor: "rgba(99,102,241,0.12)", background: "rgba(99,102,241,0.04)" }}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.30)" }}
+              >
+                <Mail className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
+              </div>
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#818CF8]">
+                Newsletter
+              </h2>
+            </div>
+          </div>
+          <div className="p-4 flex flex-col gap-3">
+            <p className="text-[12px] text-[#CBD5E1] leading-relaxed">
+              Recibí los mejores eventos de la semana directo en tu email. Sin spam.
+            </p>
+            <Link
+              href="/suscribirse"
+              className="group flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 border"
+              style={{
+                background: "rgba(99,102,241,0.08)",
+                borderColor: "rgba(99,102,241,0.30)",
+                color: "#818CF8",
+              }}
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Suscribirme gratis
               <ArrowRight className="h-3.5 w-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>

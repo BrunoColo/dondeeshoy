@@ -36,6 +36,13 @@
       "when": 1772000000000,
       "tag": "0004_add_banned_events",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772386861916,
+      "tag": "0005_panoramic_eddie_brock",
+      "breakpoints": true
     }
   ]
 }
