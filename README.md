@@ -166,16 +166,6 @@ Ver [`RUN_LOCAL.md`](RUN_LOCAL.md) para más detalles.
 
 ---
 
-## Scripts de mantenimiento
-
-```bash
-npm run fix:familiar    # Reclasifica eventos mal clasificados como gastronomico → familiar
-npm run fix:recurring   # Corrige eventos recurrentes mal marcados
-npm run db:studio       # Drizzle Studio (UI para la DB)
-```
-
----
-
 ## Licencia
 
 Proyecto personal. Todos los derechos reservados.

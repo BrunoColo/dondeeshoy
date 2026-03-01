@@ -349,7 +349,7 @@ const LATE_NIGHT_RECLASSIFY_EXCEPTIONS = new Set<EventType>([
 
 /**
  * Check if the startTime indicates a late-night fiesta.
- * Events starting between 23:00 and 01:59 are reclassified as "fiesta",
+ * Events starting between 23:00 and 02:30 are reclassified as "fiesta",
  * UNLESS the current type is one that legitimately runs late (theater, sports, etc.).
  */
 function shouldReclassifyAsFiesta(
@@ -370,8 +370,14 @@ function shouldReclassifyAsFiesta(
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
 
-  // 23:00–01:59 → reclassify as fiesta
-  return hour === 23 || hour === 0 || hour === 1;
+  // 23:00–02:30 → reclassify as fiesta
+  if (hour === 23 || hour === 0 || hour === 1) return true;
+  if (hour === 2) {
+    const minMatch = startTime.match(/(?:^\d{1,2}:|T\d{2}:)(\d{2})/);
+    const minutes = minMatch ? parseInt(minMatch[1], 10) : 0;
+    return minutes <= 30;
+  }
+  return false;
 }
 
 /**
