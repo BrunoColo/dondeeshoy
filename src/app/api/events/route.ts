@@ -71,7 +71,12 @@ export async function GET(request: NextRequest) {
       const data = await getFilterOptions();
       return NextResponse.json(
         { ok: true, data },
-        { headers: { "X-RateLimit-Remaining": String(remaining) } },
+        {
+          headers: {
+            "X-RateLimit-Remaining": String(remaining),
+            "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
+          },
+        },
       );
     }
 
@@ -102,6 +107,7 @@ export async function GET(request: NextRequest) {
         headers: {
           "X-RateLimit-Limit": String(limit),
           "X-RateLimit-Remaining": String(remaining),
+          "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
         },
       },
     );

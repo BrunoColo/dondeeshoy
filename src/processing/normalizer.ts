@@ -113,10 +113,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     scraperSaysIsFree || (prices.length === 0 && textSaysFree);
 
   const hasUsdHint = /\b(usd|u\$s|us\$|d[oó]lar(?:es)?)\b/i.test(bodyText);
-  const currency =
-    hasUsdHint || (priceMax !== null && priceMax < 50)
-      ? "USD"
-      : "UYU";
+  const currency = hasUsdHint ? "USD" : "UYU";
 
   // Use pre-extracted coordinates from scrapers that provide them.
   // CobraTicket / RedTickets / TicketFacil use rawData.latitude / rawData.longitude.

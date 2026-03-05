@@ -192,22 +192,22 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
 export async function getEventsByDate(date: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
 
-  // One-time events: match exact date
-  const oneTimeEvents = await db
+  return db
     .select(listColumns)
     .from(events)
-    .where(and(eq(events.date, date), activeStatus, eq(events.isRecurring, false), ...filterConditions))
-    .orderBy(desc(rankingScore), asc(events.startTime), asc(events.name));
-
-  // Recurring events: always show regardless of stored date
-  // (they were scraped on a specific day but repeat weekly/daily)
-  const recurringEvents = await db
-    .select(listColumns)
-    .from(events)
-    .where(and(activeStatus, eq(events.isRecurring, true), ...filterConditions))
-    .orderBy(desc(rankingScore), asc(events.startTime), asc(events.name));
-
-  return [...oneTimeEvents, ...recurringEvents];
+    .where(
+      and(
+        activeStatus,
+        or(eq(events.date, date), eq(events.isRecurring, true)),
+        ...filterConditions,
+      ),
+    )
+    .orderBy(
+      sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+      desc(rankingScore),
+      asc(events.startTime),
+      asc(events.name),
+    );
 }
 
 /**

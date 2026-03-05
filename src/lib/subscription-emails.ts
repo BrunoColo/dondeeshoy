@@ -133,6 +133,63 @@ export async function sendVerificationEmail(
   });
 }
 
+export async function sendSubscriptionConfirmedEmail(
+  email: string,
+  subscriberName: string | null,
+  frequency: "weekly" | "daily",
+  unsubscribeToken: string,
+): Promise<void> {
+  const unsubscribeUrl = `${BASE_URL}/api/subscriptions/unsubscribe?token=${unsubscribeToken}`;
+  const greeting = subscriberName ? `¡Hola ${subscriberName}!` : "¡Hola!";
+  const cadenceText =
+    frequency === "weekly"
+      ? "Te vamos a escribir cada jueves con el resumen del finde (viernes a domingo)."
+      : "Te vamos a escribir todos los días con recomendaciones frescas.";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Suscripción confirmada</title></head>
+<body style="${emailStyles.body}">
+  <div style="${emailStyles.container}">
+    <div style="${emailStyles.card}">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 36px;">✅</span>
+      </div>
+
+      <h1 style="${emailStyles.heading} text-align: center;">
+        Suscripción confirmada
+      </h1>
+      <p style="${emailStyles.subheading} text-align: center; margin-bottom: 12px;">
+        ${greeting}
+      </p>
+      <p style="${emailStyles.subheading} text-align: center; margin-top: 0;">
+        ${cadenceText}
+      </p>
+
+      <div style="text-align: center; margin: 28px 0 10px;">
+        <a href="${BASE_URL}" style="${emailStyles.button}">
+          Ver eventos ahora →
+        </a>
+      </div>
+    </div>
+
+    <div style="${emailStyles.footer}">
+      ${siteConfig.name} · ${siteConfig.description}<br/>
+      <a href="${unsubscribeUrl}" style="color: #64748B; text-decoration: underline;">Cancelar suscripción</a>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+  await getResend().emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: `✅ Suscripción confirmada — ${siteConfig.name}`,
+    html,
+  });
+}
+
 /* ─── Newsletter Digest Email ─── */
 
 export type NewsletterEvent = {

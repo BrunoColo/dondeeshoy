@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { approveSubmission, rejectSubmission, getSubmissionById } from "@/lib/admin-queries";
 import { verifyCookie } from "@/lib/admin-auth";
 
@@ -28,6 +29,9 @@ export async function POST(
       }
 
       await approveSubmission(id, notes);
+      revalidatePath("/");
+      revalidatePath("/proximos");
+      revalidatePath("/mapa");
       return NextResponse.json({ success: true });
     } else {
       await rejectSubmission(id, notes);

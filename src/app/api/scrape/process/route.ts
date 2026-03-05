@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { runProcessingPipeline, type PipelineResult } from "@/processing/pipeline";
 import {
   acquireCronLock,
@@ -73,6 +74,12 @@ export async function GET(request: Request) {
       // Also stop if the batch returned 0 processed events to avoid a tight
       // loop against a persistent error.
       if (result.processed === 0) break;
+    }
+
+    if (totals.created > 0 || totals.merged > 0) {
+      revalidatePath("/");
+      revalidatePath("/proximos");
+      revalidatePath("/mapa");
     }
 
     return NextResponse.json({

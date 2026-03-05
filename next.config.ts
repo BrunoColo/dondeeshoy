@@ -20,6 +20,34 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "redtickets.uy",
       },
+      {
+        protocol: "https",
+        hostname: "accesofacil.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ticketfacil.uy",
+      },
+      {
+        protocol: "https",
+        hostname: "cobraticket.uy",
+      },
+      {
+        protocol: "https",
+        hostname: "mientrada.com.uy",
+      },
+      {
+        protocol: "https",
+        hostname: "www.cartelera.com.uy",
+      },
+      {
+        protocol: "https",
+        hostname: "cartelera.montevideo.com.uy",
+      },
+      {
+        protocol: "https",
+        hostname: "eventos.montevideo.gub.uy",
+      },
     ],
   },
   async headers() {

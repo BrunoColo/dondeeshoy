@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifySubscriber } from "@/lib/subscription-queries";
+import { sendSubscriptionConfirmedEmail } from "@/lib/subscription-emails";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,20 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/?error=invalid-token", request.url));
   }
 
-  const verified = await verifySubscriber(token);
+  const verifiedSubscriber = await verifySubscriber(token);
 
-  if (verified) {
+  if (verifiedSubscriber) {
+    try {
+      await sendSubscriptionConfirmedEmail(
+        verifiedSubscriber.email,
+        verifiedSubscriber.name,
+        verifiedSubscriber.frequency,
+        verifiedSubscriber.unsubscribeToken,
+      );
+    } catch (error) {
+      console.error("[subscriptions/verify] Failed to send confirmed email:", error);
+    }
+
     return NextResponse.redirect(
       new URL("/suscribirse?verified=true", request.url),
     );

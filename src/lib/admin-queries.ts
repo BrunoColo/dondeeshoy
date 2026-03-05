@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { events, rawEvents, eventSources, bannedEvents } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
-import { eq, desc, and, gte, lte, sql, count, like, ilike } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, count, ilike } from "drizzle-orm";
 
 /**
  * Normalize an event name for ban matching:
@@ -16,6 +16,19 @@ function normalizeBanName(name: string): string {
     .trim();
 }
 
+function slugifyForEvent(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
+}
+
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
 
 // ============= Dashboard Stats =============
@@ -24,66 +37,55 @@ export async function getAdminDashboardStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Total active events
-  const [totalEvents] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(eq(events.status, "active"));
+  const [eventAggRows, eventsByType, rawAggRows, submissionAggRows] = await Promise.all([
+    db.execute<{
+      total_events: number | string;
+      events_today: number | string;
+      with_price: number | string;
+      with_image: number | string;
+      with_location: number | string;
+    }>(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE ${events.status} = 'active') AS total_events,
+        COUNT(*) FILTER (WHERE ${events.createdAt} >= ${today}) AS events_today,
+        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.priceMin} IS NOT NULL) AS with_price,
+        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.imageUrl} IS NOT NULL) AS with_image,
+        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.latitude} IS NOT NULL) AS with_location
+      FROM ${events}
+    `),
+    db
+      .select({
+        type: events.eventType,
+        count: count(),
+      })
+      .from(events)
+      .where(eq(events.status, "active"))
+      .groupBy(events.eventType),
+    db.execute<{ unprocessed_raw: number | string }>(sql`
+      SELECT COUNT(*) AS unprocessed_raw
+      FROM ${rawEvents}
+      WHERE ${rawEvents.processed} = false
+    `),
+    db.execute<{ pending_submissions: number | string }>(sql`
+      SELECT COUNT(*) AS pending_submissions
+      FROM ${eventSubmissions}
+      WHERE ${eventSubmissions.status} = 'pending'
+    `),
+  ]);
 
-  // Events created today
-  const [eventsToday] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(gte(events.createdAt, today));
-
-  // Raw events unprocessed
-  const [unprocessedRaw] = await db
-    .select({ count: count() })
-    .from(rawEvents)
-    .where(eq(rawEvents.processed, false));
-
-  // Pending submissions
-  const [pendingSubmissions] = await db
-    .select({ count: count() })
-    .from(eventSubmissions)
-    .where(eq(eventSubmissions.status, "pending"));
-
-  // Events with price
-  const [withPrice] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), sql`${events.priceMin} IS NOT NULL`));
-
-  // Events with image
-  const [withImage] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), sql`${events.imageUrl} IS NOT NULL`));
-
-  // Events with location
-  const [withLocation] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), sql`${events.latitude} IS NOT NULL`));
+  const eventAgg = eventAggRows[0];
+  const rawAgg = rawAggRows[0];
+  const submissionAgg = submissionAggRows[0];
 
   // Events by type
-  const eventsByType = await db
-    .select({
-      type: events.eventType,
-      count: count(),
-    })
-    .from(events)
-    .where(eq(events.status, "active"))
-    .groupBy(events.eventType);
-
   return {
-    totalEvents: totalEvents?.count ?? 0,
-    eventsToday: eventsToday?.count ?? 0,
-    unprocessedRaw: unprocessedRaw?.count ?? 0,
-    pendingSubmissions: pendingSubmissions?.count ?? 0,
-    withPrice: withPrice?.count ?? 0,
-    withImage: withImage?.count ?? 0,
-    withLocation: withLocation?.count ?? 0,
+    totalEvents: Number(eventAgg?.total_events ?? 0),
+    eventsToday: Number(eventAgg?.events_today ?? 0),
+    unprocessedRaw: Number(rawAgg?.unprocessed_raw ?? 0),
+    pendingSubmissions: Number(submissionAgg?.pending_submissions ?? 0),
+    withPrice: Number(eventAgg?.with_price ?? 0),
+    withImage: Number(eventAgg?.with_image ?? 0),
+    withLocation: Number(eventAgg?.with_location ?? 0),
     eventsByType,
   };
 }
@@ -95,47 +97,55 @@ export async function getScraperStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const stats = await Promise.all(
-    sources.map(async (source) => {
-      const [total] = await db
-        .select({ count: count() })
-        .from(rawEvents)
-        .where(eq(rawEvents.source, source));
+  const [aggRows, lastRows] = await Promise.all([
+    db.execute<{
+      source: Source;
+      total: number | string;
+      today: number | string;
+      unprocessed: number | string;
+      with_error: number | string;
+    }>(sql`
+      SELECT
+        ${rawEvents.source} AS source,
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE ${rawEvents.scrapedAt} >= ${today}) AS today,
+        COUNT(*) FILTER (WHERE ${rawEvents.processed} = false) AS unprocessed,
+        COUNT(*) FILTER (WHERE ${rawEvents.processingError} IS NOT NULL) AS with_error
+      FROM ${rawEvents}
+      GROUP BY ${rawEvents.source}
+    `),
+    db.execute<{
+      source: Source;
+      last_scrape: Date | string | null;
+    }>(sql`
+      SELECT
+        ${rawEvents.source} AS source,
+        MAX(${rawEvents.scrapedAt}) AS last_scrape
+      FROM ${rawEvents}
+      GROUP BY ${rawEvents.source}
+    `),
+  ]);
 
-      const [todayCount] = await db
-        .select({ count: count() })
-        .from(rawEvents)
-        .where(and(eq(rawEvents.source, source), gte(rawEvents.scrapedAt, today)));
-
-      const [unprocessed] = await db
-        .select({ count: count() })
-        .from(rawEvents)
-        .where(and(eq(rawEvents.source, source), eq(rawEvents.processed, false)));
-
-      const [withError] = await db
-        .select({ count: count() })
-        .from(rawEvents)
-        .where(and(eq(rawEvents.source, source), sql`${rawEvents.processingError} IS NOT NULL`));
-
-      const [lastScrape] = await db
-        .select({ scrapedAt: rawEvents.scrapedAt })
-        .from(rawEvents)
-        .where(eq(rawEvents.source, source))
-        .orderBy(desc(rawEvents.scrapedAt))
-        .limit(1);
-
-      return {
-        source,
-        total: total?.count ?? 0,
-        today: todayCount?.count ?? 0,
-        unprocessed: unprocessed?.count ?? 0,
-        withError: withError?.count ?? 0,
-        lastScrape: lastScrape?.scrapedAt ?? null,
-      };
-    })
+  const aggBySource = new Map(
+    aggRows.map((row) => [row.source, row]),
+  );
+  const lastBySource = new Map(
+    lastRows.map((row) => [row.source, row.last_scrape]),
   );
 
-  return stats;
+  return sources.map((source) => {
+    const agg = aggBySource.get(source);
+    const last = lastBySource.get(source);
+
+    return {
+      source,
+      total: Number(agg?.total ?? 0),
+      today: Number(agg?.today ?? 0),
+      unprocessed: Number(agg?.unprocessed ?? 0),
+      withError: Number(agg?.with_error ?? 0),
+      lastScrape: last ? new Date(last) : null,
+    };
+  });
 }
 
 // ============= Pipeline Stats =============
@@ -309,12 +319,8 @@ export async function approveSubmission(id: string, notes?: string) {
   }
 
   // Create event from submission
-  const slug = submission.eventName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "") +
-    "-" +
-    Date.now();
+  const safeDate = submission.eventDate || new Date().toISOString().slice(0, 10);
+  const slug = `${slugifyForEvent(submission.eventName)}-${safeDate}`;
 
   await db.insert(events).values({
     name: submission.eventName,

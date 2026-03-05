@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "@/lib/redis";
 import { incrementViewCount } from "@/lib/queries";
+import { getClientIp } from "@/lib/rate-limit";
+
+const viewRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  analytics: true,
+  prefix: "rl:view",
+});
 
 /**
  * POST /api/events/view
@@ -18,6 +27,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, error: "eventId requerido" },
         { status: 400 },
+      );
+    }
+
+    const ip = getClientIp(request);
+    const { success, limit, remaining, reset } = await viewRateLimit.limit(`${ip}:${eventId}`);
+    if (!success) {
+      return NextResponse.json(
+        { ok: false, error: "Demasiadas vistas en poco tiempo" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(reset),
+            "Cache-Control": "no-store",
+          },
+        },
       );
     }
 
@@ -44,7 +71,15 @@ export async function POST(request: NextRequest) {
       redis.expire(hourlyKey, 60 * 60 * 2),
     ]);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(
+      { ok: true },
+      {
+        headers: {
+          "X-RateLimit-Limit": String(limit),
+          "X-RateLimit-Remaining": String(remaining),
+        },
+      },
+    );
   } catch (error) {
     console.error("[API /events/view] Error:", error);
     // Don't fail the user experience for analytics errors

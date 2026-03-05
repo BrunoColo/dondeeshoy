@@ -8,10 +8,10 @@
 
 | # | Tarea | Descripción |
 |---|-------|-------------|
-| 1.2 | Fix: Login admin sin timing-safe comparison | Usar crypto.timingSafeEqual() como en isCronAuthorized() |
-| 1.3 | Fix: Heurística de moneda invertida | Eliminar threshold de precio, usar solo hasUsdHint |
-| 1.5 | Fix: Slugs inconsistentes | Unificar formato nombre-YYYY-MM-DD |
-| 10.5 | Hardcoded email | Mover brunocolo05@gmail.com a env var ADMIN_EMAIL |
+| 1.2 | ✅ Fix: Login admin sin timing-safe comparison | Usar crypto.timingSafeEqual() como en isCronAuthorized() |
+| 1.3 | ✅ Fix: Heurística de moneda invertida | Eliminar threshold de precio, usar solo hasUsdHint |
+| 1.5 | ✅ Fix: Slugs inconsistentes | Unificar formato nombre-YYYY-MM-DD |
+| 10.5 | ✅ Hardcoded email | Mover brunocolo05@gmail.com a env var ADMIN_EMAIL |
 | 10.6 | CSS cleanup | Eliminar aliases, actualizar gradiente a teal |
 
 ### Optimizaciones Simples
@@ -20,8 +20,8 @@
 |---|-------|-------------|
 | 2.4 | Agregar índices faltantes | 4 índices en events y raw_events |
 | 2.5 | Proyección de columnas | Reemplazar SELECT * por columnas explícitas |
-| 2.6 | Cache en API routes | Agregar Cache-Control headers |
-| 2.7 | On-demand ISR | Llamar revalidatePath() post-procesamiento |
+| 2.6 | ✅ Cache en API routes | Agregar Cache-Control headers |
+| 2.7 | ✅ On-demand ISR | Llamar revalidatePath() post-procesamiento |
 
 ### Frontend Simple
 
@@ -30,13 +30,12 @@
 | 4.5 | Compartir en WhatsApp | Generar deep link con wa.me |
 | 4.8 | Modo "Sorprendeme" | Query ORDER BY random() LIMIT 1 |
 | 6.5 | "Volver arriba" flotante | Botón que aparece al scrollear > 500px |
-| 6.7 | Labels en navegación mobile | Agregar labels bajo iconos |
 
 ### Configuración
 
 | # | Tarea | Descripción |
 |---|-------|-------------|
-| 10.1 | remotePatterns faltantes | Agregar CobraTicket, TicketFacil, etc. a next.config.ts |
+| 10.1 | ✅ remotePatterns faltantes | Agregar CobraTicket, TicketFacil, etc. a next.config.ts |
 
 ---
 
@@ -47,16 +46,16 @@
 | # | Tarea | Descripción |
 |---|-------|-------------|
 | 1.1 | Fix: UPSERT resetea eventos rechazados | Agregar columna permanently_rejected |
-| 1.4 | Fix: Rate limiting faltante | Implementar en view, login, trending |
+| 1.4 | ✅ Fix: Rate limiting faltante | Implementar en view, login, trending |
 | 7.3 | Flag permanently_rejected | UPSERT condicional en pipeline |
 
 ### Consolidación de Queries
 
 | # | Tarea | Descripción |
 |---|-------|-------------|
-| 2.1 | getScraperStats() | De 35 queries a 2 con CASE WHEN + GROUP BY |
-| 2.2 | getAdminDashboardStats() | De 8 queries a 1 con agregación condicional |
-| 2.3 | getEventsByDate() | De 2 queries a 1 con OR |
+| 2.1 | ✅ getScraperStats() | De 35 queries a 2 con CASE WHEN + GROUP BY |
+| 2.2 | ✅ getAdminDashboardStats() | De 8 queries a 1 con agregación condicional |
+| 2.3 | ✅ getEventsByDate() | De 2 queries a 1 con OR |
 | 2.8 | Sitemap con paginación | Implementar sitemap index con chunks |
 
 ### Newsletter y Email

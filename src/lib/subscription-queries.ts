@@ -20,7 +20,7 @@ export async function createSubscriber(
 
 /* ─── Verify ─── */
 
-export async function verifySubscriber(token: string): Promise<boolean> {
+export async function verifySubscriber(token: string): Promise<EmailSubscriber | null> {
   const result = await db
     .update(emailSubscribers)
     .set({ verified: true, updatedAt: new Date() })
@@ -30,8 +30,8 @@ export async function verifySubscriber(token: string): Promise<boolean> {
         eq(emailSubscribers.verified, false),
       ),
     )
-    .returning({ id: emailSubscribers.id });
-  return result.length > 0;
+    .returning();
+  return result[0] ?? null;
 }
 
 /* ─── Unsubscribe ─── */
