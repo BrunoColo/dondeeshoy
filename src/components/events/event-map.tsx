@@ -43,33 +43,53 @@ const TYPE_ICONS: Record<string, string> = {
   otro: "📌",
 };
 
-/** Create a colored marker element for Mapbox GL */
+/** Create a colored marker element for Mapbox GL — circle + pointer, no rotation */
 function createMarkerElement(color: string, eventType: string, isSelected = false): HTMLDivElement {
-  const size = isSelected ? 40 : 32;
-  const el = document.createElement("div");
-  el.style.width = `${size}px`;
-  el.style.height = `${size}px`;
-  el.style.cursor = "pointer";
-  el.style.display = "flex";
-  el.style.alignItems = "center";
-  el.style.justifyContent = "center";
-  el.style.borderRadius = "50% 50% 50% 0";
-  el.style.background = color;
-  el.style.border = `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.5)"}`;
-  el.style.transform = "rotate(-45deg)";
-  el.style.boxShadow = isSelected
-    ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.4)`
-    : "0 2px 8px rgba(0,0,0,0.35)";
-  el.style.transition = "all 0.2s ease";
+  const circleSize = isSelected ? 36 : 30;
+  const pointerH = isSelected ? 8 : 6;
 
-  const inner = document.createElement("span");
-  inner.style.transform = "rotate(45deg)";
-  inner.style.fontSize = isSelected ? "16px" : "13px";
-  inner.style.lineHeight = "1";
-  inner.textContent = TYPE_ICONS[eventType] ?? "📌";
-  el.appendChild(inner);
+  // Container: holds circle + pointer, anchored at bottom-center
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.flexDirection = "column";
+  wrapper.style.alignItems = "center";
+  wrapper.style.cursor = "pointer";
+  wrapper.style.transition = "transform 0.2s ease";
 
-  return el;
+  // Circle
+  const circle = document.createElement("div");
+  circle.style.width = `${circleSize}px`;
+  circle.style.height = `${circleSize}px`;
+  circle.style.borderRadius = "50%";
+  circle.style.background = color;
+  circle.style.border = `2.5px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.6)"}`;
+  circle.style.display = "flex";
+  circle.style.alignItems = "center";
+  circle.style.justifyContent = "center";
+  circle.style.boxShadow = isSelected
+    ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.45)`
+    : "0 2px 8px rgba(0,0,0,0.4)";
+
+  // Emoji
+  const icon = document.createElement("span");
+  icon.style.fontSize = isSelected ? "15px" : "13px";
+  icon.style.lineHeight = "1";
+  icon.style.userSelect = "none";
+  icon.textContent = TYPE_ICONS[eventType] ?? "📌";
+  circle.appendChild(icon);
+  wrapper.appendChild(circle);
+
+  // Triangle pointer
+  const pointer = document.createElement("div");
+  pointer.style.width = "0";
+  pointer.style.height = "0";
+  pointer.style.borderLeft = `${pointerH}px solid transparent`;
+  pointer.style.borderRight = `${pointerH}px solid transparent`;
+  pointer.style.borderTop = `${pointerH}px solid ${color}`;
+  pointer.style.marginTop = "-1px";
+  wrapper.appendChild(pointer);
+
+  return wrapper;
 }
 
 export interface MapEvent {
@@ -129,7 +149,9 @@ export function EventMap({
 
   // Stable ref for onEventSelect to avoid marker recreation
   const onEventSelectRef = useRef(onEventSelect);
-  onEventSelectRef.current = onEventSelect;
+  useEffect(() => {
+    onEventSelectRef.current = onEventSelect;
+  }, [onEventSelect]);
 
   const activeEvents = useMemo(() => {
     if (dateFilter === "manana") return tomorrowEvents;
@@ -187,17 +209,20 @@ export function EventMap({
       map.remove();
       mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle style switching
+  const handleStyleChange = useCallback((key: MapStyleKey) => {
+    setStyleKey(key);
+    setMapReady(false);
+  }, []);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    // Clear markers and mark as not ready before switching
+    // Clear markers before switching
     for (const [, marker] of markersRef.current) marker.remove();
     markersRef.current.clear();
-    setMapReady(false);
     map.setStyle(MAP_STYLES[styleKey]);
 
     const onStyleLoad = () => setMapReady(true);
@@ -272,12 +297,13 @@ export function EventMap({
       const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
       const el = createMarkerElement(color, event.eventType, isSelected);
 
-      // Hover effect
+      // Hover effect — scale from bottom center (the pin tip)
+      el.style.transformOrigin = "center bottom";
       el.addEventListener("mouseenter", () => {
-        el.style.transform = "rotate(-45deg) scale(1.15)";
+        el.style.transform = "scale(1.2)";
       });
       el.addEventListener("mouseleave", () => {
-        el.style.transform = "rotate(-45deg) scale(1)";
+        el.style.transform = "scale(1)";
       });
 
       el.addEventListener("click", (e) => {
@@ -341,127 +367,115 @@ export function EventMap({
       {/* Mapbox GL container */}
       <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* Legend — hidden on mobile */}
-      <div className="absolute bottom-4 left-4 z-[1000] hidden lg:flex flex-wrap gap-2 rounded-xl glass-card px-3 py-2 text-[10px] max-w-[280px]">
-        {Object.entries(TYPE_COLORS)
-          .filter(([key]) => key !== "otro")
-          .map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1">
-              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="capitalize text-text-muted">{type}</span>
-            </div>
-          ))}
-      </div>
-
-      {/* Mobile legend (compact) */}
-      <div className="absolute bottom-[76px] sm:bottom-4 left-4 z-[1000] flex lg:hidden flex-wrap gap-1.5 rounded-xl glass-card px-2.5 py-1.5 text-[9px] max-w-[200px]">
-        {Object.entries(TYPE_COLORS)
-          .filter(([key]) => key !== "otro")
-          .slice(0, 8)
-          .map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-              <span className="capitalize text-text-muted">{type}</span>
-            </div>
-          ))}
-      </div>
-
-      {/* Top controls — offset on mobile for toggle bar */}
-      <div className="absolute top-[52px] lg:top-4 left-4 right-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        {/* Left: date filter + count + recurring toggle */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1 self-start">
-            {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
-              const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
-              const counts: Record<DateFilter, number> = {
-                hoy: todayEvents.length,
-                manana: tomorrowEvents.length,
-                finde: weekendEvents.length,
-              };
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => handleDateChange(f)}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all ${
-                    dateFilter === f
-                      ? "bg-accent/20 border border-accent/40 text-accent-light shadow-sm"
-                      : "text-white/50 hover:text-white"
-                  }`}
-                >
-                  {labels[f]}
-                  <span className={`text-[9px] font-semibold ${dateFilter === f ? "text-accent-light/70" : "text-white/30"}`}>
-                    {counts[f]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm whitespace-nowrap">
-              {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
-              {activeTypeFilter && (
-                <span className="ml-1.5 text-[10px] text-accent-light font-semibold">
-                  · {activeTypeFilter}
-                </span>
-              )}
-            </div>
-            {recurringCount > 0 && (
+      {/* ─── Top bar: date pills + style/fit ─── */}
+      <div className="absolute top-[52px] lg:top-3 left-3 right-3 z-[1000] flex items-start justify-between gap-2">
+        {/* Date filter pills */}
+        <div className="flex items-center gap-0.5 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-1">
+          {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
+            const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
+            const counts: Record<DateFilter, number> = {
+              hoy: todayEvents.length,
+              manana: tomorrowEvents.length,
+              finde: weekendEvents.length,
+            };
+            return (
               <button
+                key={f}
                 type="button"
-                onClick={() => setHideRecurring((v) => !v)}
-                title={hideRecurring ? "Mostrar eventos recurrentes" : "Ocultar eventos recurrentes"}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition-all shadow-lg backdrop-blur-sm whitespace-nowrap ${
-                  hideRecurring
-                    ? "bg-accent/25 border border-accent/50 text-accent-light"
-                    : "bg-black/80 border border-white/20 text-white/70 hover:text-white hover:border-white/40"
+                onClick={() => handleDateChange(f)}
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold tracking-wide transition-all ${
+                  dateFilter === f
+                    ? "bg-accent/25 text-accent-light shadow-sm"
+                    : "text-white/50 hover:text-white/80"
                 }`}
               >
-                <RotateCw className="h-3 w-3 shrink-0" />
-                {hideRecurring ? "Recurrentes ocultos" : "Ocultar recurrentes"}
+                {labels[f]}
+                <span className={`text-[9px] tabular-nums ${dateFilter === f ? "text-accent-light/70" : "text-white/30"}`}>
+                  {counts[f]}
+                </span>
               </button>
-            )}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Right: style switcher + fit bounds */}
-        <div className="flex flex-col gap-2 items-end">
-          <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1">
+        {/* Right side: style toggle + fit */}
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-1">
             <button
               type="button"
-              onClick={() => setStyleKey("calles")}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              onClick={() => handleStyleChange("calles")}
+              className={`rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all ${
                 styleKey === "calles"
-                  ? "bg-white/20 text-white shadow-sm"
-                  : "text-white/50 hover:text-white"
+                  ? "bg-white/20 text-white"
+                  : "text-white/50 hover:text-white/80"
               }`}
             >
               Calles
             </button>
             <button
               type="button"
-              onClick={() => setStyleKey("oscuro")}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              onClick={() => handleStyleChange("oscuro")}
+              className={`rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all ${
                 styleKey === "oscuro"
-                  ? "bg-white/20 text-white shadow-sm"
-                  : "text-white/50 hover:text-white"
+                  ? "bg-white/20 text-white"
+                  : "text-white/50 hover:text-white/80"
               }`}
             >
               Noche
             </button>
           </div>
-
           <button
             type="button"
             onClick={fitBounds}
             title="Encuadrar todos los eventos"
-            className="flex items-center gap-1.5 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white/70 hover:text-white hover:border-white/40 transition-all"
+            className="flex items-center justify-center rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-2 text-white/60 hover:text-white transition-all"
           >
-            <Maximize2 className="h-3 w-3 shrink-0" />
-            <span className="hidden sm:inline">Encuadrar</span>
+            <Maximize2 className="h-3.5 w-3.5" />
           </button>
         </div>
+      </div>
+
+      {/* ─── Bottom-left: event count + recurring toggle ─── */}
+      <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-1.5">
+        {/* Event count badge */}
+        <div className="rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-white/90">
+          <span className="font-bold text-white">{visibleEvents.length}</span>{" "}
+          {visibleEvents.length === 1 ? "evento" : "eventos"}
+          {activeTypeFilter && (
+            <span className="ml-1 text-accent-light font-semibold">
+              · {activeTypeFilter}
+            </span>
+          )}
+        </div>
+
+        {/* Hide recurring toggle */}
+        {recurringCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setHideRecurring((v) => !v)}
+            title={hideRecurring ? "Mostrar recurrentes" : "Ocultar recurrentes"}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-semibold tracking-wide transition-all shadow-lg backdrop-blur-md ${
+              hideRecurring
+                ? "bg-accent/25 border border-accent/40 text-accent-light"
+                : "bg-black/75 border border-white/15 text-white/60 hover:text-white/90"
+            }`}
+          >
+            <RotateCw className="h-3 w-3 shrink-0" />
+            {hideRecurring ? "Ocultos" : "Recurrentes"} ({recurringCount})
+          </button>
+        )}
+      </div>
+
+      {/* ─── Bottom-right: legend (desktop only) ─── */}
+      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-2 text-[10px] max-w-[320px]">
+        {Object.entries(TYPE_COLORS)
+          .filter(([key]) => key !== "otro")
+          .map(([type, color]) => (
+            <div key={type} className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              <span className="capitalize text-white/60">{type}</span>
+            </div>
+          ))}
       </div>
     </div>
   );
