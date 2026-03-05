@@ -60,6 +60,7 @@ export function SubscribeForm() {
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [frequency, setFrequency] = useState<"weekly" | "daily">("weekly");
@@ -133,6 +134,7 @@ export function SubscribeForm() {
           departments: selectedDepartments.length > 0 ? selectedDepartments : undefined,
           eventTypes: selectedTypes.length > 0 ? selectedTypes : undefined,
           frequency,
+          website: honeypot,
         }),
       });
 
@@ -419,6 +421,18 @@ export function SubscribeForm() {
                     "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
                   )}
                   autoComplete="given-name"
+                />
+              </div>
+
+              {/* Honeypot — hidden from humans, traps bots */}
+              <div className="absolute opacity-0 -z-10 pointer-events-none" aria-hidden="true" tabIndex={-1}>
+                <input
+                  type="text"
+                  name="website"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
                 />
               </div>
 

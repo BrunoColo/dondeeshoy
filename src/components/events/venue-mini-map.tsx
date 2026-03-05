@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 interface VenueMiniMapProps {
   lat: number;
@@ -10,80 +10,62 @@ interface VenueMiniMapProps {
   venueName: string;
 }
 
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false },
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false },
-);
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false },
-);
-const Popup = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Popup),
-  { ssr: false },
-);
-
 export function VenueMiniMap({ lat, lng, venueName }: VenueMiniMapProps) {
-  const [markerIcon, setMarkerIcon] = useState<import("leaflet").DivIcon | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!containerRef.current) return;
 
-    void (async () => {
-      const L = await import("leaflet");
-      if (!isMounted) return;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return;
 
-      const icon = L.divIcon({
-        className: "",
-        iconSize: [26, 34],
-        iconAnchor: [13, 34],
-        popupAnchor: [0, -32],
-        html: `
-          <svg width="26" height="34" viewBox="0 0 26 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 20.5 13 20.5S26 22.75 26 13C26 5.82 20.18 0 13 0z" fill="#14B8A6" fill-opacity="0.88" stroke="#14B8A6" stroke-width="1.5"/>
-            <circle cx="13" cy="12" r="5" fill="white" fill-opacity="0.95"/>
-          </svg>
-        `,
-      });
+    mapboxgl.accessToken = token;
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [lng, lat],
+      zoom: 15,
+      interactive: false,
+      attributionControl: false,
+    });
 
-      setMarkerIcon(icon);
-    })();
+    // Add marker only after style is fully loaded
+    map.on("load", () => {
+      const el = document.createElement("div");
+      el.style.width = "26px";
+      el.style.height = "26px";
+      el.style.borderRadius = "50% 50% 50% 0";
+      el.style.background = "#14B8A6";
+      el.style.border = "2px solid rgba(255,255,255,0.7)";
+      el.style.transform = "rotate(-45deg)";
+      el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.35)";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+
+      const inner = document.createElement("span");
+      inner.style.transform = "rotate(45deg)";
+      inner.style.fontSize = "11px";
+      inner.textContent = "📍";
+      el.appendChild(inner);
+
+      new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([lng, lat])
+        .addTo(map);
+    });
+
+    mapRef.current = map;
 
     return () => {
-      isMounted = false;
+      map.remove();
+      mapRef.current = null;
     };
-  }, []);
-
-  const marker = useMemo(() => markerIcon, [markerIcon]);
+  }, [lat, lng, venueName]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/[0.08]">
-      {marker ? (
-        <MapContainer
-          center={[lat, lng]}
-          zoom={15}
-          style={{ height: "150px", width: "100%" }}
-          scrollWheelZoom={false}
-          dragging={false}
-          doubleClickZoom={false}
-          zoomControl={false}
-          attributionControl
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
-          <Marker position={[lat, lng]} icon={marker}>
-            <Popup>{venueName}</Popup>
-          </Marker>
-        </MapContainer>
-      ) : (
-        <div className="h-[150px] w-full bg-white/[0.02]" />
-      )}
+      <div ref={containerRef} style={{ height: "150px", width: "100%" }} />
     </div>
   );
 }

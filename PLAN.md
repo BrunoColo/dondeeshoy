@@ -58,18 +58,6 @@
 | 2.3 | ✅ getEventsByDate() | De 2 queries a 1 con OR |
 | 2.8 | Sitemap con paginación | Implementar sitemap index con chunks |
 
-### Newsletter y Email
-
-| # | Tarea | Descripción |
-|---|-------|-------------|
-| 3.1 | Tabla email_subscribers | Schema con departments, event_types, frequency |
-| 3.2 | Flujo de suscripción | Página /suscribirse + verificación por token |
-| 3.3 | Cron de envío "Tu Fin de Semana" | Template HTML + Resend Batch API |
-| 3.4 | Widget de suscripción | CTA flotante + modal/drawer |
-| 3.5 | Suscripción diaria (fase 2) | Cron a las 8:00 UYT |
-| 10.2 | Emails con dominio propio | Configurar dondeeshoy.com en Resend |
-| 10.3 | Email al submitter | Confirmación + notificación aprobación/rechazo |
-
 ### Features de Contenido
 
 | # | Tarea | Descripción |

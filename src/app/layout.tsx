@@ -75,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es-UY" className="dark">
+    <html lang="es-UY" className="dark" data-scroll-behavior="smooth">
       <body
         className={`${outfit.variable} ${dmSans.variable} ${dmMono.variable} antialiased`}
       >

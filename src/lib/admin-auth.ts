@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "admin_session";
@@ -23,7 +23,10 @@ export function verifyToken(token: string, secret: string): string | null {
       .update(decoded.payload)
       .digest("hex");
 
-    if (decoded.signature === expectedSignature) {
+    const sigBuf = Buffer.from(decoded.signature, "utf8");
+    const expBuf = Buffer.from(expectedSignature, "utf8");
+
+    if (sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf)) {
       return decoded.payload;
     }
     return null;

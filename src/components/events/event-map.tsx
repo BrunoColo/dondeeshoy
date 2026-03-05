@@ -1,53 +1,75 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import { MapPin, Clock, Ticket, ExternalLink, RotateCw, Maximize2 } from "lucide-react";
-import { EventTypeBadge } from "@/components/shared/event-type-badge";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { RotateCw, Maximize2 } from "lucide-react";
 import { formatPrice, formatTime } from "@/lib/format";
-import Link from "next/link";
 import type { EventType } from "@/types/events";
-import "leaflet/dist/leaflet.css";
 
 /** Marker color per event type */
 const TYPE_COLORS: Record<string, string> = {
-  fiesta: "#14B8A6",    // teal (was violet — aligned with new accent)
-  festival: "#EC4899",  // pink
-  concierto: "#0EA5E9", // sky
-  recital: "#06B6D4",   // cyan
-  cultural: "#6366F1",  // indigo
-  deportivo: "#22C55E", // green
-  gastronomico: "#F97316", // orange
-  familiar: "#84CC16",  // lime
-  feria: "#F43F5E",     // rose
-  taller: "#14B8A6",    // teal
-  club: "#6366F1",      // indigo
-  bar: "#F59E0B",       // amber
-  teatro: "#10B981",    // emerald
-  otro: "#94A3B8",      // slate
+  fiesta: "#14B8A6",
+  festival: "#EC4899",
+  concierto: "#0EA5E9",
+  recital: "#06B6D4",
+  cultural: "#6366F1",
+  deportivo: "#22C55E",
+  gastronomico: "#F97316",
+  familiar: "#84CC16",
+  feria: "#F43F5E",
+  taller: "#14B8A6",
+  club: "#6366F1",
+  bar: "#F59E0B",
+  teatro: "#10B981",
+  otro: "#94A3B8",
 };
 
-/** Create a colored SVG marker icon for Leaflet */
-function createMarkerIcon(color: string, isSelected = false): L.DivIcon {
-  const size = isSelected ? 36 : 28;
-  const height = isSelected ? 46 : 36;
-  const ring = isSelected
-    ? `<circle cx="${size / 2}" cy="${size / 2 - 1}" r="${size / 2 + 3}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity="0.5"/>`
-    : "";
-  return L.divIcon({
-    className: "",
-    iconSize: [size, height],
-    iconAnchor: [size / 2, height],
-    popupAnchor: [0, -height],
-    html: `
-      <svg width="${size}" height="${height}" viewBox="0 0 ${size} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
-        ${ring}
-        <path d="M${size / 2} 0C${size * 0.232} 0 0 ${size * 0.232} 0 ${size / 2}c0 ${size * 0.375} ${size / 2} ${size * 0.786} ${size / 2} ${size * 0.786}s${size / 2}-${size * 0.411} ${size / 2}-${size * 0.786}C${size} ${size * 0.232} ${size * 0.768} 0 ${size / 2} 0z" fill="${color}" fill-opacity="${isSelected ? 1 : 0.85}" stroke="${color}" stroke-width="1.5"/>
-        <circle cx="${size / 2}" cy="${size / 2 - 1}" r="${size * 0.196}" fill="white" fill-opacity="0.9"/>
-      </svg>
-    `,
-  });
+/** Category icons (emoji) per event type */
+const TYPE_ICONS: Record<string, string> = {
+  fiesta: "🎉",
+  festival: "🎪",
+  concierto: "🎵",
+  recital: "🎤",
+  cultural: "🎨",
+  deportivo: "⚽",
+  gastronomico: "🍽️",
+  familiar: "👨‍👩‍👧",
+  feria: "🛍️",
+  taller: "🔧",
+  club: "🎶",
+  bar: "🍺",
+  teatro: "🎭",
+  otro: "📌",
+};
+
+/** Create a colored marker element for Mapbox GL */
+function createMarkerElement(color: string, eventType: string, isSelected = false): HTMLDivElement {
+  const size = isSelected ? 40 : 32;
+  const el = document.createElement("div");
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.cursor = "pointer";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.borderRadius = "50% 50% 50% 0";
+  el.style.background = color;
+  el.style.border = `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.5)"}`;
+  el.style.transform = "rotate(-45deg)";
+  el.style.boxShadow = isSelected
+    ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.4)`
+    : "0 2px 8px rgba(0,0,0,0.35)";
+  el.style.transition = "all 0.2s ease";
+
+  const inner = document.createElement("span");
+  inner.style.transform = "rotate(45deg)";
+  inner.style.fontSize = isSelected ? "16px" : "13px";
+  inner.style.lineHeight = "1";
+  inner.textContent = TYPE_ICONS[eventType] ?? "📌";
+  el.appendChild(inner);
+
+  return el;
 }
 
 export interface MapEvent {
@@ -71,69 +93,20 @@ interface EventMapProps {
   todayEvents: MapEvent[];
   tomorrowEvents: MapEvent[];
   weekendEvents: MapEvent[];
-  /** Controlled selected event id (from sidebar) */
   selectedEventId?: string | null;
-  /** Active type filter from sidebar (e.g. "fiesta", "concierto") */
   activeTypeFilter?: string | null;
-  /** Called when user clicks a marker */
   onEventSelect?: (event: MapEvent | null) => void;
-  /** Called when date filter changes (date only — sidebar computes its own event list) */
   onDateFilterChange?: (filter: DateFilter) => void;
 }
 
 export type DateFilter = "hoy" | "manana" | "finde";
 
-const TILE_LAYERS = {
-  calles: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  },
-  oscuro: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  },
+const MAP_STYLES = {
+  calles: "mapbox://styles/mapbox/streets-v12",
+  oscuro: "mapbox://styles/mapbox/dark-v11",
 } as const;
 
-type TileLayerKey = keyof typeof TILE_LAYERS;
-
-/** Inner component to handle tile layer switching (needs useMap) */
-function TileSwitch({ tileKey }: { tileKey: TileLayerKey }) {
-  const map = useMap();
-  useEffect(() => {
-    map.invalidateSize();
-  }, [map, tileKey]);
-
-  const tile = TILE_LAYERS[tileKey];
-  return <TileLayer key={tileKey} url={tile.url} attribution={tile.attribution} />;
-}
-
-/** Flies map to a given position when selectedEventId changes */
-function MapFlyTo({ event }: { event: MapEvent | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (event) {
-      map.flyTo([event.latitude, event.longitude], Math.max(map.getZoom(), 14), {
-        duration: 0.8,
-      });
-    }
-  }, [map, event]);
-  return null;
-}
-
-/** Auto-fits the map bounds to show all visible events when they change significantly */
-function FitBoundsOnChange({ events, trigger }: { events: MapEvent[]; trigger: number }) {
-  const map = useMap();
-  useEffect(() => {
-    if (events.length === 0) return;
-    if (events.length === 1) {
-      map.flyTo([events[0].latitude, events[0].longitude], 14, { duration: 0.6 });
-      return;
-    }
-    const bounds = L.latLngBounds(events.map((e) => [e.latitude, e.longitude]));
-    map.flyToBounds(bounds, { padding: [50, 50], duration: 0.6, maxZoom: 15 });
-  }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
-  return null;
-}
+type MapStyleKey = keyof typeof MAP_STYLES;
 
 export function EventMap({
   todayEvents,
@@ -144,12 +117,19 @@ export function EventMap({
   onEventSelect,
   onDateFilterChange,
 }: EventMapProps) {
-  const [internalSelected, setInternalSelected] = useState<MapEvent | null>(null);
-  const [tileKey, setTileKey] = useState<TileLayerKey>("calles");
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
+
+  const [styleKey, setStyleKey] = useState<MapStyleKey>("oscuro");
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
-  const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
-  const popupRef = useRef<L.Popup | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+
+  // Stable ref for onEventSelect to avoid marker recreation
+  const onEventSelectRef = useRef(onEventSelect);
+  onEventSelectRef.current = onEventSelect;
 
   const activeEvents = useMemo(() => {
     if (dateFilter === "manana") return tomorrowEvents;
@@ -157,184 +137,223 @@ export function EventMap({
     return todayEvents;
   }, [dateFilter, todayEvents, tomorrowEvents, weekendEvents]);
 
-  const recurringCount = useMemo(() => activeEvents.filter((e: MapEvent) => e.isRecurring).length, [activeEvents]);
-  const visibleEvents = useMemo(
-    () => {
-      let events = activeEvents;
-      if (hideRecurring) {
-        events = events.filter((e: MapEvent) => !e.isRecurring);
-      }
-      if (activeTypeFilter) {
-        events = events.filter((e: MapEvent) => e.eventType === activeTypeFilter);
-      }
-      return events;
-    },
-    [activeEvents, hideRecurring, activeTypeFilter],
-  );
+  const recurringCount = useMemo(() => activeEvents.filter((e) => e.isRecurring).length, [activeEvents]);
+
+  const visibleEvents = useMemo(() => {
+    let events = activeEvents;
+    if (hideRecurring) events = events.filter((e) => !e.isRecurring);
+    if (activeTypeFilter) events = events.filter((e) => e.eventType === activeTypeFilter);
+    return events;
+  }, [activeEvents, hideRecurring, activeTypeFilter]);
 
   // Notify parent only when the date filter pill changes
   useEffect(() => {
     onDateFilterChange?.(dateFilter);
   }, [dateFilter, onDateFilterChange]);
 
-  // Resolve the selected event object (from controlled id or internal state)
-  const selectedEvent = useMemo(() => {
-    if (selectedEventId !== undefined) {
-      return visibleEvents.find((e) => e.id === selectedEventId) ?? null;
-    }
-    return internalSelected;
-  }, [selectedEventId, internalSelected, visibleEvents]);
+  // Initialize Mapbox GL map
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
 
-  // Pre-build marker icons (memoized per event type + selected state)
-  const iconCache = useMemo(() => {
-    const cache = new Map<string, L.DivIcon>();
-    for (const [type, color] of Object.entries(TYPE_COLORS)) {
-      cache.set(type, createMarkerIcon(color, false));
-      cache.set(`${type}:selected`, createMarkerIcon(color, true));
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      console.error("NEXT_PUBLIC_MAPBOX_TOKEN not set");
+      return;
     }
-    return cache;
+
+    mapboxgl.accessToken = token;
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: MAP_STYLES.oscuro,
+      center: [-56.1645, -34.9011],
+      zoom: 12,
+      attributionControl: true,
+      maxBounds: [
+        [-58.5, -35.8],
+        [-53.0, -30.0],
+      ],
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+
+    map.on("load", () => {
+      setMapReady(true);
+    });
+
+    mapRef.current = map;
+
+    return () => {
+      setMapReady(false);
+      map.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getIcon = useCallback(
-    (eventType: string, isSelected: boolean) => {
-      const key = isSelected ? `${eventType}:selected` : eventType;
-      return iconCache.get(key) ?? iconCache.get(isSelected ? "otro:selected" : "otro")!;
-    },
-    [iconCache],
-  );
+  // Handle style switching
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // Clear markers and mark as not ready before switching
+    for (const [, marker] of markersRef.current) marker.remove();
+    markersRef.current.clear();
+    setMapReady(false);
+    map.setStyle(MAP_STYLES[styleKey]);
 
-  const handleMarkerClick = useCallback(
-    (event: MapEvent) => {
-      if (onEventSelect) {
-        onEventSelect(event);
-      } else {
-        setInternalSelected(event);
-      }
-    },
-    [onEventSelect],
-  );
+    const onStyleLoad = () => setMapReady(true);
+    map.once("style.load", onStyleLoad);
+    return () => { map.off("style.load", onStyleLoad); };
+  }, [styleKey]);
+
+
+  // Show popup for a given event
+  const showPopup = useCallback((map: mapboxgl.Map, event: MapEvent) => {
+    if (popupRef.current) popupRef.current.remove();
+
+    const price = event.isFree
+      ? "Gratis"
+      : event.priceMin
+        ? formatPrice(event.priceMin, null, false, event.currency)
+        : "Consultar";
+    const timeLabel = formatTime(event.startTime ?? null);
+
+    const container = document.createElement("div");
+    container.innerHTML = `
+      <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 280px;">
+        <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #1a1a1a; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #666;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>📍</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
+          </div>
+          ${timeLabel ? `<div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${timeLabel}</span></div>` : ""}
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>🎫</span>
+            <span>${price}</span>
+          </div>
+        </div>
+        <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding: 6px 12px; border-radius: 8px; background: #f0fdfa; border: 1px solid #99f6e4; font-size: 12px; font-weight: 500; color: #0f766e; text-decoration: none;">
+          Ver evento →
+        </a>
+      </div>
+    `;
+
+    const popup = new mapboxgl.Popup({
+      closeButton: true,
+      maxWidth: "300px",
+      offset: 25,
+    })
+      .setLngLat([event.longitude, event.latitude])
+      .setDOMContent(container)
+      .addTo(map);
+
+    popup.on("close", () => {
+      onEventSelectRef.current?.(null);
+      popupRef.current = null;
+    });
+
+    popupRef.current = popup;
+  }, []);
+
+  // Render markers when visible events change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    // Remove old markers
+    for (const [, marker] of markersRef.current) {
+      marker.remove();
+    }
+    markersRef.current.clear();
+
+    // Add new markers
+    for (const event of visibleEvents) {
+      const isSelected = selectedEventId === event.id;
+      const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
+      const el = createMarkerElement(color, event.eventType, isSelected);
+
+      // Hover effect
+      el.addEventListener("mouseenter", () => {
+        el.style.transform = "rotate(-45deg) scale(1.15)";
+      });
+      el.addEventListener("mouseleave", () => {
+        el.style.transform = "rotate(-45deg) scale(1)";
+      });
+
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onEventSelectRef.current?.(event);
+        showPopup(map, event);
+      });
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([event.longitude, event.latitude])
+        .addTo(map);
+
+      markersRef.current.set(event.id, marker);
+    }
+  }, [visibleEvents, mapReady, selectedEventId, showPopup]);
+
+  // Fly to selected event
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !selectedEventId) return;
+
+    const event = visibleEvents.find((e) => e.id === selectedEventId);
+    if (event) {
+      map.flyTo({
+        center: [event.longitude, event.latitude],
+        zoom: Math.max(map.getZoom(), 14),
+        duration: 800,
+      });
+      showPopup(map, event);
+    }
+  }, [selectedEventId, visibleEvents, mapReady, showPopup]);
+
+  const fitBounds = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const events = visibleEvents;
+    if (events.length === 0) return;
+
+    if (events.length === 1) {
+      map.flyTo({ center: [events[0].longitude, events[0].latitude], zoom: 14, duration: 600 });
+      return;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const e of events) {
+      bounds.extend([e.longitude, e.latitude]);
+    }
+    map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
+  }, [visibleEvents]);
 
   const handleDateChange = (f: DateFilter) => {
     setDateFilter(f);
-    if (onEventSelect) {
-      onEventSelect(null);
-    } else {
-      setInternalSelected(null);
-    }
-    // Auto fit bounds when switching date filter
-    setFitBoundsTrigger((v) => v + 1);
-  };
-
-  const handleFitBounds = () => {
-    setFitBoundsTrigger((v) => v + 1);
+    onEventSelectRef.current?.(null);
+    if (popupRef.current) popupRef.current.remove();
+    setTimeout(() => fitBounds(), 50);
   };
 
   return (
     <div className="relative h-full w-full">
-      <MapContainer
-        center={[-34.9011, -56.1645]}
-        zoom={12}
-        scrollWheelZoom
-        style={{ width: "100%", height: "100%" }}
-        className="z-0"
-        zoomControl={false}
-      >
-        <TileSwitch tileKey={tileKey} />
-        <MapFlyTo event={selectedEvent} />
-        <FitBoundsOnChange events={visibleEvents} trigger={fitBoundsTrigger} />
+      {/* Mapbox GL container */}
+      <div ref={mapContainerRef} className="h-full w-full" />
 
-        {visibleEvents.map((event) => {
-          const isSelected = selectedEvent?.id === event.id;
-          return (
-            <Marker
-              key={event.id}
-              position={[event.latitude, event.longitude]}
-              icon={getIcon(event.eventType, isSelected)}
-              zIndexOffset={isSelected ? 1000 : 0}
-              eventHandlers={{
-                click: () => handleMarkerClick(event),
-              }}
-            />
-          );
-        })}
-
-        {selectedEvent && (
-          <Popup
-            key={selectedEvent.id}
-            position={[selectedEvent.latitude, selectedEvent.longitude]}
-            offset={[0, -(selectedEvent.id === selectedEvent.id ? 46 : 36)]}
-            closeButton
-            autoPan
-            ref={popupRef}
-            eventHandlers={{
-              remove: () => {
-                if (onEventSelect) {
-                  onEventSelect(null);
-                } else {
-                  setInternalSelected(null);
-                }
-              },
-            }}
-          >
-            <div className="space-y-2 p-1 min-w-[220px] max-w-[280px]">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-semibold leading-tight line-clamp-2 text-gray-900">
-                  {selectedEvent.name}
-                </h3>
-                <EventTypeBadge type={selectedEvent.eventType} />
-              </div>
-
-              <div className="space-y-1 text-xs text-gray-600">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{selectedEvent.venueName}</span>
-                </div>
-                {selectedEvent.startTime && (
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3 w-3 shrink-0" />
-                    <span>{formatTime(selectedEvent.startTime)}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <Ticket className="h-3 w-3 shrink-0" />
-                  <span>
-                    {selectedEvent.isFree
-                      ? "Gratis"
-                      : selectedEvent.priceMin
-                        ? formatPrice(selectedEvent.priceMin, null, false, selectedEvent.currency)
-                        : "Consultar"}
-                  </span>
-                </div>
-              </div>
-
-              <Link
-                href={`/evento/${selectedEvent.slug}`}
-                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-teal-50 border border-teal-300 px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-100 transition-colors"
-              >
-                Ver evento
-                <ExternalLink className="h-3 w-3" />
-              </Link>
-            </div>
-          </Popup>
-        )}
-      </MapContainer>
-
-      {/* Legend — hidden on mobile to save space */}
+      {/* Legend — hidden on mobile */}
       <div className="absolute bottom-4 left-4 z-[1000] hidden lg:flex flex-wrap gap-2 rounded-xl glass-card px-3 py-2 text-[10px] max-w-[280px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .map(([type, color]) => (
             <div key={type} className="flex items-center gap-1">
-              <div
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: color }}
-              />
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
               <span className="capitalize text-text-muted">{type}</span>
             </div>
           ))}
       </div>
 
-      {/* Mobile legend (compact) — raised above bottom-nav (≈72px) */}
+      {/* Mobile legend (compact) */}
       <div className="absolute bottom-[76px] sm:bottom-4 left-4 z-[1000] flex lg:hidden flex-wrap gap-1.5 rounded-xl glass-card px-2.5 py-1.5 text-[9px] max-w-[200px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
@@ -347,11 +366,10 @@ export function EventMap({
           ))}
       </div>
 
-      {/* Top controls — stacked on mobile, row on desktop */}
-      <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      {/* Top controls — offset on mobile for toggle bar */}
+      <div className="absolute top-[52px] lg:top-4 left-4 right-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         {/* Left: date filter + count + recurring toggle */}
         <div className="flex flex-col gap-2">
-          {/* Date filter pills */}
           <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1 self-start">
             {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
               const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
@@ -380,7 +398,6 @@ export function EventMap({
             })}
           </div>
 
-          {/* Count + recurring toggle + type filter indicator */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-lg bg-black/80 border border-white/20 shadow-lg px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm whitespace-nowrap">
               {visibleEvents.length} {visibleEvents.length === 1 ? "evento" : "eventos"} en el mapa
@@ -413,9 +430,9 @@ export function EventMap({
           <div className="flex items-center gap-1 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm p-1">
             <button
               type="button"
-              onClick={() => setTileKey("calles")}
+              onClick={() => setStyleKey("calles")}
               className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-                tileKey === "calles"
+                styleKey === "calles"
                   ? "bg-white/20 text-white shadow-sm"
                   : "text-white/50 hover:text-white"
               }`}
@@ -424,9 +441,9 @@ export function EventMap({
             </button>
             <button
               type="button"
-              onClick={() => setTileKey("oscuro")}
+              onClick={() => setStyleKey("oscuro")}
               className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
-                tileKey === "oscuro"
+                styleKey === "oscuro"
                   ? "bg-white/20 text-white shadow-sm"
                   : "text-white/50 hover:text-white"
               }`}
@@ -435,10 +452,9 @@ export function EventMap({
             </button>
           </div>
 
-          {/* Fit to bounds button */}
           <button
             type="button"
-            onClick={handleFitBounds}
+            onClick={fitBounds}
             title="Encuadrar todos los eventos"
             className="flex items-center gap-1.5 rounded-lg bg-black/80 border border-white/20 shadow-lg backdrop-blur-sm px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white/70 hover:text-white hover:border-white/40 transition-all"
           >

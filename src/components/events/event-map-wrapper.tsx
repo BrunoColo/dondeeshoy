@@ -25,7 +25,7 @@ const EventMapLazy = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-black/20">
         <div className="flex flex-col items-center gap-3">
           <div className="skeleton h-8 w-8 rounded-full" />
           <p className="text-text-muted text-sm">Cargando mapa...</p>

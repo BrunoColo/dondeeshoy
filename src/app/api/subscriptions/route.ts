@@ -70,6 +70,12 @@ export async function POST(request: Request) {
     const data = parsed.data;
     const email = data.email.toLowerCase().trim();
 
+    // Honeypot check — if the hidden field is filled, it's a bot
+    const bodyObj = body as Record<string, unknown>;
+    if (bodyObj.website && String(bodyObj.website).length > 0) {
+      return NextResponse.json({ success: true, message: "ok" });
+    }
+
     // Check existing
     const existing = await findSubscriberByEmail(email);
     if (existing) {

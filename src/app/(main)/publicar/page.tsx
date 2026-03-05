@@ -182,6 +182,7 @@ function Field({
 export default function PublicarPage() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
 
   const {
     register,
@@ -207,7 +208,7 @@ export default function PublicarPage() {
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, website: honeypot }),
       });
 
       if (res.status === 429) {
@@ -295,6 +296,10 @@ export default function PublicarPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" id="contacto" noValidate>
+        {/* Honeypot — hidden from humans, traps bots */}
+        <div className="absolute opacity-0 -z-10 pointer-events-none" aria-hidden="true" tabIndex={-1}>
+          <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+        </div>
 
         {/* ── 1. Tu evento ── */}
         <Section
