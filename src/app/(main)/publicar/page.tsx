@@ -19,7 +19,6 @@ import {
   Link2,
   Image,
   ArrowLeft,
-  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -630,10 +629,7 @@ export default function PublicarPage() {
               Enviando solicitud…
             </>
           ) : (
-            <>
-              <Send className="h-4 w-4" />
-              Enviar solicitud
-            </>
+            "Enviar solicitud"
           )}
         </button>
 

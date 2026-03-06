@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Search, X, Sparkles } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -268,13 +268,13 @@ export function Header() {
         {/* Desktop: Publicar button — gradient sólido */}
         <Link
           href="/publicar"
-          className="hidden lg:flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-bold text-white transition-all duration-200 shrink-0 hover:-translate-y-0.5"
+          className="hidden lg:flex items-center rounded-full px-4 py-1.5 text-[12px] font-bold text-white transition-all duration-200 shrink-0 hover:border-accent/45 hover:bg-accent/18"
           style={{
-            background: "linear-gradient(135deg, #0D9488 0%, #6366F1 100%)",
-            boxShadow: "0 4px 12px rgba(13,148,136,0.25), 0 4px 12px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
+            background: "rgba(13,148,136,0.12)",
+            border: "1px solid rgba(20,184,166,0.28)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
           }}
         >
-          <Sparkles className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
           Publicar
         </Link>
 

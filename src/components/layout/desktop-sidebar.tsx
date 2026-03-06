@@ -19,7 +19,6 @@ import {
   Rocket,
   ExternalLink,
   Tag,
-  Send,
   TrendingUp,
   ArrowRight,
   Mail,
@@ -258,18 +257,9 @@ export async function DesktopSidebar() {
           style={{
             background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
             border: "1px solid rgba(13,148,136,0.25)",
-            boxShadow: "0 4px 24px rgba(13,148,136,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
           }}
         >
-          {/* Glow orb teal */}
-          <div
-            className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full pointer-events-none"
-            style={{
-              background: "radial-gradient(circle, rgba(13,148,136,0.25) 0%, transparent 70%)",
-              filter: "blur(10px)",
-            }}
-          />
-
           <div className="relative flex flex-col gap-3">
             {/* Header */}
             <div className="flex items-center gap-3">
@@ -312,15 +302,14 @@ export async function DesktopSidebar() {
             {/* CTA button — gradient sólido */}
             <Link
               href="/publicar"
-              className="flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 group"
+              className="flex items-center justify-center rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:border-accent/45 hover:bg-accent/18"
               style={{
-                background: "linear-gradient(135deg, #0D9488 0%, #6366F1 100%)",
-                boxShadow: "0 4px 16px rgba(13,148,136,0.25), 0 4px 16px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
+                background: "rgba(13,148,136,0.12)",
+                border: "1px solid rgba(20,184,166,0.28)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
-              <Send className="h-3.5 w-3.5" />
               Publicar mi evento
-              <ArrowRight className="h-3.5 w-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
@@ -373,16 +362,23 @@ export async function DesktopSidebar() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "linear-gradient(135deg, rgba(10,10,22,0.92) 0%, rgba(14,11,28,0.96) 55%, rgba(9,15,24,0.94) 100%)",
+            border: "1px solid rgba(99,102,241,0.16)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.16)",
           }}
         >
           {/* Label */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#94A3B8]">
+          <div
+            className="flex items-center justify-between px-4 py-2.5 border-b"
+            style={{
+              borderColor: "rgba(99,102,241,0.14)",
+              background: "linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(13,148,136,0.05) 100%)",
+            }}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B8C5FF]">
               Publicidad
             </span>
-            <Megaphone className="h-3.5 w-3.5 text-[#94A3B8]" />
+            <Megaphone className="h-3.5 w-3.5 text-[#B8C5FF]" />
           </div>
 
           {/* Ad 1 — Venue */}
@@ -393,8 +389,8 @@ export async function DesktopSidebar() {
             <div
               className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-black text-[#B8C5D6]"
               style={{
-                background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "linear-gradient(135deg, rgba(20,184,166,0.20) 0%, rgba(99,102,241,0.12) 100%)",
+                border: "1px solid rgba(20,184,166,0.18)",
               }}
             >
               MF
@@ -419,8 +415,8 @@ export async function DesktopSidebar() {
             <div
               className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-black text-[#B8C5D6]"
               style={{
-                background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(129,140,248,0.10) 100%)",
+                border: "1px solid rgba(129,140,248,0.20)",
               }}
             >
               RT

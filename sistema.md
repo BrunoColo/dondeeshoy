@@ -404,4 +404,40 @@ Eventos entre 23:00–01:59 → `"fiesta"` automáticamente.
 
 ---
 
-*Fin del análisis. Estado basado en el código en `main` al 2026-02-27.*
+## Horarios de Cron Jobs (Uruguay - UTC-3)
+
+| Hora Uruguay | Hora UTC | Endpoint | Función |
+|--------------|----------|----------|---------|
+| 09:00 | 12:00 | `/api/cron/newsletter` | Envío de newsletter |
+| 11:00 | 14:00 | `/api/scrape/redtickets` | Scraping RedTickets (~500-800 eventos) |
+| 12:00 | 15:00 | `/api/scrape/entraste` | Scraping Entraste (~15-30 eventos) |
+| 12:30 | 15:30 | `/api/scrape/cobraticket` | Scraping CobraTicket (~100-200 eventos) |
+| 12:45 | 15:45 | `/api/scrape/ticketfacil` | Scraping TicketFacil (~200-400 eventos) |
+| 13:00 | 16:00 | `/api/scrape/cartelera` | Scraping Cartelera Uruguay (~50-100 funciones) |
+| 13:15 | 16:15 | `/api/scrape/mvd-eventos` | Scraping Agenda Montevideo (~30-60 eventos) |
+| 13:30 | 16:30 | `/api/scrape/mientrada` | Scraping MiEntrada (~20-50 eventos) |
+| 14:00 | 17:00 | `/api/scrape/process` | Procesamiento y normalización de eventos |
+| 14:30 | 17:30 | `/api/scrape/reclassify-otros` | Reclasificación IA de eventos "otro" |
+| 00:00 | 03:00 | `/api/scrape/mark-past` | Marcar eventos pasados |
+
+**Nota:** Horario de Uruguay = UTC-3 (puede ser UTC-2 en horario de verano).
+
+---
+
+## Nivel de Automatización
+
+### ✅ Totalmente Automatizado
+- **Scraping**: 7 scrapers se ejecutan automáticamente todos los días via Vercel Cron
+- **Procesamiento**: Normalización, geocodificación y clasificación automáticas
+- **Deduplicación**: Automática (Dice coefficient)
+- **Clasificación IA**: Automática (GPT-4o-mini)
+- **Eventos pasados**: Marcado automático
+- **Reclasificación**: Automática para eventos "otro"
+
+### 🤖 Automatizado con Intervención
+- **Publicación de eventos**: Requiere revisión manual por admin
+- **Limpieza de datos**: Revisión manual periódica
+
+---
+
+*Fin del análisis.*

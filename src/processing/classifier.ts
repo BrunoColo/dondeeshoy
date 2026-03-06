@@ -336,30 +336,14 @@ export function detectRecurrence(normalized: NormalizedEventInput, extraText?: s
 }
 
 /**
- * Event types that legitimately have late-night start times and should NOT be
- * auto-reclassified as "fiesta" just because they start after 23:00.
- * Examples: late-night theater shows, nocturnal sports (MMA, boxing), cultural events.
- */
-const LATE_NIGHT_RECLASSIFY_EXCEPTIONS = new Set<EventType>([
-  "teatro",
-  "deportivo",
-  "cultural",
-  "festival",   // festivals can have late headline acts
-]);
-
-/**
  * Check if the startTime indicates a late-night fiesta.
- * Events starting between 23:00 and 02:30 are reclassified as "fiesta",
- * UNLESS the current type is one that legitimately runs late (theater, sports, etc.).
+ * Events starting between 22:59 and 03:00 are always reclassified as "fiesta".
  */
 function shouldReclassifyAsFiesta(
-  eventType: EventType,
+  _eventType: EventType,
   startTime: string | null,
 ): boolean {
   if (!startTime) return false;
-
-  // Don't reclassify types that can legitimately have late-night starts.
-  if (LATE_NIGHT_RECLASSIFY_EXCEPTIONS.has(eventType)) return false;
 
   const hourMatch =
     startTime.match(/^(\d{1,2}):/) ??
@@ -370,13 +354,13 @@ function shouldReclassifyAsFiesta(
   const hour = parseInt(hourMatch[1], 10);
   if (Number.isNaN(hour) || hour < 0 || hour > 23) return false;
 
-  // 23:00–02:30 → reclassify as fiesta
-  if (hour === 23 || hour === 0 || hour === 1) return true;
-  if (hour === 2) {
-    const minMatch = startTime.match(/(?:^\d{1,2}:|T\d{2}:)(\d{2})/);
-    const minutes = minMatch ? parseInt(minMatch[1], 10) : 0;
-    return minutes <= 30;
-  }
+  const minMatch = startTime.match(/(?:^\d{1,2}:|T\d{2}:)(\d{2})/);
+  const minutes = minMatch ? parseInt(minMatch[1], 10) : 0;
+  if (Number.isNaN(minutes) || minutes < 0 || minutes > 59) return false;
+
+  if (hour === 22) return minutes >= 59;
+  if (hour === 23 || hour === 0 || hour === 1 || hour === 2) return true;
+  if (hour === 3) return minutes === 0;
   return false;
 }
 

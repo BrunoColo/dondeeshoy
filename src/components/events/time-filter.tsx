@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useRef, useTransition } from "react";
-import { CalendarDays, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
 type TimeWhen = "manana" | "finde";
 
@@ -111,13 +111,13 @@ export function TimeFilter({ className }: TimeFilterProps) {
             key={option.value}
             onClick={() => updateWhen(isActive ? null : option.value)}
             className={cn(
-              "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
+              "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
               isActive
-                ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
-                : "bg-accent/15 border-accent/35 text-accent-light hover:bg-accent/22 hover:border-accent/50",
+                ? "bg-indigo-500/25 border-indigo-400/55 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400/30"
+                : "bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400/55",
             )}
           >
-            {isActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}
+            {isActive && <Check className="h-3 w-3" strokeWidth={2.8} />}
             {option.label}
           </button>
         );
@@ -128,13 +128,13 @@ export function TimeFilter({ className }: TimeFilterProps) {
         <button
           onClick={handleDateClick}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
+            "inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
             isDateActive
-              ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
-              : "bg-accent/15 border-accent/35 text-accent-light hover:bg-accent/22 hover:border-accent/50",
+              ? "bg-indigo-500/25 border-indigo-400/55 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400/30"
+              : "bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400/55",
           )}
         >
-          {isDateActive ? <Check className="h-3 w-3" strokeWidth={2.8} /> : <CalendarDays className="h-3 w-3" strokeWidth={2.5} />}
+          {isDateActive && <Check className="h-3 w-3" strokeWidth={2.8} />}
           {isDateActive && activeDate ? formatSelectedDate(activeDate) : "Elegir fecha"}
         </button>
         <input

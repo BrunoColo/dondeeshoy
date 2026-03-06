@@ -21,19 +21,19 @@ interface EventFiltersProps {
 
 // Chip color classes matching existing badge-* CSS
 const TYPE_CHIP_STYLES: Record<EventType, { bg: string; activeBg: string; text: string }> = {
-  fiesta: { bg: "bg-teal-500/15 border-teal-500/35", activeBg: "bg-teal-500/30 border-teal-400/60", text: "text-teal-300" },
+  fiesta: { bg: "bg-orange-500/15 border-orange-500/35", activeBg: "bg-orange-500/30 border-orange-400/60", text: "text-orange-300" },
   festival: { bg: "bg-pink-500/15 border-pink-500/35", activeBg: "bg-pink-500/30 border-pink-400/60", text: "text-pink-300" },
   concierto: { bg: "bg-sky-500/15 border-sky-500/35", activeBg: "bg-sky-500/30 border-sky-400/60", text: "text-sky-300" },
   recital: { bg: "bg-cyan-500/15 border-cyan-500/35", activeBg: "bg-cyan-500/30 border-cyan-400/60", text: "text-cyan-300" },
   cultural: { bg: "bg-indigo-500/15 border-indigo-500/35", activeBg: "bg-indigo-500/30 border-indigo-400/60", text: "text-indigo-300" },
   deportivo: { bg: "bg-green-500/15 border-green-500/35", activeBg: "bg-green-500/30 border-green-400/60", text: "text-green-300" },
-  gastronomico: { bg: "bg-orange-500/15 border-orange-500/35", activeBg: "bg-orange-500/30 border-orange-400/60", text: "text-orange-300" },
-  familiar: { bg: "bg-lime-500/15 border-lime-500/35", activeBg: "bg-lime-500/30 border-lime-400/60", text: "text-lime-300" },
+  gastronomico: { bg: "bg-teal-500/15 border-teal-500/35", activeBg: "bg-teal-500/30 border-teal-400/60", text: "text-teal-300" },
+  familiar: { bg: "bg-emerald-500/15 border-emerald-500/35", activeBg: "bg-emerald-500/30 border-emerald-400/60", text: "text-emerald-300" },
   feria: { bg: "bg-rose-500/15 border-rose-500/35", activeBg: "bg-rose-500/30 border-rose-400/60", text: "text-rose-300" },
   taller: { bg: "bg-teal-500/15 border-teal-500/35", activeBg: "bg-teal-500/30 border-teal-400/60", text: "text-teal-300" },
   club: { bg: "bg-blue-500/15 border-blue-500/35", activeBg: "bg-blue-500/30 border-blue-400/60", text: "text-blue-300" },
   bar: { bg: "bg-amber-500/15 border-amber-500/35", activeBg: "bg-amber-500/30 border-amber-400/60", text: "text-amber-300" },
-  teatro: { bg: "bg-emerald-500/15 border-emerald-500/35", activeBg: "bg-emerald-500/30 border-emerald-400/60", text: "text-emerald-300" },
+  teatro: { bg: "bg-lime-500/15 border-lime-500/35", activeBg: "bg-lime-500/30 border-lime-400/60", text: "text-lime-300" },
   otro: { bg: "bg-slate-500/15 border-slate-500/35", activeBg: "bg-slate-500/30 border-slate-400/60", text: "text-slate-300" },
 };
 
