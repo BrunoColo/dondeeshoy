@@ -1,8 +1,22 @@
 import { db } from "@/lib/db";
 import { rawEvents } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 
 import type { ScrapedRawEvent, ScraperRunResult, SupportedSource } from "./types";
 import { enforceRateLimit, withRetry } from "./utils";
+
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableSerialize(item)}`).join(",")}}`;
+  }
+
+  return JSON.stringify(value);
+}
 
 export abstract class BaseScraper {
   protected readonly source: SupportedSource;
@@ -59,6 +73,34 @@ export abstract class BaseScraper {
   }
 
   protected async saveRawEvent(payload: ScrapedRawEvent): Promise<void> {
+    const now = new Date();
+    const existingRows = await db
+      .select({
+        id: rawEvents.id,
+        rawData: rawEvents.rawData,
+        sourceUrl: rawEvents.sourceUrl,
+      })
+      .from(rawEvents)
+      .where(and(eq(rawEvents.source, payload.source), eq(rawEvents.sourceId, payload.sourceId)))
+      .limit(1);
+
+    const existing = existingRows[0];
+
+    if (existing) {
+      const sameRawData = stableSerialize(existing.rawData) === stableSerialize(payload.rawData);
+      const sameSourceUrl = existing.sourceUrl === payload.sourceUrl;
+
+      if (sameRawData && sameSourceUrl) {
+        await db
+          .update(rawEvents)
+          .set({
+            scrapedAt: now,
+          })
+          .where(eq(rawEvents.id, existing.id));
+        return;
+      }
+    }
+
     await db
       .insert(rawEvents)
       .values({
@@ -66,7 +108,7 @@ export abstract class BaseScraper {
         sourceId: payload.sourceId,
         sourceUrl: payload.sourceUrl,
         rawData: payload.rawData,
-        scrapedAt: new Date(),
+        scrapedAt: now,
         processed: false,
         processingError: null,
       })
@@ -75,7 +117,7 @@ export abstract class BaseScraper {
         set: {
           sourceUrl: payload.sourceUrl,
           rawData: payload.rawData,
-          scrapedAt: new Date(),
+          scrapedAt: now,
           processed: false,
           processingError: null,
         },

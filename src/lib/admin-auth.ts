@@ -1,38 +1,24 @@
-import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 
-const COOKIE_NAME = "admin_session";
+import { createAdminTokenPayload, signAdminToken, verifyAdminToken } from "./admin-token";
+
+const SESSION_COOKIE_NAME = "admin_session";
+const ACCESS_COOKIE_NAME = "admin_access";
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+const ACCESS_MAX_AGE = 60 * 60 * 12;
 
 /**
- * Create a signed HMAC token for admin session
+ * Create a signed admin session token
  */
-export function createToken(secret: string, payload: string = "admin"): string {
-  const signature = createHmac("sha256", secret).update(payload).digest("hex");
-  const token = Buffer.from(JSON.stringify({ payload, signature })).toString("base64");
-  return token;
+export async function createSessionToken(secret: string): Promise<string> {
+  return signAdminToken(secret, createAdminTokenPayload("admin-session", SESSION_MAX_AGE));
 }
 
 /**
- * Verify a signed HMAC token
- * Returns the payload if valid, null otherwise
+ * Create a short-lived admin access token used to reveal the login screen.
  */
-export function verifyToken(token: string, secret: string): string | null {
-  try {
-    const decoded = JSON.parse(Buffer.from(token, "base64").toString("utf8"));
-    const expectedSignature = createHmac("sha256", secret)
-      .update(decoded.payload)
-      .digest("hex");
-
-    const sigBuf = Buffer.from(decoded.signature, "utf8");
-    const expBuf = Buffer.from(expectedSignature, "utf8");
-
-    if (sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf)) {
-      return decoded.payload;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+export async function createAccessToken(secret: string): Promise<string> {
+  return signAdminToken(secret, createAdminTokenPayload("admin-access", ACCESS_MAX_AGE));
 }
 
 /**
@@ -40,7 +26,15 @@ export function verifyToken(token: string, secret: string): string | null {
  */
 export async function getAdminCookie(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return cookieStore.get(COOKIE_NAME)?.value;
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value;
+}
+
+/**
+ * Get the admin access cookie value
+ */
+export async function getAdminAccessCookie(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  return cookieStore.get(ACCESS_COOKIE_NAME)?.value;
 }
 
 /**
@@ -58,8 +52,26 @@ export async function verifyCookie(): Promise<boolean> {
     return false;
   }
 
-  const payload = verifyToken(token, secret);
-  return payload === "admin";
+  const payload = await verifyAdminToken(token, secret, "admin-session");
+  return payload?.sub === "admin";
+}
+
+/**
+ * Verify if the current request has a valid admin access cookie.
+ */
+export async function verifyAdminAccessCookie(): Promise<boolean> {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) {
+    return false;
+  }
+
+  const token = await getAdminAccessCookie();
+  if (!token) {
+    return false;
+  }
+
+  const payload = await verifyAdminToken(token, secret, "admin-access");
+  return payload?.sub === "admin";
 }
 
 /**
@@ -67,11 +79,25 @@ export async function verifyCookie(): Promise<boolean> {
  */
 export async function setAdminCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    sameSite: "strict",
+    maxAge: SESSION_MAX_AGE,
+    path: "/",
+  });
+}
+
+/**
+ * Set the admin access cookie.
+ */
+export async function setAdminAccessCookie(token: string): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCESS_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: ACCESS_MAX_AGE,
     path: "/",
   });
 }
@@ -81,5 +107,13 @@ export async function setAdminCookie(token: string): Promise<void> {
  */
 export async function deleteAdminCookie(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/**
+ * Delete the admin access cookie
+ */
+export async function deleteAdminAccessCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACCESS_COOKIE_NAME);
 }

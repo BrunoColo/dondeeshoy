@@ -4,4 +4,5 @@ export const siteConfig = {
   url: "https://dondeeshoy.com",
   locale: "es-UY",
   city: "Uruguay",
+  logoPath: "/brandmark.svg",
 } as const;

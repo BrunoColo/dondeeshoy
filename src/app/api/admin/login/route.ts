@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { Ratelimit } from "@upstash/ratelimit";
-import { createToken, setAdminCookie } from "@/lib/admin-auth";
+import { createSessionToken, setAdminCookie } from "@/lib/admin-auth";
 import { redis } from "@/lib/redis";
 import { getClientIp } from "@/lib/rate-limit";
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create and set the admin session cookie
-    const token = createToken(adminSecret);
+    const token = await createSessionToken(adminSecret);
     await setAdminCookie(token);
 
     return NextResponse.json({ success: true });

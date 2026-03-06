@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 
+import { siteConfig } from "@/config/site";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "¿Dónde es hoy?",
+    name: siteConfig.name,
     short_name: "DondeEsHoy",
     description: "Todos los eventos en Uruguay para hoy y próximos días.",
     start_url: "/",
@@ -11,6 +13,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#06060C",
     lang: "es-UY",
     icons: [
+      {
+        src: siteConfig.logoPath,
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
       {
         src: "/icon-192.png",
         sizes: "192x192",
