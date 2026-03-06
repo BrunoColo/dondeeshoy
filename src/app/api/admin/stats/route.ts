@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyCookie } from "@/lib/admin-auth";
-import { getAdminDashboardStats, getDailyScrapeCounts } from "@/lib/admin-queries";
+import { getAdminDashboardSnapshot } from "@/lib/admin-queries";
 
 export async function GET() {
   // Verify admin session
@@ -14,10 +14,7 @@ export async function GET() {
   }
 
   try {
-    const [stats, dailyCounts] = await Promise.all([
-      getAdminDashboardStats(),
-      getDailyScrapeCounts(7),
-    ]);
+    const { stats, dailyCounts } = await getAdminDashboardSnapshot();
 
     return NextResponse.json({
       stats,

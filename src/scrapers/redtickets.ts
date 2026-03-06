@@ -111,7 +111,9 @@ export class RedTicketsScraper extends BaseScraper {
   private async discoverFromSearchPages(): Promise<string[]> {
     const allLinks: string[] = [];
     const maxPages = scraperConfig.maxSearchPages;
+    const seenLinks = new Set<string>();
     let consecutiveEmpty = 0;
+    let consecutiveWithoutNewLinks = 0;
 
     for (let page = 0; page < maxPages; page++) {
       const searchUrl = buildSearchUrl(page);
@@ -141,6 +143,11 @@ export class RedTicketsScraper extends BaseScraper {
         });
 
         const uniquePageLinks = unique(pageLinks);
+        const newLinks = uniquePageLinks.filter((link) => !seenLinks.has(link));
+
+        for (const link of newLinks) {
+          seenLinks.add(link);
+        }
 
         if (uniquePageLinks.length === 0) {
           consecutiveEmpty++;
@@ -154,11 +161,25 @@ export class RedTicketsScraper extends BaseScraper {
             );
             break;
           }
+        } else if (newLinks.length === 0) {
+          consecutiveEmpty = 0;
+          consecutiveWithoutNewLinks++;
+          console.log(
+            `[redtickets] search page ${page}: ${uniquePageLinks.length} events, 0 nuevos (${consecutiveWithoutNewLinks} stale in a row)`,
+          );
+
+          if (consecutiveWithoutNewLinks >= 2) {
+            console.log(
+              "[redtickets] stopping search pagination — 2 consecutive pages without new links",
+            );
+            break;
+          }
         } else {
           consecutiveEmpty = 0;
-          allLinks.push(...uniquePageLinks);
+          consecutiveWithoutNewLinks = 0;
+          allLinks.push(...newLinks);
           console.log(
-            `[redtickets] search page ${page}: ${uniquePageLinks.length} events`,
+            `[redtickets] search page ${page}: ${uniquePageLinks.length} events, ${newLinks.length} nuevos`,
           );
         }
 

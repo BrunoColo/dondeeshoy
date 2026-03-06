@@ -16,6 +16,7 @@ type Event = {
   latitude: string | null;
   longitude: string | null;
   city: string;
+  department?: string;
   eventType: string;
   musicGenre: string | null;
   imageUrl: string | null;
@@ -230,7 +231,7 @@ export default function EventsPage() {
       endTime: event.endTime,
       venueName: event.venueName,
       venueAddress: event.venueAddress,
-      city: event.city,
+      department: event.department ?? event.city,
       eventType: event.eventType,
       musicGenre: event.musicGenre,
       imageUrl: event.imageUrl,
@@ -383,7 +384,7 @@ export default function EventsPage() {
               <th className="text-left px-4 py-3 font-medium">Fecha</th>
               <th className="text-left px-4 py-3 font-medium">Tipo</th>
               <th className="text-left px-4 py-3 font-medium">Venue</th>
-              <th className="text-left px-4 py-3 font-medium">Ciudad</th>
+              <th className="text-left px-4 py-3 font-medium">Departamento</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="text-left px-4 py-3 font-medium">Acciones</th>
             </tr>
@@ -408,7 +409,7 @@ export default function EventsPage() {
                   <td className="px-4 py-3 text-zinc-400">{event.date}</td>
                   <td className="px-4 py-3 text-zinc-400 capitalize">{event.eventType}</td>
                   <td className="px-4 py-3 text-zinc-400 max-w-xs truncate">{event.venueName}</td>
-                  <td className="px-4 py-3 text-zinc-400">{event.city}</td>
+                  <td className="px-4 py-3 text-zinc-400">{event.department ?? event.city}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
@@ -734,14 +735,14 @@ export default function EventsPage() {
                   </div>
                 </div>
 
-                {/* City and Type */}
+                {/* Department and Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-zinc-500 text-xs mb-1">Ciudad</label>
+                    <label className="block text-zinc-500 text-xs mb-1">Departamento</label>
                     <input
                       type="text"
-                      value={isEditing ? editForm.city ?? "" : selectedEvent?.city ?? ""}
-                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      value={isEditing ? editForm.department ?? "" : selectedEvent?.department ?? selectedEvent?.city ?? ""}
+                      onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-100 disabled:text-zinc-500"
                     />

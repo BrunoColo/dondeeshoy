@@ -7,6 +7,8 @@ import { BaseScraper } from "./base-scraper";
 import type { ScrapedRawEvent } from "./types";
 import { extractMoneyValues, fetchHtml, normalizeWhitespace, toAbsoluteUrl, unique } from "./utils";
 
+const COBRATICKET_CHECKOUT_HOST = "2z7xjfwtna-uc.a.run.app";
+
 /**
  * Regex to extract the event slug + id from CobraTicket event URLs.
  * Format: /e/{slug-with-numbers}  e.g. /e/hipnosis-395603
@@ -42,6 +44,7 @@ interface CobraEventProps {
   slug?: string;
   status?: string;
   account?: {
+    id?: string;
     name?: string;
     slug?: string;
     logo?: { urlThumb?: string };
@@ -72,6 +75,24 @@ interface CobraEventProps {
   };
 }
 
+interface CobraPurchasableResponse {
+  purchasableItems?: CobraPurchasableGroup[];
+}
+
+interface CobraPurchasableGroup {
+  items?: CobraPurchasableTicket[];
+}
+
+interface CobraPurchasableTicket {
+  hidden?: boolean;
+  isPublic?: boolean;
+  showPrices?: boolean;
+  canBuy?: boolean;
+  commingSoon?: boolean;
+  price?: number | string;
+  priceUnit?: number | string;
+}
+
 /**
  * Scraper for cobraticket.uy — Uruguayan ticketing platform.
  *
@@ -83,8 +104,8 @@ interface CobraEventProps {
  *   venue (name/address/region/locality), lat/lng, category, organizer,
  *   image, minAge, and more.
  *
- * Prices: Extracted from the event description text, since actual ticket
- *   types are loaded client-side via Firebase and not available in SSR HTML.
+ * Prices: Fetched from CobraTicket's public checkout endpoint when possible,
+ *   with description-text extraction kept as a fallback.
  */
 export class CobraTicketScraper extends BaseScraper {
   constructor() {
@@ -150,7 +171,7 @@ export class CobraTicketScraper extends BaseScraper {
     const props = this.extractSvelteKitProps(html);
 
     if (props) {
-      return this.buildEventFromProps(props, url, sourceId);
+      return await this.buildEventFromProps(props, url, sourceId);
     }
 
     // ---- Fallback: parse DOM if SvelteKit data is not available ----
@@ -274,7 +295,6 @@ export class CobraTicketScraper extends BaseScraper {
         return null;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval
       const dataArray = new Function("return " + dataMatch[1])() as unknown[];
       if (!Array.isArray(dataArray)) return null;
 
@@ -289,11 +309,11 @@ export class CobraTicketScraper extends BaseScraper {
   /*  Build event from structured props                                  */
   /* ------------------------------------------------------------------ */
 
-  private buildEventFromProps(
+  private async buildEventFromProps(
     props: CobraEventProps,
     url: string,
     sourceId: string,
-  ): ScrapedRawEvent | null {
+  ): Promise<ScrapedRawEvent | null> {
     const title = normalizeWhitespace(props.name ?? "");
     if (!title) return null;
 
@@ -328,9 +348,12 @@ export class CobraTicketScraper extends BaseScraper {
 
     // Prices from description text
     const bodyText = `${title} ${description ?? ""}`;
-    const isFree =
+    const livePricing = await this.fetchLivePricing(props);
+    const fallbackIsFree =
       /\b(gratis|gratuito|entrada libre|free|sin cargo|sin costo|evento gratuito)\b/i.test(bodyText);
-    const prices = extractMoneyValues(bodyText);
+    const fallbackPrices = extractMoneyValues(bodyText);
+    const prices = livePricing?.prices.length ? livePricing.prices : fallbackPrices;
+    const isFree = livePricing?.isFree ?? fallbackIsFree;
 
     return {
       source: "cobraticket",
@@ -489,6 +512,80 @@ export class CobraTicketScraper extends BaseScraper {
     }
 
     return { startTime, endTime };
+  }
+
+  private async fetchLivePricing(
+    props: CobraEventProps,
+  ): Promise<{ prices: number[]; isFree: boolean | null } | null> {
+    if (!props.id) {
+      return null;
+    }
+
+    const params = new URLSearchParams({ eventId: props.id });
+    if (props.account?.id) {
+      params.set("producerId", props.account.id);
+    }
+
+    const url = `https://checkout-${COBRATICKET_CHECKOUT_HOST}/purchasableItems?${params.toString()}`;
+
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as CobraPurchasableResponse;
+      const groups = Array.isArray(payload.purchasableItems)
+        ? payload.purchasableItems
+        : [];
+
+      const visibleItems = groups
+        .flatMap((group) => (Array.isArray(group.items) ? group.items : []))
+        .filter(
+          (item) =>
+            item &&
+            item.hidden !== true &&
+            item.isPublic !== false &&
+            item.showPrices !== false,
+        );
+
+      if (visibleItems.length === 0) {
+        return null;
+      }
+
+      const preferredItems = visibleItems.filter(
+        (item) => item.canBuy !== false && item.commingSoon !== true,
+      );
+      const pricedItems = preferredItems.length > 0 ? preferredItems : visibleItems;
+
+      const rawPrices = pricedItems
+        .map((item) => this.parseTicketPrice(item.priceUnit ?? item.price))
+        .filter((price): price is number => price !== null);
+
+      const prices = [...new Set(rawPrices.filter((price) => price > 0))].sort((a, b) => a - b);
+      const isFree = prices.length === 0 && rawPrices.some((price) => price === 0) ? true : null;
+
+      return { prices, isFree };
+    } catch {
+      return null;
+    }
+  }
+
+  private parseTicketPrice(value: number | string | undefined): number | null {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? Math.round(value) : null;
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? Math.round(parsed) : null;
+    }
+
+    return null;
   }
 
   /**

@@ -126,7 +126,7 @@ function SidebarEventRow({
               </p>
 
               {/* Venue */}
-              <div className="mt-1 flex items-center gap-1 text-[#64748B] group-hover:text-[#94A3B8] transition-colors">
+              <div className="mt-1 flex items-center gap-1 text-[#94A3B8] group-hover:text-[#CBD5E1] transition-colors">
                 <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} />
                 <span className="text-[11px] truncate">{event.venueName}</span>
               </div>
@@ -134,13 +134,13 @@ function SidebarEventRow({
               {/* Time + price row */}
               <div className="mt-1.5 flex items-center gap-3">
                 {timeLabel && (
-                  <div className="flex items-center gap-1 text-[#64748B]">
+                  <div className="flex items-center gap-1 text-[#94A3B8]">
                     <Clock className="h-3 w-3 shrink-0" strokeWidth={2} />
                     <span className="font-mono text-[11px] text-[#94A3B8]">{timeLabel}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Ticket className="h-3 w-3 shrink-0 text-[#64748B]" strokeWidth={2} />
+                  <Ticket className="h-3 w-3 shrink-0 text-[#94A3B8]" strokeWidth={2} />
                   <span
                     className={cn(
                       "text-[11px] font-semibold",
@@ -159,7 +159,7 @@ function SidebarEventRow({
                 "h-3.5 w-3.5 shrink-0 mt-0.5 transition-all duration-200",
                 isSelected
                   ? "text-[#14B8A6] opacity-100 translate-x-0"
-                  : "text-[#475569] opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0",
+                  : "text-[#94A3B8] opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0",
               )}
               strokeWidth={2.5}
             />
@@ -204,7 +204,7 @@ function TypeChip({
         "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap border",
         active
           ? "text-white border-transparent shadow-[0_0_8px_currentColor]"
-          : "bg-white/[0.04] border-white/[0.08] text-[#64748B] hover:text-[#94A3B8] hover:border-white/[0.15]",
+          : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-[#CBD5E1] hover:border-white/[0.15]",
       )}
       style={
         active
@@ -219,7 +219,7 @@ function TypeChip({
     >
       <span
         className="h-1.5 w-1.5 rounded-full shrink-0"
-        style={{ backgroundColor: active ? color : "#475569" }}
+        style={{ backgroundColor: active ? color : "#94A3B8" }}
       />
       {type}
       <span
@@ -313,7 +313,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               />
               Eventos en el mapa
             </h2>
-            <p className="text-[11px] text-[#64748B] mt-0.5">
+            <p className="text-[11px] text-[#94A3B8] mt-0.5">
               {filterLabels[currentFilter]} ·{" "}
               <span className="text-[#94A3B8] font-semibold">
                 {filteredEvents.length}
@@ -338,19 +338,19 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
 
         {/* Search bar */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#475569] pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94A3B8] pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar evento o lugar..."
-            className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#0D9488]/50 focus:bg-white/[0.08] transition-all"
+            className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#0D9488]/50 focus:bg-white/[0.08] transition-all"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#94A3B8] transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#CBD5E1] transition-colors"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -361,8 +361,8 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         {availableTypes.length > 1 && (
           <div className="mt-2.5">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <SlidersHorizontal className="h-3 w-3 text-[#475569]" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#475569]">
+              <SlidersHorizontal className="h-3 w-3 text-[#94A3B8]" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8]">
                 Filtrar por tipo
               </span>
               {activeTypeFilter && (
@@ -406,7 +406,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             <p className="text-3xl mb-2">
               {searchQuery || activeTypeFilter ? "🔍" : "📍"}
             </p>
-            <p className="text-[13px] text-[#64748B]">
+            <p className="text-[13px] text-[#94A3B8]">
               {searchQuery || activeTypeFilter
                 ? "No hay eventos que coincidan"
                 : "No hay eventos con ubicación para este día"}
@@ -441,7 +441,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
 
       {/* Footer hint */}
       <div className="px-4 py-2.5 border-t border-white/[0.06] bg-gradient-to-t from-white/[0.02] to-transparent">
-        <p className="text-[10px] text-[#475569] text-center">
+        <p className="text-[10px] text-[#94A3B8] text-center">
           Hacé clic en un evento o marcador para ver detalles
         </p>
       </div>
@@ -541,25 +541,25 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             {/* Mobile search */}
             <div className="px-3 pt-3 pb-2 border-b border-white/[0.08]">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#475569] pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94A3B8] pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar evento o lugar..."
-                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#475569] focus:outline-none focus:border-[#0D9488]/50 transition-all"
+                  className="w-full rounded-lg bg-white/[0.06] border border-white/[0.10] pl-8 pr-8 py-2 text-[12px] text-[#CBD5E1] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#0D9488]/50 transition-all"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#94A3B8]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#CBD5E1]"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
-              <p className="mt-1.5 text-[11px] text-[#64748B]">
+              <p className="mt-1.5 text-[11px] text-[#94A3B8]">
                 {filterLabels[currentFilter]} · <span className="text-[#94A3B8] font-semibold">{filteredEvents.length}</span> eventos
               </p>
 
@@ -595,8 +595,8 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             <div className="flex-1 overflow-y-auto scrollbar-none px-3 py-3 space-y-2">
               {filteredEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-center">
-                  <MapPin className="h-8 w-8 text-[#475569] mb-2" strokeWidth={1.5} />
-                  <p className="text-[13px] text-[#64748B]">No hay eventos con ubicación</p>
+                  <MapPin className="h-8 w-8 text-[#94A3B8] mb-2" strokeWidth={1.5} />
+                  <p className="text-[13px] text-[#94A3B8]">No hay eventos con ubicación</p>
                 </div>
               ) : (
                 filteredEvents.map((event, i) => (

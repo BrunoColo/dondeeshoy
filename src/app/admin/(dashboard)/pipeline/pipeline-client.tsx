@@ -6,7 +6,7 @@ export function PipelineClient({
   action, 
   label 
 }: { 
-  action: "run" | "mark-past"; 
+  action: string; 
   label: string;
 }) {
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,7 @@ export function PipelineClient({
           : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
       }`}
     >
-      {loading ? "Running..." : status === "success" ? "Done" : status === "error" ? "Error" : label}
+      {loading ? "Working..." : status === "success" ? "Done" : status === "error" ? "Error" : label}
     </button>
   );
 }

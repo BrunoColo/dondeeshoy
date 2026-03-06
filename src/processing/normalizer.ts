@@ -80,7 +80,9 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
 
   const date = aiResolvedDate?.date ?? parsedDate.date;
   // Use explicit startTime from raw data if the parser couldn't extract one
-  const rawStartTime = sanitizeText((rawData.startTime as string) ?? "");
+  const rawStartTime =
+    sanitizeText((rawData.startTime as string) ?? "") ||
+    sanitizeText((rawData.aperturaTime as string) ?? "");
   const parsedStartTime = aiResolvedDate?.startTime ?? parsedDate.startTime;
   const startTime = parsedStartTime ?? normalizeTimeString(rawStartTime);
 

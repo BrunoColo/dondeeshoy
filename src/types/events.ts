@@ -58,7 +58,9 @@ export interface EventCardData {
   startTime?: string | null;
   endTime?: string | null;
   venueName: string;
+  /** Legacy mirror kept for compatibility while `department` becomes canonical. */
   city: string;
+  department?: string;
   eventType: EventType;
   imageUrl?: string | null;
   priceMin?: number | null;

@@ -27,6 +27,10 @@ const DATE_REGEX = /\d{2}\/\d{2}\/\d{4}/g;
  * Regex to extract opening/apertura time.
  */
 const APERTURA_REGEX = /APERTURA[:\s]*(\d{1,2}:\d{2})/i;
+const INICIO_REGEX = /INICIO[:\s]*(\d{1,2}:\d{2})/i;
+const OPEN_DOORS_REGEX = /Open\s*Doors[:\s]*(\d{1,2}:\d{2})/i;
+const CLOSING_REGEX = /(?:Closing\s*Doors|Cierre)[:\s]*(\d{1,2}:\d{2})/i;
+const PARTY_UNTIL_REGEX = /Party\s*Until[:\s]*(\d{1,2}:\d{2})/i;
 
 /**
  * Regex to extract lat/lng from Google Maps search URL.
@@ -83,7 +87,7 @@ export class MiEntradaScraper extends BaseScraper {
     const { venueName, venueAddress, department } = this.extractVenue($);
     const { lat, lng } = this.extractCoordinates($);
     const dates = this.extractDates($);
-    const aperturaTime = this.extractApertura($);
+    const { aperturaTime, startTime, endTime } = this.extractTimes($);
     const description = this.extractDescription($);
     const prices = this.extractPrices($);
 
@@ -101,6 +105,8 @@ export class MiEntradaScraper extends BaseScraper {
         lng,
         dates,
         aperturaTime,
+        startTime,
+        endTime,
         description,
         prices,
         extractedAt: new Date().toISOString(),
@@ -227,12 +233,26 @@ export class MiEntradaScraper extends BaseScraper {
   }
 
   /**
-   * Extract the apertura (door opening) time.
+   * Extract structured time blocks from the page.
+   * Live review showed MiEntrada exposes APERTURA / INICIO labels in the event header
+   * and some organizers add English "Open Doors / Closing Doors / Party Until"
+   * in the description.
    */
-  private extractApertura($: cheerio.CheerioAPI): string | null {
+  private extractTimes($: cheerio.CheerioAPI): {
+    aperturaTime: string | null;
+    startTime: string | null;
+    endTime: string | null;
+  } {
     const bodyText = $.root().text();
-    const match = bodyText.match(APERTURA_REGEX);
-    return match?.[1] ?? null;
+    const aperturaMatch = bodyText.match(APERTURA_REGEX) ?? bodyText.match(OPEN_DOORS_REGEX);
+    const startMatch = bodyText.match(INICIO_REGEX) ?? bodyText.match(OPEN_DOORS_REGEX);
+    const endMatch = bodyText.match(CLOSING_REGEX) ?? bodyText.match(PARTY_UNTIL_REGEX);
+
+    return {
+      aperturaTime: aperturaMatch?.[1] ?? null,
+      startTime: startMatch?.[1] ?? null,
+      endTime: endMatch?.[1] ?? null,
+    };
   }
 
   /**

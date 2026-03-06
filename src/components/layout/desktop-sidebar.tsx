@@ -548,7 +548,7 @@ export async function DesktopSidebar() {
               Actualizado cada 5 minutos
             </p>
           </div>
-          <p className="text-[10px] text-[#2D3748] leading-relaxed">
+          <p className="text-[10px] text-[#A8B8CC] leading-relaxed">
             Eventos en Uruguay · ¿Dónde es Hoy?
           </p>
         </div>

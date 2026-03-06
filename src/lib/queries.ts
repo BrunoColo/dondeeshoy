@@ -19,6 +19,7 @@ const listColumns = {
   latitude: events.latitude,
   longitude: events.longitude,
   city: events.city,
+  department: events.department,
   eventType: events.eventType,
   musicGenre: events.musicGenre,
   imageUrl: events.imageUrl,
@@ -80,13 +81,13 @@ function buildFilterConditions(filters?: EventFilters) {
           ),
           and(
             sql`${events.latitude} IS NULL`,
-            ilike(events.city, dept),
+            ilike(events.department, dept),
           ),
         )!,
       );
     } else {
       // Unknown department — fall back to text matching
-      conditions.push(ilike(events.city, dept));
+      conditions.push(ilike(events.department, dept));
     }
   }
   if (filters?.free) {
@@ -142,9 +143,9 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
   const rows = await db.execute<{
     music_genre: string | null;
     event_type: EventType;
-    city: string;
+    department: string;
   }>(sql`
-    SELECT DISTINCT music_genre, event_type, city
+    SELECT DISTINCT music_genre, event_type, department
     FROM events
     WHERE status = 'active' AND (${dateCondition})
   `);
@@ -156,7 +157,7 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
   for (const row of rows) {
     if (row.music_genre && row.music_genre.trim()) genreSet.add(row.music_genre);
     if (row.event_type) typeSet.add(row.event_type);
-    if (row.city && row.city.trim()) deptSet.add(row.city);
+    if (row.department && row.department.trim()) deptSet.add(row.department);
   }
 
   // Move "fiesta" to first position in types, "Montevideo" to first position in departments

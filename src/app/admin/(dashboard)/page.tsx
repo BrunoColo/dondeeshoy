@@ -1,4 +1,4 @@
-import { getAdminDashboardStats, getDailyScrapeCounts, getEnhancedDashboardStats } from "@/lib/admin-queries";
+import { getAdminDashboardSnapshot } from "@/lib/admin-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -6,11 +6,7 @@ type DailyCount = { date: string; scraped: number; processed: number };
 type EventTypeCount = { type: string; count: number };
 
 export default async function AdminDashboardPage() {
-  const [stats, dailyCounts, enhanced] = await Promise.all([
-    getAdminDashboardStats(),
-    getDailyScrapeCounts(7),
-    getEnhancedDashboardStats(),
-  ]);
+  const { stats, dailyCounts, enhanced } = await getAdminDashboardSnapshot();
 
   const maxDaily = Math.max(
     ...dailyCounts.map((d: DailyCount) => Math.max(d.scraped, d.processed)),
@@ -24,7 +20,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-zinc-100 mb-2">Dashboard</h1>
-        <p className="text-zinc-500 text-sm">Estadísticas generales del sistema</p>
+        <p className="text-zinc-300 text-sm">Estadísticas generales del sistema</p>
       </div>
 
       {/* KPIs */}
@@ -112,7 +108,7 @@ export default async function AdminDashboardPage() {
                 const pct = stats.totalEvents > 0 ? Math.round((item.count / stats.totalEvents) * 100) : 0;
                 return (
                   <div key={item.type} className="flex items-center gap-3">
-                    <span className="text-zinc-400 capitalize text-sm w-28 truncate">{item.type}</span>
+                    <span className="text-zinc-300 capitalize text-sm w-28 truncate">{item.type}</span>
                     <div className="flex-1 h-4 bg-zinc-800 rounded-sm overflow-hidden">
                       <div
                         className={`h-full rounded-sm ${item.type === "otro" ? "bg-yellow-500/60" : "bg-zinc-600"}`}
@@ -137,7 +133,7 @@ export default async function AdminDashboardPage() {
                 const pct = Math.round((item.count / maxSource) * 100);
                 return (
                   <div key={item.source} className="flex items-center gap-3">
-                    <span className="text-zinc-400 text-sm w-28 truncate">{item.source}</span>
+                    <span className="text-zinc-300 text-sm w-28 truncate">{item.source}</span>
                     <div className="flex-1 h-4 bg-zinc-800 rounded-sm overflow-hidden">
                       <div
                         className="h-full bg-blue-500/40 rounded-sm"
@@ -156,9 +152,9 @@ export default async function AdminDashboardPage() {
       <div className="border border-zinc-800 rounded p-4">
         <h2 className="text-lg font-bold text-zinc-100 mb-4">Eventos por Departamento</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {enhanced.eventsByCity.map((item: { city: string; count: number }) => (
-            <div key={item.city} className="flex justify-between text-sm border border-zinc-800/50 rounded p-2">
-              <span className="text-zinc-400 truncate">{item.city}</span>
+          {enhanced.eventsByCity.map((item: { department: string; count: number }) => (
+            <div key={item.department} className="flex justify-between text-sm border border-zinc-800/50 rounded p-2">
+              <span className="text-zinc-300 truncate">{item.department}</span>
               <span className="text-zinc-200 ml-2 font-medium">{item.count}</span>
             </div>
           ))}
@@ -171,7 +167,7 @@ export default async function AdminDashboardPage() {
         <div className="space-y-3">
           {dailyCounts.map((day: DailyCount) => (
             <div key={day.date} className="flex items-center gap-4">
-              <span className="text-xs text-zinc-500 w-20">
+              <span className="text-xs text-zinc-300 w-20">
                 {new Date(day.date).toLocaleDateString("es-UY", {
                   weekday: "short",
                   day: "numeric",
@@ -183,13 +179,13 @@ export default async function AdminDashboardPage() {
                   style={{ width: `${(day.scraped / maxDaily) * 100}%`, minWidth: day.scraped > 0 ? "4px" : "0" }}
                 />
               </div>
-              <span className="text-xs text-zinc-400 w-12 text-right">
+              <span className="text-xs text-zinc-300 w-12 text-right">
                 {day.scraped}
               </span>
             </div>
           ))}
         </div>
-        <div className="mt-4 flex gap-4 text-xs text-zinc-500">
+        <div className="mt-4 flex gap-4 text-xs text-zinc-300">
           <span className="flex items-center gap-2">
             <span className="w-3 h-3 bg-zinc-700 rounded-sm" />
             Scraped
@@ -206,14 +202,14 @@ export default async function AdminDashboardPage() {
             {enhanced.topViewed.map(
               (event: { id: string; name: string; viewCount: number; date: string; venueName: string; eventType: string }, i: number) => (
                 <div key={event.id} className="flex items-start gap-3 text-sm">
-                  <span className="text-zinc-600 w-5 text-right">{i + 1}.</span>
+                  <span className="text-zinc-400 w-5 text-right">{i + 1}.</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-zinc-200 truncate">{event.name}</p>
-                    <p className="text-zinc-500 text-xs truncate">
+                    <p className="text-zinc-300 text-xs truncate">
                       {event.venueName} · <span className="capitalize">{event.eventType}</span>
                     </p>
                   </div>
-                  <span className="text-zinc-400 text-xs whitespace-nowrap">
+                  <span className="text-zinc-300 text-xs whitespace-nowrap">
                     {event.viewCount} vistas
                   </span>
                 </div>
@@ -227,15 +223,15 @@ export default async function AdminDashboardPage() {
           <h2 className="text-lg font-bold text-zinc-100 mb-4">Recién Creados</h2>
           <div className="space-y-2">
             {enhanced.recentEvents.map(
-              (event: { id: string; name: string; date: string; venueName: string; eventType: string; city: string; createdAt: Date }) => (
+              (event: { id: string; name: string; date: string; venueName: string; eventType: string; department: string; createdAt: Date }) => (
                 <div key={event.id} className="flex items-start gap-3 text-sm">
                   <div className="flex-1 min-w-0">
                     <p className="text-zinc-200 truncate">{event.name}</p>
-                    <p className="text-zinc-500 text-xs truncate">
-                      {event.venueName} · {event.city} · <span className="capitalize">{event.eventType}</span>
+                    <p className="text-zinc-300 text-xs truncate">
+                      {event.venueName} · {event.department} · <span className="capitalize">{event.eventType}</span>
                     </p>
                   </div>
-                  <span className="text-zinc-500 text-xs whitespace-nowrap">
+                  <span className="text-zinc-300 text-xs whitespace-nowrap">
                     {new Date(event.createdAt).toLocaleDateString("es-UY", {
                       day: "numeric",
                       month: "short",
@@ -264,11 +260,11 @@ function KpiCard({
 }) {
   return (
     <div className={`border rounded p-4 ${highlight ? "border-zinc-700 bg-zinc-900/50" : "border-zinc-800"}`}>
-      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+      <p className="text-xs text-zinc-300 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${highlight ? "text-yellow-400" : "text-zinc-100"}`}>
         {value}
       </p>
-      <p className="text-xs text-zinc-600">{sublabel}</p>
+      <p className="text-xs text-zinc-400">{sublabel}</p>
     </div>
   );
 }
@@ -287,7 +283,7 @@ function ProgressBar({
   return (
     <div>
       <div className="flex justify-between text-sm mb-2">
-        <span className="text-zinc-400">{label}</span>
+        <span className="text-zinc-300">{label}</span>
         <span className="text-zinc-200">
           {current} / {total} ({percentage}%)
         </span>

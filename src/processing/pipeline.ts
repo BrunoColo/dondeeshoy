@@ -10,6 +10,7 @@ import { geocodeVenue } from "./geocoder";
 import { classifyEventWithAi } from "./ai-client";
 import { calculateConfidenceScore, normalizeRawEvent } from "./normalizer";
 import { detectDepartment } from "./department-detector";
+import { syncVenueRegistry } from "@/lib/venue-registry";
 
 export interface PipelineResult {
   pending: number;
@@ -134,6 +135,50 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
   return result;
 }
 
+export async function reprocessRawEvent(rawEventId: string): Promise<{
+  rawEventId: string;
+  outcome: "created" | "merged" | "skipped" | "ai" | "created+ai" | "merged+ai";
+}> {
+  const rows = await withTransientRetry("load-raw-event-for-reprocess", async () =>
+    db
+      .select()
+      .from(rawEvents)
+      .where(eq(rawEvents.id, rawEventId))
+      .limit(1),
+  );
+
+  const rawEvent = rows[0];
+  if (!rawEvent) {
+    throw new Error("Raw event not found");
+  }
+
+  await withTransientRetry("reset-raw-event-for-reprocess", async () =>
+    db
+      .update(rawEvents)
+      .set({
+        processed: false,
+        processingError: null,
+      })
+      .where(eq(rawEvents.id, rawEventId)),
+  );
+
+  try {
+    const outcome = await processRawEvent(rawEvent, { aiEnabled: true });
+    return { rawEventId, outcome };
+  } catch (error) {
+    await withTransientRetry("set-reprocess-error", async () =>
+      db
+        .update(rawEvents)
+        .set({
+          processed: false,
+          processingError: String(error),
+        })
+        .where(eq(rawEvents.id, rawEventId)),
+    );
+    throw error;
+  }
+}
+
 async function processRawEvent(
   rawEvent: RawEvent,
   options: { aiEnabled: boolean },
@@ -203,6 +248,12 @@ async function processRawEvent(
       enriched.latitude,
       enriched.longitude,
     );
+  }
+
+  try {
+    await syncVenueRegistry(enriched);
+  } catch (error) {
+    console.warn(`[pipeline] venue registry sync failed for raw_event ${rawEvent.id}`, error);
   }
 
   const rawData = rawEvent.rawData as Record<string, unknown>;
@@ -327,6 +378,7 @@ async function createEvent(
             latitude: normalized.latitude?.toString() ?? null,
             longitude: normalized.longitude?.toString() ?? null,
             city: normalized.city,
+            department: normalized.city,
             eventType: classification.eventType,
             musicGenre: classification.musicGenre,
             imageUrl: normalized.imageUrl,
@@ -395,6 +447,7 @@ async function mergeEventData(
         latitude: events.latitude,
         longitude: events.longitude,
         city: events.city,
+        department: events.department,
         eventType: events.eventType,
         confidenceScore: events.confidenceScore,
       })
@@ -485,12 +538,17 @@ async function mergeEventData(
     // Recalculate department from new coordinates
     if (normalized.city) {
       updates.city = normalized.city;
+      updates.department = normalized.city;
     }
   }
 
   // Also update city if it was previously null/empty and we have it now
   if (normalized.city && !existing.city) {
     updates.city = normalized.city;
+  }
+
+  if (normalized.city && (!existing.department || existing.department !== normalized.city)) {
+    updates.department = normalized.city;
   }
 
   // ── eventType: update when the incoming classification is more confident ──

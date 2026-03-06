@@ -1,7 +1,9 @@
+import { unstable_cache } from "next/cache";
+
 import { db } from "./db";
 import { events, rawEvents, eventSources, bannedEvents } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
-import { eq, desc, and, gte, lte, sql, count, ilike } from "drizzle-orm";
+import { eq, desc, and, gte, sql, count, ilike } from "drizzle-orm";
 
 /**
  * Normalize an event name for ban matching:
@@ -30,64 +32,342 @@ function slugifyForEvent(value: string): string {
 }
 
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
+export type ScraperHealth = "healthy" | "warning" | "error" | "idle";
+
+function deriveScraperHealth(stat: {
+  total: number;
+  today: number;
+  unprocessed: number;
+  withError: number;
+  lastScrape: Date | null;
+}): { health: ScraperHealth; healthReason: string } {
+  if (!stat.lastScrape || stat.total === 0) {
+    return { health: "idle", healthReason: "Sin ejecuciones registradas" };
+  }
+
+  const hoursSinceLastScrape = (Date.now() - stat.lastScrape.getTime()) / 3_600_000;
+
+  if (hoursSinceLastScrape >= 48 || stat.withError >= 25) {
+    return {
+      health: "error",
+      healthReason: hoursSinceLastScrape >= 48
+        ? `Sin actividad hace ${Math.round(hoursSinceLastScrape)}h`
+        : `${stat.withError} raws con error`,
+    };
+  }
+
+  if (stat.today === 0 && hoursSinceLastScrape >= 24) {
+    return {
+      health: "warning",
+      healthReason: `Sin scrapeos hoy (${Math.round(hoursSinceLastScrape)}h)`,
+    };
+  }
+
+  if (stat.unprocessed >= 25 || stat.withError > 0 || hoursSinceLastScrape >= 12) {
+    return {
+      health: "warning",
+      healthReason: stat.unprocessed >= 25
+        ? `${stat.unprocessed} pendientes`
+        : stat.withError > 0
+          ? `${stat.withError} con error`
+          : `Último scrape hace ${Math.round(hoursSinceLastScrape)}h`,
+    };
+  }
+
+  return { health: "healthy", healthReason: "Operando normalmente" };
+}
+
+type DashboardStats = {
+  totalEvents: number;
+  eventsToday: number;
+  unprocessedRaw: number;
+  pendingSubmissions: number;
+  withPrice: number;
+  withImage: number;
+  withLocation: number;
+  eventsByType: Array<{ type: string; count: number }>;
+};
+
+type EnhancedDashboardStats = {
+  eventsBySource: Array<{ source: string; count: number }>;
+  eventsByCity: Array<{ department: string; count: number }>;
+  upcomingCount: number;
+  pastCount: number;
+  topViewed: Array<{
+    id: string;
+    name: string;
+    viewCount: number;
+    date: string;
+    venueName: string;
+    eventType: string;
+  }>;
+  recentEvents: Array<{
+    id: string;
+    name: string;
+    date: string;
+    venueName: string;
+    eventType: string;
+    department: string;
+    createdAt: Date;
+  }>;
+  freeCount: number;
+};
+
+type DailyScrapeCount = { date: string; scraped: number; processed: number };
+
+type DashboardSnapshot = {
+  stats: DashboardStats;
+  enhanced: EnhancedDashboardStats;
+  dailyCounts: DailyScrapeCount[];
+};
+
+type DashboardSnapshotRow = {
+  total_events: number | string | null;
+  events_today: number | string | null;
+  unprocessed_raw: number | string | null;
+  pending_submissions: number | string | null;
+  with_price: number | string | null;
+  with_image: number | string | null;
+  with_location: number | string | null;
+  upcoming_count: number | string | null;
+  past_count: number | string | null;
+  free_count: number | string | null;
+  events_by_type: unknown;
+  events_by_source: unknown;
+  events_by_city: unknown;
+  top_viewed: unknown;
+  recent_events: unknown;
+  daily_counts: unknown;
+};
+
+function parseCount(value: number | string | null | undefined): number {
+  return Number(value ?? 0);
+}
+
+function parseJsonArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+const getAdminDashboardSnapshotCached = unstable_cache(
+  async (): Promise<DashboardSnapshot> => {
+    const rows = await db.execute<DashboardSnapshotRow>(sql`
+      WITH event_metrics AS (
+        SELECT
+          COUNT(*) FILTER (WHERE ${events.status} = 'active')::int AS total_events,
+          COUNT(*) FILTER (WHERE ${events.createdAt} >= date_trunc('day', now()))::int AS events_today,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.priceMin} IS NOT NULL)::int AS with_price,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.imageUrl} IS NOT NULL)::int AS with_image,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.latitude} IS NOT NULL)::int AS with_location,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.date} >= current_date)::int AS upcoming_count,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.date} < current_date)::int AS past_count,
+          COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.isFree} = true)::int AS free_count
+        FROM ${events}
+      ),
+      raw_metrics AS (
+        SELECT COUNT(*) FILTER (WHERE ${rawEvents.processed} = false)::int AS unprocessed_raw
+        FROM ${rawEvents}
+      ),
+      submission_metrics AS (
+        SELECT COUNT(*) FILTER (WHERE ${eventSubmissions.status} = 'pending')::int AS pending_submissions
+        FROM ${eventSubmissions}
+      )
+      SELECT
+        event_metrics.total_events,
+        event_metrics.events_today,
+        raw_metrics.unprocessed_raw,
+        submission_metrics.pending_submissions,
+        event_metrics.with_price,
+        event_metrics.with_image,
+        event_metrics.with_location,
+        event_metrics.upcoming_count,
+        event_metrics.past_count,
+        event_metrics.free_count,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.count DESC, t.type)
+          FROM (
+            SELECT ${events.eventType}::text AS type, COUNT(*)::int AS count
+            FROM ${events}
+            WHERE ${events.status} = 'active'
+            GROUP BY ${events.eventType}
+          ) AS t
+        ), '[]'::json) AS events_by_type,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.count DESC, t.source)
+          FROM (
+            SELECT ${eventSources.source}::text AS source, COUNT(*)::int AS count
+            FROM ${eventSources}
+            GROUP BY ${eventSources.source}
+          ) AS t
+        ), '[]'::json) AS events_by_source,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.count DESC, t.department)
+          FROM (
+            SELECT ${events.department} AS department, COUNT(*)::int AS count
+            FROM ${events}
+            WHERE ${events.status} = 'active'
+            GROUP BY ${events.department}
+          ) AS t
+        ), '[]'::json) AS events_by_city,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.view_count DESC, t.date ASC)
+          FROM (
+            SELECT
+              ${events.id} AS id,
+              ${events.name} AS name,
+              ${events.viewCount}::int AS view_count,
+              ${events.date}::text AS date,
+              ${events.venueName} AS venue_name,
+              ${events.eventType}::text AS event_type
+            FROM ${events}
+            WHERE ${events.status} = 'active'
+            ORDER BY ${events.viewCount} DESC, ${events.date} ASC
+            LIMIT 10
+          ) AS t
+        ), '[]'::json) AS top_viewed,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.created_at DESC)
+          FROM (
+            SELECT
+              ${events.id} AS id,
+              ${events.name} AS name,
+              ${events.date}::text AS date,
+              ${events.venueName} AS venue_name,
+              ${events.eventType}::text AS event_type,
+              ${events.department} AS department,
+              ${events.createdAt} AS created_at
+            FROM ${events}
+            WHERE ${events.status} = 'active'
+            ORDER BY ${events.createdAt} DESC
+            LIMIT 10
+          ) AS t
+        ), '[]'::json) AS recent_events,
+        COALESCE((
+          SELECT json_agg(row_to_json(t) ORDER BY t.date)
+          FROM (
+            SELECT
+              to_char(days.day, 'YYYY-MM-DD') AS date,
+              COALESCE(raw_counts.scraped, 0)::int AS scraped,
+              COALESCE(processed_counts.processed, 0)::int AS processed
+            FROM generate_series(current_date - interval '6 days', current_date, interval '1 day') AS days(day)
+            LEFT JOIN (
+              SELECT DATE(${rawEvents.scrapedAt}) AS day, COUNT(*)::int AS scraped
+              FROM ${rawEvents}
+              WHERE ${rawEvents.scrapedAt} >= current_date - interval '6 days'
+              GROUP BY DATE(${rawEvents.scrapedAt})
+            ) AS raw_counts ON raw_counts.day = days.day::date
+            LEFT JOIN (
+              SELECT DATE(${events.createdAt}) AS day, COUNT(*)::int AS processed
+              FROM ${events}
+              WHERE ${events.createdAt} >= current_date - interval '6 days'
+              GROUP BY DATE(${events.createdAt})
+            ) AS processed_counts ON processed_counts.day = days.day::date
+          ) AS t
+        ), '[]'::json) AS daily_counts
+      FROM event_metrics, raw_metrics, submission_metrics
+    `);
+
+    const row = rows[0];
+    const stats: DashboardStats = {
+      totalEvents: parseCount(row?.total_events),
+      eventsToday: parseCount(row?.events_today),
+      unprocessedRaw: parseCount(row?.unprocessed_raw),
+      pendingSubmissions: parseCount(row?.pending_submissions),
+      withPrice: parseCount(row?.with_price),
+      withImage: parseCount(row?.with_image),
+      withLocation: parseCount(row?.with_location),
+      eventsByType: parseJsonArray<{ type: string; count: number | string }>(row?.events_by_type).map((item) => ({
+        type: item.type,
+        count: parseCount(item.count),
+      })),
+    };
+
+    const enhanced: EnhancedDashboardStats = {
+      eventsBySource: parseJsonArray<{ source: string; count: number | string }>(row?.events_by_source).map((item) => ({
+        source: item.source,
+        count: parseCount(item.count),
+      })),
+      eventsByCity: parseJsonArray<{ department: string; count: number | string }>(row?.events_by_city).map((item) => ({
+        department: item.department,
+        count: parseCount(item.count),
+      })),
+      upcomingCount: parseCount(row?.upcoming_count),
+      pastCount: parseCount(row?.past_count),
+      topViewed: parseJsonArray<{
+        id: string;
+        name: string;
+        view_count: number | string;
+        date: string;
+        venue_name: string;
+        event_type: string;
+      }>(row?.top_viewed).map((item) => ({
+        id: item.id,
+        name: item.name,
+        viewCount: parseCount(item.view_count),
+        date: item.date,
+        venueName: item.venue_name,
+        eventType: item.event_type,
+      })),
+      recentEvents: parseJsonArray<{
+        id: string;
+        name: string;
+        date: string;
+        venue_name: string;
+        event_type: string;
+        department: string;
+        created_at: string | Date;
+      }>(row?.recent_events).map((item) => ({
+        id: item.id,
+        name: item.name,
+        date: item.date,
+        venueName: item.venue_name,
+        eventType: item.event_type,
+        department: item.department,
+        createdAt: new Date(item.created_at),
+      })),
+      freeCount: parseCount(row?.free_count),
+    };
+
+    const dailyCounts = parseJsonArray<{ date: string; scraped: number | string; processed: number | string }>(row?.daily_counts).map((item) => ({
+      date: item.date,
+      scraped: parseCount(item.scraped),
+      processed: parseCount(item.processed),
+    }));
+
+    return {
+      stats,
+      enhanced,
+      dailyCounts,
+    };
+  },
+  ["admin-dashboard-snapshot-v1"],
+  {
+    revalidate: 30,
+    tags: ["admin-dashboard"],
+  },
+);
+
+export async function getAdminDashboardSnapshot(): Promise<DashboardSnapshot> {
+  return getAdminDashboardSnapshotCached();
+}
 
 // ============= Dashboard Stats =============
 
 export async function getAdminDashboardStats() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const [eventAggRows, eventsByType, rawAggRows, submissionAggRows] = await Promise.all([
-    db.execute<{
-      total_events: number | string;
-      events_today: number | string;
-      with_price: number | string;
-      with_image: number | string;
-      with_location: number | string;
-    }>(sql`
-      SELECT
-        COUNT(*) FILTER (WHERE ${events.status} = 'active') AS total_events,
-        COUNT(*) FILTER (WHERE ${events.createdAt} >= ${today}) AS events_today,
-        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.priceMin} IS NOT NULL) AS with_price,
-        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.imageUrl} IS NOT NULL) AS with_image,
-        COUNT(*) FILTER (WHERE ${events.status} = 'active' AND ${events.latitude} IS NOT NULL) AS with_location
-      FROM ${events}
-    `),
-    db
-      .select({
-        type: events.eventType,
-        count: count(),
-      })
-      .from(events)
-      .where(eq(events.status, "active"))
-      .groupBy(events.eventType),
-    db.execute<{ unprocessed_raw: number | string }>(sql`
-      SELECT COUNT(*) AS unprocessed_raw
-      FROM ${rawEvents}
-      WHERE ${rawEvents.processed} = false
-    `),
-    db.execute<{ pending_submissions: number | string }>(sql`
-      SELECT COUNT(*) AS pending_submissions
-      FROM ${eventSubmissions}
-      WHERE ${eventSubmissions.status} = 'pending'
-    `),
-  ]);
-
-  const eventAgg = eventAggRows[0];
-  const rawAgg = rawAggRows[0];
-  const submissionAgg = submissionAggRows[0];
-
-  // Events by type
-  return {
-    totalEvents: Number(eventAgg?.total_events ?? 0),
-    eventsToday: Number(eventAgg?.events_today ?? 0),
-    unprocessedRaw: Number(rawAgg?.unprocessed_raw ?? 0),
-    pendingSubmissions: Number(submissionAgg?.pending_submissions ?? 0),
-    withPrice: Number(eventAgg?.with_price ?? 0),
-    withImage: Number(eventAgg?.with_image ?? 0),
-    withLocation: Number(eventAgg?.with_location ?? 0),
-    eventsByType,
-  };
+  const snapshot = await getAdminDashboardSnapshot();
+  return snapshot.stats;
 }
 
 // ============= Scraper Stats =============
@@ -96,6 +376,7 @@ export async function getScraperStats() {
   const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayIso = today.toISOString();
 
   const [aggRows, lastRows] = await Promise.all([
     db.execute<{
@@ -108,7 +389,7 @@ export async function getScraperStats() {
       SELECT
         ${rawEvents.source} AS source,
         COUNT(*) AS total,
-        COUNT(*) FILTER (WHERE ${rawEvents.scrapedAt} >= ${today}) AS today,
+        COUNT(*) FILTER (WHERE ${rawEvents.scrapedAt} >= ${todayIso}) AS today,
         COUNT(*) FILTER (WHERE ${rawEvents.processed} = false) AS unprocessed,
         COUNT(*) FILTER (WHERE ${rawEvents.processingError} IS NOT NULL) AS with_error
       FROM ${rawEvents}
@@ -136,14 +417,19 @@ export async function getScraperStats() {
   return sources.map((source) => {
     const agg = aggBySource.get(source);
     const last = lastBySource.get(source);
-
-    return {
+    const stat = {
       source,
       total: Number(agg?.total ?? 0),
       today: Number(agg?.today ?? 0),
       unprocessed: Number(agg?.unprocessed ?? 0),
       withError: Number(agg?.with_error ?? 0),
       lastScrape: last ? new Date(last) : null,
+    };
+    const health = deriveScraperHealth(stat);
+
+    return {
+      ...stat,
+      ...health,
     };
   });
 }
@@ -331,6 +617,7 @@ export async function approveSubmission(id: string, notes?: string) {
     venueName: submission.venueName,
     venueAddress: submission.venueAddress,
     city: submission.city,
+    department: submission.city,
     eventType: submission.eventType,
     isFree: submission.isFree,
     priceMin: submission.priceRange ? parseInt(submission.priceRange.split("-")[0]) : null,
@@ -370,92 +657,18 @@ export async function rejectSubmission(id: string, notes?: string) {
 // ============= Enhanced Dashboard Stats =============
 
 export async function getEnhancedDashboardStats() {
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
-
-  // Events by source (how many final events each scraper produced)
-  const eventsBySource = await db
-    .select({
-      source: eventSources.source,
-      count: count(),
-    })
-    .from(eventSources)
-    .groupBy(eventSources.source);
-
-  // Events by city/department
-  const eventsByCity = await db
-    .select({
-      city: events.city,
-      count: count(),
-    })
-    .from(events)
-    .where(eq(events.status, "active"))
-    .groupBy(events.city)
-    .orderBy(desc(count()));
-
-  // Upcoming events (future dates)
-  const [upcomingCount] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), gte(events.date, todayStr)));
-
-  // Past events (date before today)
-  const [pastCount] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), lte(events.date, todayStr)));
-
-  // Top viewed events
-  const topViewed = await db
-    .select({
-      id: events.id,
-      name: events.name,
-      viewCount: events.viewCount,
-      date: events.date,
-      venueName: events.venueName,
-      eventType: events.eventType,
-    })
-    .from(events)
-    .where(eq(events.status, "active"))
-    .orderBy(desc(events.viewCount))
-    .limit(10);
-
-  // Recently created events
-  const recentEvents = await db
-    .select({
-      id: events.id,
-      name: events.name,
-      date: events.date,
-      venueName: events.venueName,
-      eventType: events.eventType,
-      city: events.city,
-      createdAt: events.createdAt,
-    })
-    .from(events)
-    .where(eq(events.status, "active"))
-    .orderBy(desc(events.createdAt))
-    .limit(10);
-
-  // Free vs paid events
-  const [freeCount] = await db
-    .select({ count: count() })
-    .from(events)
-    .where(and(eq(events.status, "active"), eq(events.isFree, true)));
-
-  return {
-    eventsBySource,
-    eventsByCity,
-    upcomingCount: upcomingCount?.count ?? 0,
-    pastCount: pastCount?.count ?? 0,
-    topViewed,
-    recentEvents,
-    freeCount: freeCount?.count ?? 0,
-  };
+  const snapshot = await getAdminDashboardSnapshot();
+  return snapshot.enhanced;
 }
 
 // ============= Daily Counts =============
 
 export async function getDailyScrapeCounts(days: number = 7) {
+  if (days === 7) {
+    const snapshot = await getAdminDashboardSnapshot();
+    return snapshot.dailyCounts;
+  }
+
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
   startDate.setHours(0, 0, 0, 0);
@@ -560,7 +773,8 @@ export interface UpdateEventData {
   latitude?: string | null;
   longitude?: string | null;
   city?: string;
-  eventType?: string;
+  department?: string;
+  eventType?: typeof events.$inferSelect.eventType;
   musicGenre?: string | null;
   imageUrl?: string | null;
   ticketUrl?: string | null;
@@ -573,12 +787,17 @@ export interface UpdateEventData {
 }
 
 export async function updateEvent(id: string, data: UpdateEventData) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dataAny = data as any;
+  const { department, ...rest } = data;
+  const resolvedDepartment = department ?? data.city;
+  const updatePayload: Partial<typeof events.$inferInsert> = {
+    ...rest,
+    city: resolvedDepartment,
+    department: resolvedDepartment,
+  };
   const [updated] = await db
     .update(events)
     .set({
-      ...dataAny,
+      ...updatePayload,
       updatedAt: new Date(),
     })
     .where(eq(events.id, id))

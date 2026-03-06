@@ -144,7 +144,7 @@ export default function SubmissionsPage() {
               <th className="text-left px-4 py-3 font-medium">Fecha</th>
               <th className="text-left px-4 py-3 font-medium">Tipo</th>
               <th className="text-left px-4 py-3 font-medium">Venue</th>
-              <th className="text-left px-4 py-3 font-medium">Ciudad</th>
+              <th className="text-left px-4 py-3 font-medium">Departamento</th>
               <th className="text-left px-4 py-3 font-medium">Contacto</th>
               <th className="text-left px-4 py-3 font-medium">Fecha</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -252,7 +252,7 @@ export default function SubmissionsPage() {
                   <p className="text-zinc-500 text-xs">Venue</p>
                   <p className="text-zinc-100">{selectedSubmission.venueName}</p>
                   <p className="text-zinc-400 text-sm">{selectedSubmission.venueAddress}</p>
-                  <p className="text-zinc-400 text-sm">{selectedSubmission.city}</p>
+                  <p className="text-zinc-400 text-sm">Departamento: {selectedSubmission.city}</p>
                 </div>
 
                 <div>

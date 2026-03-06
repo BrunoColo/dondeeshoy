@@ -12,6 +12,6 @@ export const scraperConfig = {
   requestsPerSecond: 1,
   retryAttempts: 3,
   timeoutMs: 15_000,
-  /** Max search result pages to crawl for paginated scrapers */
-  maxSearchPages: 10,
+  /** Soft cap for paginated scrapers; they can stop earlier when pages go empty/stale */
+  maxSearchPages: 75,
 } as const;

@@ -63,7 +63,9 @@ export const events = pgTable(
     venueAddress: varchar("venue_address", { length: 512 }),
     latitude: decimal("latitude", { precision: 10, scale: 7 }),
     longitude: decimal("longitude", { precision: 10, scale: 7 }),
+    // Historical quirk: this column stores the Uruguay department, not the literal city.
     city: varchar("city", { length: 100 }).default("Montevideo").notNull(),
+    department: varchar("department", { length: 100 }).default("Montevideo").notNull(),
     eventType: eventTypeEnum("event_type").default("otro").notNull(),
     musicGenre: varchar("music_genre", { length: 100 }),
     imageUrl: varchar("image_url", { length: 2048 }),
@@ -85,6 +87,8 @@ export const events = pgTable(
     index("events_date_status_idx").on(table.date, table.status),
     // Composite: date + city (department) + status for filtered queries
     index("events_date_city_status_idx").on(table.date, table.city, table.status),
+    // Future-proof index for the dedicated department column.
+    index("events_date_department_status_idx").on(table.date, table.department, table.status),
     // Slug lookup for event detail page
     index("events_slug_idx").on(table.slug),
     // Type filter

@@ -36,33 +36,6 @@ const PROBLEMATIC_KEYWORDS = new Set([
   "paraguay",     // Country name
 ]);
 
-/**
- * Keywords that are UNAMBIGUOUSLY department names or very specific locations.
- * These CAN override coordinate detection if explicitly present in address/city.
- */
-const UNAMBIGUOUS_DEPARTMENT_KEYWORDS = new Set([
-  // Montevideo area - specific neighborhoods
-  "pocitos", "punta carretas", "carrasco", "buena vista", "malvín", 
-  "parque batlle", "belvedere", "centro", "ciudad viej", "aguada",
-  "tres cruces", "palermo", "sayago", "piedras blancas",
-  // Canelones - specific
-  "atlantida", "la paz", "las piedras", "progreso", "pando",
-  "ciudad de la costa", "solymar", "el pinar", "salinas", "santa lucia",
-  // Maldonado - specific  
-  "punta del este", "punta shopping", "jose ignacio", "la barra",
-  "manantiales", "piriapolis", "san carlos",
-  // Colonia - specific
-  "colonia del sacramento", "carmelo", "nueva helvecia", "nueva palmira",
-  "rosario", "juan lacaze",
-  // Other departments - very specific
-  "paysandu", "salto", "artigas", "rivera", "tacuarembo",
-  "cerro largo", "treinta y tres", "durazno", "florida", "flores",
-  "lavalleja", "rocha", "soriano", "rio negro", "san jose",
-  // With accents
-  "punta del este", "josé ignacio", "piriápolis", "la paz",
-  "nueva helvecia", "colonia del sacramento",
-]);
-
 export type UruguayDepartment =
   | "Montevideo"
   | "Canelones"
@@ -491,6 +464,10 @@ function normalizeForMatch(value: string): string {
     .trim();
 }
 
+function shouldSkipKeywordForLooseTextMatch(keyword: string): boolean {
+  return PROBLEMATIC_KEYWORDS.has(keyword) && keyword.split(/\s+/).length < 2;
+}
+
 /**
  * Detect the Uruguay department from event location data.
  * When coordinates are available, they take priority over text matching
@@ -548,11 +525,8 @@ export function detectDepartment(
       
       // Skip problematic keywords (department names that are also street names)
       // UNLESS the keyword is very specific (e.g., "colonia del sacramento" not just "colonia")
-      if (PROBLEMATIC_KEYWORDS.has(normalizedKeyword) && !UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has(normalizedKeyword)) {
-        // Check if it's at least a longer phrase that makes it unambiguous
-        if (normalizedKeyword.split(/\s+/).length < 2) {
-          continue; // Skip single-word problematic keywords
-        }
+      if (shouldSkipKeywordForLooseTextMatch(normalizedKeyword)) {
+        continue;
       }
       
       if (combinedPrimary.includes(normalizedKeyword)) {
@@ -567,10 +541,8 @@ export function detectDepartment(
       const normalizedKeyword = normalizeForMatch(keyword);
       
       // Same filtering for event name
-      if (PROBLEMATIC_KEYWORDS.has(normalizedKeyword) && !UNAMBIGUOUS_DEPARTMENT_KEYWORDS.has(normalizedKeyword)) {
-        if (normalizedKeyword.split(/\s+/).length < 2) {
-          continue;
-        }
+      if (shouldSkipKeywordForLooseTextMatch(normalizedKeyword)) {
+        continue;
       }
       
       if (combinedWithName.includes(normalizedKeyword)) {

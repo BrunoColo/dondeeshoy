@@ -1,4 +1,5 @@
 import type { NormalizedEventInput } from "./normalizer";
+import { findVenueCoordinates } from "@/lib/venue-registry";
 
 export interface GeocodeResult {
   latitude: number | null;
@@ -135,7 +136,18 @@ const KNOWN_VENUES: KnownVenue[] = [
 ];
 
 export async function geocodeVenue(normalized: NormalizedEventInput): Promise<GeocodeResult> {
-  // 1. Try known venue lookup first
+  // 1. Try the DB-backed venue registry first (cross-source cache)
+  const registryMatch = await findVenueCoordinates(normalized.venueName, normalized.city);
+
+  if (registryMatch) {
+    return {
+      latitude: registryMatch.latitude,
+      longitude: registryMatch.longitude,
+      source: "lookup",
+    };
+  }
+
+  // 2. Try known venue lookup next
   const lookup = lookupKnownVenue(normalized.venueName, normalized.venueAddress);
 
   if (lookup) {
@@ -146,7 +158,7 @@ export async function geocodeVenue(normalized: NormalizedEventInput): Promise<Ge
     };
   }
 
-  // 2. Try Mapbox geocoding
+  // 3. Try Mapbox geocoding
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   if (!mapboxToken) {

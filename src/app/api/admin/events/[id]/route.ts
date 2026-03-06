@@ -26,6 +26,7 @@ const updateEventSchema = z
     latitude: z.string().nullable().optional(),
     longitude: z.string().nullable().optional(),
     city: z.string().min(1).max(100).optional(),
+    department: z.string().min(1).max(100).optional(),
     eventType: z.string().min(1).max(50).optional(),
     musicGenre: z.string().max(100).nullable().optional(),
     imageUrl: z.string().url().max(2000).nullable().optional(),

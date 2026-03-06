@@ -22,7 +22,7 @@ export function AdminSidebar({ navItems }: { navItems: NavItem[] }) {
         <span className="text-sm font-bold text-zinc-100">dondeeshoy admin</span>
         <button
           onClick={() => setOpen(!open)}
-          className="text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="text-zinc-300 hover:text-zinc-100 transition-colors"
           aria-label="Toggle menu"
         >
           {open ? "✕" : "☰"}
@@ -52,7 +52,7 @@ export function AdminSidebar({ navItems }: { navItems: NavItem[] }) {
         <div className="mb-8">
           <Link href="/admin" className="block" onClick={() => setOpen(false)}>
             <h1 className="text-lg font-bold text-zinc-100">dondeeshoy</h1>
-            <p className="text-xs text-zinc-500">Admin Panel</p>
+            <p className="text-xs text-zinc-300">Admin Panel</p>
           </Link>
         </div>
 
@@ -70,7 +70,7 @@ export function AdminSidebar({ navItems }: { navItems: NavItem[] }) {
                     : "hover:bg-zinc-900 hover:text-zinc-100"
                 }`}
               >
-                <span className={`mr-2 ${active ? "text-zinc-300" : "text-zinc-500"}`}>
+                <span className={`mr-2 ${active ? "text-zinc-200" : "text-zinc-300"}`}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -84,14 +84,14 @@ export function AdminSidebar({ navItems }: { navItems: NavItem[] }) {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="block px-3 py-2 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            className="block px-3 py-2 text-xs text-zinc-300 hover:text-zinc-100 transition-colors"
           >
             ↗ Ver sitio público
           </a>
           <form action="/api/admin/logout" method="POST">
             <button
               type="submit"
-              className="w-full text-left px-3 py-2 text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 rounded transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-900 rounded transition-colors"
             >
               ← Logout
             </button>

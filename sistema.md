@@ -364,11 +364,11 @@ Eventos entre 23:00–01:59 → `"fiesta"` automáticamente.
 | 17 | MVD Eventos: `extractDates()` lee `$.text()` completo | **Media** | ✅ Corregido |
 | 18 | Cartelera: `saveExtra()` desincronizado con `saveRawEvent()` | **Baja** | ✅ Corregido |
 | 19 | `_MONTHS` declarado y no usado en `mvd-eventos.ts` | **Baja** | ✅ Corregido |
-| 20 | MiEntrada: `aperturaTime` no se lee en normalizador | **Baja** | Pendiente |
-| 21 | CobraTicket: precios desde Firebase no disponibles en SSR | **Media** | Pendiente |
-| 22 | RedTickets: cap de 10 páginas puede perder eventos | **Media** | Pendiente |
-| 23 | Inconsistencia `PROBLEMATIC_KEYWORDS` vs `UNAMBIGUOUS` en dept-detector | **Baja** | Pendiente |
-| 24 | `campo city` en schema llama "city" a lo que es un departamento | **Baja** | Pendiente |
+| 20 | MiEntrada: `aperturaTime` no se lee en normalizador | **Baja** | ✅ Corregido |
+| 21 | CobraTicket: precios desde Firebase no disponibles en SSR | **Media** | ✅ Corregido |
+| 22 | RedTickets: cap de 10 páginas puede perder eventos | **Media** | ✅ Corregido |
+| 23 | Inconsistencia `PROBLEMATIC_KEYWORDS` vs `UNAMBIGUOUS` en dept-detector | **Baja** | ✅ Corregido |
+| 24 | `campo city` en schema llama "city" a lo que es un departamento | **Baja** | 🟡 En migración |
 
 ---
 
@@ -393,15 +393,11 @@ Eventos entre 23:00–01:59 → `"fiesta"` automáticamente.
 
 ### Prioridad media
 
-- **MiEntrada `aperturaTime`**: el normalizador lee `rawData.startTime`; MiEntrada guarda `rawData.aperturaTime`. Renombrar en el scraper o leer ambos en el normalizador.
-- **CobraTicket precios desde Firebase**: investigar si hay endpoint público. Daría precios estructurados reales.
-- **RedTickets paginación**: cambiar el cap fijo de 10 páginas por detección de fin real ("0 resultados en 2 páginas consecutivas" ya existe, pero el límite de 10 puede cortar antes).
 - **Expansión de KNOWN_VENUES**: agregar venues frecuentes de TicketFacil extraídos de datos históricos.
 
 ### Prioridad baja
 
-- **Inconsistencia dept-detector**: `"artigas"` en ambos sets `PROBLEMATIC_KEYWORDS` y `UNAMBIGUOUS_DEPARTMENT_KEYWORDS` — resolver cuál prevalece.
-- **Renombrar campo `city` a `department`** en el schema (requiere migración de DB).
+- **Completar rollout `city` → `department`**: schema, pipeline y queries nuevas ya escriben/leen `department`, pero aún faltan vistas/admin forms para dejar de depender visualmente de `city`.
 - **Tests para normalizador y deduplicador**: los casos edge de parsing de fechas y deduplicación son los más propensos a regresiones.
 - **Registrar fuente de geocodificación**: agregar campo `geocodeSource` ('scraper' | 'known_venues' | 'mapbox') para auditar calidad de coordenadas.
 - **REJECT_PATTERN `/\bsocio(s)?\b/`**: rechaza "Noche de Socios" legítimo. Requiere más contexto antes de rechazar.

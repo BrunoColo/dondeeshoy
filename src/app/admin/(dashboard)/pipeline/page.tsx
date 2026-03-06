@@ -110,6 +110,7 @@ export default async function PipelinePage() {
                 <th className="text-left p-3 font-medium">Título</th>
                 <th className="text-right p-3 font-medium">Scraped</th>
                 <th className="text-center p-3 font-medium">Status</th>
+                <th className="text-center p-3 font-medium">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
@@ -135,6 +136,9 @@ export default async function PipelinePage() {
                     ) : (
                       <span className="px-2 py-1 text-xs bg-yellow-900/30 text-yellow-400 rounded">Pending</span>
                     )}
+                  </td>
+                  <td className="p-3 text-center">
+                    <PipelineClient action={`reprocess/${item.id}`} label="Reprocesar" />
                   </td>
                 </tr>
               ))}

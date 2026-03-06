@@ -10,6 +10,15 @@ type ScraperStat = {
   unprocessed: number;
   withError: number;
   lastScrape: Date | null;
+  health: "healthy" | "warning" | "error" | "idle";
+  healthReason: string;
+};
+
+const healthStyles: Record<ScraperStat["health"], string> = {
+  healthy: "bg-emerald-900/30 text-emerald-300 border border-emerald-800",
+  warning: "bg-amber-900/30 text-amber-300 border border-amber-800",
+  error: "bg-red-900/30 text-red-300 border border-red-800",
+  idle: "bg-zinc-800 text-zinc-400 border border-zinc-700",
 };
 
 export default async function ScrapersPage() {
@@ -42,6 +51,7 @@ export default async function ScrapersPage() {
               <th className="text-right p-3 font-medium">Sin procesar</th>
               <th className="text-right p-3 font-medium">Errores</th>
               <th className="text-right p-3 font-medium">Último scrape</th>
+              <th className="text-center p-3 font-medium">Salud</th>
               <th className="text-center p-3 font-medium">Acción</th>
             </tr>
           </thead>
@@ -65,6 +75,20 @@ export default async function ScrapersPage() {
                         minute: "2-digit",
                       })
                     : "—"}
+                </td>
+                <td className="p-3 text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className={`px-2 py-1 text-xs rounded-full ${healthStyles[stat.health]}`}>
+                      {stat.health === "healthy"
+                        ? "OK"
+                        : stat.health === "warning"
+                          ? "Warn"
+                          : stat.health === "error"
+                            ? "Error"
+                            : "Idle"}
+                    </span>
+                    <span className="text-[11px] text-zinc-500">{stat.healthReason}</span>
+                  </div>
                 </td>
                 <td className="p-3 text-center">
                   <ScrapersClient source={stat.source} />

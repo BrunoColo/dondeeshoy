@@ -87,6 +87,7 @@ export async function getEventsForDateRange(
     startTime: string | null;
     venueName: string;
     city: string;
+    department: string;
     eventType: string;
     isFree: boolean;
     priceMin: number | null;
@@ -104,6 +105,7 @@ export async function getEventsForDateRange(
       startTime: events.startTime,
       venueName: events.venueName,
       city: events.city,
+      department: events.department,
       eventType: events.eventType,
       isFree: events.isFree,
       priceMin: events.priceMin,
@@ -131,7 +133,7 @@ export function filterEventsForSubscriber(
   return allEvents.filter((event) => {
     // Filter by departments if specified
     if (subscriber.departments && subscriber.departments.length > 0) {
-      const eventDept = event.city.toLowerCase();
+      const eventDept = (event.department || event.city).toLowerCase();
       const matches = subscriber.departments.some(
         (d) => d.toLowerCase() === eventDept,
       );
