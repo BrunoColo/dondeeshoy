@@ -138,11 +138,11 @@ export class RedTicketsScraper extends BaseScraper {
    */
   private async discoverFromSearchPages(): Promise<string[]> {
     const allLinks: string[] = [];
-    const hardMaxPages = scraperConfig.maxSearchPages;
+    const hardMaxPages: number = scraperConfig.maxSearchPages;
     const seenLinks = new Set<string>();
     let consecutiveEmpty = 0;
     let consecutiveWithoutNewLinks = 0;
-    let pageLimit = hardMaxPages;
+    let pageLimit: number = hardMaxPages;
 
     console.log(
       `[redtickets] starting paginated discovery from ${scraperConfig.redticketsSearchUrl}`,
