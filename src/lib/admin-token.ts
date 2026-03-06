@@ -37,6 +37,12 @@ function fromBase64Url(input: string): Uint8Array {
   return bytes;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
+}
+
 async function importHmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
@@ -84,7 +90,7 @@ export async function verifyAdminToken(
     const verified = await crypto.subtle.verify(
       "HMAC",
       key,
-      fromBase64Url(signature),
+      toArrayBuffer(fromBase64Url(signature)),
       encoder.encode(`${header}.${body}`),
     );
 
