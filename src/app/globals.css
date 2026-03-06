@@ -3,12 +3,12 @@
 
 /* ─── Design Tokens ─── */
 :root {
-  /* Backgrounds — charcoal neutro, sin tinte verde */
-  --bg-deep: #080810;
-  --bg-surface: #0D0D18;
-  --bg-elevated: #141420;
-  --bg-card: rgba(255, 255, 255, 0.06);
-  --bg-card-hover: rgba(255, 255, 255, 0.10);
+  /* Backgrounds — deep blue-black, sin tinte verde */
+  --bg-deep: #060611;
+  --bg-surface: #0A0A17;
+  --bg-elevated: #12121F;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: rgba(255, 255, 255, 0.09);
   --border-subtle: rgba(255, 255, 255, 0.12);
   --border-glow: rgba(99, 102, 241, 0.30);
 
@@ -149,20 +149,20 @@ body::after {
   opacity: 1;
   background: radial-gradient(
     ellipse at 20% 15%,
-    rgba(13, 148, 136, 0.28) 0%,
+    rgba(99, 102, 241, 0.22) 0%,
     transparent 50%
   ),
   radial-gradient(
     ellipse at 78% 20%,
-    rgba(99, 102, 241, 0.30) 0%,
+    rgba(99, 102, 241, 0.24) 0%,
     transparent 45%
   ),
   radial-gradient(
     ellipse at 50% 45%,
-    rgba(79, 70, 229, 0.14) 0%,
+    rgba(79, 70, 229, 0.12) 0%,
     transparent 50%
   );
-  filter: blur(75px);
+  filter: blur(80px);
   animation: ambient-drift 20s ease-in-out infinite alternate;
 }
 
@@ -180,26 +180,26 @@ body::after {
   inset: -25%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.35;
-  filter: blur(65px) saturate(135%);
+  opacity: 0.30;
+  filter: blur(70px) saturate(120%);
   will-change: transform;
   transform-origin: center;
   background:
-    radial-gradient(circle at 18% 28%, rgba(13, 148, 136, 0.90) 0%, transparent 45%),
-    radial-gradient(circle at 78% 22%, rgba(99, 102, 241, 0.80) 0%, transparent 42%),
-    radial-gradient(circle at 62% 76%, rgba(13, 148, 136, 0.55) 0%, transparent 44%);
+    radial-gradient(circle at 18% 28%, rgba(79, 70, 229, 0.65) 0%, transparent 45%),
+    radial-gradient(circle at 78% 22%, rgba(99, 102, 241, 0.70) 0%, transparent 42%),
+    radial-gradient(circle at 62% 76%, rgba(13, 148, 136, 0.35) 0%, transparent 44%);
 }
 
 .neon-web-bg--alt,
 .ambient-bg--alt {
-  opacity: 0.28;
-  filter: blur(80px) saturate(125%);
+  opacity: 0.22;
+  filter: blur(85px) saturate(115%);
   mix-blend-mode: normal;
   transform-origin: center;
   background:
-    radial-gradient(circle at 22% 68%, rgba(99, 102, 241, 0.70) 0%, transparent 42%),
-    radial-gradient(circle at 84% 58%, rgba(20, 83, 45, 0.60) 0%, transparent 40%),
-    radial-gradient(circle at 52% 12%, rgba(13, 148, 136, 0.65) 0%, transparent 46%);
+    radial-gradient(circle at 22% 68%, rgba(99, 102, 241, 0.60) 0%, transparent 42%),
+    radial-gradient(circle at 84% 58%, rgba(79, 70, 229, 0.45) 0%, transparent 40%),
+    radial-gradient(circle at 52% 12%, rgba(13, 148, 136, 0.40) 0%, transparent 46%);
 }
 
 /* ─── Scrollbar hide utility ─── */
@@ -295,19 +295,19 @@ body::after {
 
 /* ─── Glass nav ─── */
 .glass-nav {
-  background: rgba(8, 8, 16, 0.90);
+  background: rgba(6, 6, 17, 0.92);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-top: 1px solid rgba(99, 102, 241, 0.15);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
 }
 
 .glass-header {
-  background: rgba(8, 8, 16, 0.82);
+  background: rgba(6, 6, 17, 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid rgba(99, 102, 241, 0.12);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* ─── Pulse animation ─── */
@@ -583,9 +583,9 @@ body::after {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* ─── CTA button — teal→indigo gradient, más sólido ─── */
+/* ─── CTA button — indigo→teal gradient, más sólido ─── */
 .btn-neon {
-  background: linear-gradient(135deg, #0D9488 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0D9488 100%);
   background-size: 200% 200%;
   color: white;
   font-weight: 700;
@@ -595,8 +595,8 @@ body::after {
   letter-spacing: 0.03em;
   transition: all 0.3s ease;
   box-shadow:
-    0 4px 20px rgba(13, 148, 136, 0.35),
-    0 4px 20px rgba(99, 102, 241, 0.20),
+    0 4px 20px rgba(99, 102, 241, 0.30),
+    0 4px 20px rgba(13, 148, 136, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   animation: gradient-shift 4s ease infinite;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -604,8 +604,8 @@ body::after {
 
 .btn-neon:hover {
   box-shadow:
-    0 8px 35px rgba(13, 148, 136, 0.45),
-    0 8px 35px rgba(99, 102, 241, 0.25),
+    0 8px 35px rgba(99, 102, 241, 0.40),
+    0 8px 35px rgba(13, 148, 136, 0.20),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
   background-position: right center;

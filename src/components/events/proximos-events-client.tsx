@@ -65,11 +65,11 @@ export function ProximosEventsClient({ groups }: ProximosEventsClientProps) {
                   </span>
                 )}
                 <h2 className="font-display text-sm font-semibold text-muted-foreground capitalize">
-                  {isTomorrow ? formatDateES(date) : label}
+                  Eventos · {isTomorrow ? formatDateES(date) : label}
                 </h2>
                 <span className="text-[11px] text-text-muted">
                   ({dateEvents.length > 0
-                    ? `${dateEvents.length}${recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""}`
+                    ? `${dateEvents.length} eventos${recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""}`
                     : `${recurringDateEvents.length} recurrentes`})
                 </span>
               </div>

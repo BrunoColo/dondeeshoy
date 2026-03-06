@@ -84,13 +84,13 @@ type FormValues = z.infer<typeof schema>;
 const inputBase = (hasError?: boolean) =>
   cn(
     "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
-    "bg-[#111120] border transition-all duration-150",
-    "placeholder:text-[#5A6A80]",
-    "focus:outline-none focus:bg-[#16162A]",
+    "bg-[#0E0E1E] border transition-all duration-150",
+    "placeholder:text-[#5A6778]",
+    "focus:outline-none focus:bg-[#111124]",
     "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
     hasError
       ? "border-[rgba(239,68,68,0.45)] shadow-[0_0_0_3px_rgba(239,68,68,0.06)]"
-      : "border-[rgba(255,255,255,0.15)]"
+      : "border-[rgba(255,255,255,0.12)]"
   );
 
 // ─── Select class ─────────────────────────────────────────────────────────────
@@ -118,24 +118,24 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)", borderLeft: `3px solid ${accent}` }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(99,102,241,0.15)", borderLeft: `3px solid ${accent}` }}>
       {/* Section header */}
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.08)]" style={{ backgroundColor: "#0D0D18" }}>
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[rgba(255,255,255,0.06)]" style={{ backgroundColor: "#0A0A18", backgroundImage: `linear-gradient(135deg, ${accent}08 0%, transparent 60%)` }}>
         <div
           className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${accent}18`, border: `1px solid ${accent}35` }}
+          style={{ backgroundColor: `${accent}20`, border: `1px solid ${accent}40` }}
         >
           <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
         </div>
         <div>
-          <h2 className="text-[13px] font-semibold text-[#E2E8F0] tracking-wide">{title}</h2>
+          <h2 className="text-[13px] font-semibold text-[#F1F5F9] tracking-wide">{title}</h2>
           {subtitle && (
-            <p className="text-[11px] text-[#B8C5D6] mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-[#94A3B8] mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
       {/* Section body */}
-      <div className="p-5 sm:p-6" style={{ backgroundColor: "#0D0D1A" }}>
+      <div className="p-5 sm:p-6" style={{ backgroundColor: "#08081480" }}>
         {children}
       </div>
     </div>
@@ -159,13 +159,13 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-[#B8C5D6] uppercase tracking-wider">
+      <label className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
         {label}
-        {required && <span className="text-[#B8C5D6] ml-1">*</span>}
+        {required && <span className="text-indigo-400 ml-1">*</span>}
       </label>
       {children}
       {hint && !error && (
-        <p className="text-[11px] text-[#B8C5D6]">{hint}</p>
+        <p className="text-[11px] text-[#7A8A9C]">{hint}</p>
       )}
       {error && (
         <p className="text-[11px] text-[#F87171] flex items-center gap-1">
@@ -275,21 +275,21 @@ export default function PublicarPage() {
 
       {/* ── Page header ── */}
       <div className="mb-8 border-b border-[rgba(255,255,255,0.06)] pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#818CF8] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-400 mb-3">
           Publicación de eventos
         </p>
         <h1 className="text-[28px] sm:text-[34px] font-bold text-foreground leading-tight mb-3">
           Publicá tu evento
         </h1>
-        <p className="text-[14px] text-[#B8C5D6] leading-relaxed max-w-lg mb-5">
+        <p className="text-[14px] text-[#94A3B8] leading-relaxed max-w-lg mb-5">
           Completá el formulario y lo revisamos en menos de 48 horas.
-          Los eventos gratuitos son publicados sin costo.
+          Publicar tu evento es gratis cuando el evento es gratis.
         </p>
 
         <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.12)] px-3.5 py-2">
           <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
           <span className="text-[12px] text-[#B8C5D6]">
-            Gratis para eventos sin costo de entrada
+            Gratis para publicar eventos con entrada gratuita
           </span>
         </div>
       </div>
@@ -342,13 +342,13 @@ export default function PublicarPage() {
                 <select
                   {...register("eventType")}
                   className={selectBase(!!errors.eventType)}
-                  style={{ backgroundColor: "#111120", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#0E0E1E", color: "#F1F5F9" }}
                 >
                   {EVENT_TYPES.map((t) => (
                     <option
                       key={t.value}
                       value={t.value}
-                      style={{ backgroundColor: "#111120", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#0E0E1E", color: "#F1F5F9" }}
                     >
                       {t.label}
                     </option>
@@ -403,13 +403,13 @@ export default function PublicarPage() {
                 <select
                   {...register("city")}
                   className={selectBase(!!errors.city)}
-                  style={{ backgroundColor: "#111120", color: "#F1F5F9" }}
+                  style={{ backgroundColor: "#0E0E1E", color: "#F1F5F9" }}
                 >
                   {DEPARTMENTS.map((d) => (
                     <option
                       key={d}
                       value={d}
-                      style={{ backgroundColor: "#111120", color: "#F1F5F9" }}
+                      style={{ backgroundColor: "#0E0E1E", color: "#F1F5F9" }}
                     >
                       {d}
                     </option>
@@ -619,8 +619,8 @@ export default function PublicarPage() {
             "hover:-translate-y-0.5"
           )}
           style={{
-            background: "linear-gradient(135deg, #0D9488 0%, #6366F1 100%)",
-            boxShadow: "0 4px 20px rgba(13,148,136,0.3), 0 4px 20px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
+            background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 40%, #0D9488 100%)",
+            boxShadow: "0 4px 20px rgba(99,102,241,0.25), 0 4px 20px rgba(13,148,136,0.10), inset 0 1px 0 rgba(255,255,255,0.15)",
           }}
         >
           {isSubmitting ? (

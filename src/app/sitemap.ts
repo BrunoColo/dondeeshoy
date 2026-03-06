@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema/events";
 import { eq } from "drizzle-orm";
+import { siteConfig } from "@/config/site";
 
-const BASE_URL = "https://dondeeshoy.com";
+const BASE_URL = siteConfig.url;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static routes

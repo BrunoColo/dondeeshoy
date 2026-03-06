@@ -30,7 +30,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: siteConfig.name,
   url: siteConfig.url,
-  logo: `${siteConfig.url}${siteConfig.logoPath}`,
+  logo: `${siteConfig.url}${siteConfig.icon512Path}`,
   sameAs: [siteConfig.url],
 };
 
@@ -57,11 +57,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: siteConfig.logoPath, type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
+      { url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" },
+      { url: siteConfig.icon512Path, sizes: "512x512", type: "image/png" },
+      { url: siteConfig.logoPath, sizes: "512x512", type: "image/png" },
     ],
-    shortcut: [{ url: siteConfig.logoPath, type: "image/svg+xml" }],
-    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+    shortcut: [{ url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" }],
+    apple: [{ url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION

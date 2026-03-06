@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+const canonicalHost = "www.dondeeshoy.com";
+const canonicalOrigin = `https://${canonicalHost}`;
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
@@ -81,6 +84,21 @@ const nextConfig: NextConfig = {
               "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://*.upstash.io; worker-src 'self' blob:; child-src blob:; upgrade-insecure-requests",
           },
         ],
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "dondeeshoy.com",
+          },
+        ],
+        destination: `${canonicalOrigin}/:path*`,
+        permanent: true,
       },
     ];
   },

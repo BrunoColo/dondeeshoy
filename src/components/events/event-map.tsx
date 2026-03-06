@@ -441,7 +441,7 @@ export function EventMap({
       {/* ─── Top bar: date pills + style/fit ─── */}
       <div className="absolute top-2 lg:top-3 left-2 right-2 z-[1000] flex items-start justify-between gap-2">
         {/* Date filter pills */}
-        <div className="flex items-center gap-0.5 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-1">
+        <div className="flex items-center gap-1.5 rounded-2xl p-0.5">
           {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
             const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
             const counts: Record<DateFilter, number> = {
@@ -449,19 +449,22 @@ export function EventMap({
               manana: tomorrowEvents.length,
               finde: weekendEvents.length,
             };
+            const isActive = dateFilter === f;
             return (
               <button
                 key={f}
                 type="button"
                 onClick={() => handleDateChange(f)}
-                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold tracking-wide transition-all ${
-                  dateFilter === f
-                    ? "bg-accent/25 text-accent-light shadow-sm"
-                    : "text-white/50 hover:text-white/80"
+                className={`relative flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold tracking-wide transition-all duration-200 ${
+                  isActive
+                    ? "bg-[rgba(34,39,74,0.88)] text-white ring-1 ring-indigo-200/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_18px_rgba(8,10,24,0.22)] backdrop-blur-xl"
+                    : "bg-[rgba(8,10,24,0.58)] text-white/72 ring-1 ring-white/[0.08] shadow-[0_6px_16px_rgba(0,0,0,0.16)] backdrop-blur-lg hover:text-white hover:bg-[rgba(12,15,32,0.72)]"
                 }`}
               >
                 {labels[f]}
-                <span className={`text-[9px] tabular-nums ${dateFilter === f ? "text-accent-light/70" : "text-white/30"}`}>
+                <span className={`text-[9px] tabular-nums font-semibold ${
+                  isActive ? "bg-white/[0.10] text-indigo-100 px-1.5 py-0.5 rounded-full" : "text-white/45"
+                }`}>
                   {counts[f]}
                 </span>
               </button>
@@ -471,14 +474,14 @@ export function EventMap({
 
         {/* Right side: style toggle + fit */}
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-1">
+          <div className="flex items-center gap-0.5 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-1">
             <button
               type="button"
               onClick={() => handleStyleChange("calles")}
-              className={`rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 ${
                 styleKey === "calles"
-                  ? "bg-white/20 text-white"
-                  : "text-white/50 hover:text-white/80"
+                  ? "bg-white/15 text-white border border-white/20 shadow-sm"
+                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.06] border border-transparent"
               }`}
             >
               Calles
@@ -486,10 +489,10 @@ export function EventMap({
             <button
               type="button"
               onClick={() => handleStyleChange("oscuro")}
-              className={`rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 ${
                 styleKey === "oscuro"
-                  ? "bg-white/20 text-white"
-                  : "text-white/50 hover:text-white/80"
+                  ? "bg-white/15 text-white border border-white/20 shadow-sm"
+                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.06] border border-transparent"
               }`}
             >
               Noche
@@ -499,7 +502,7 @@ export function EventMap({
             type="button"
             onClick={fitBounds}
             title="Encuadrar todos los eventos"
-            className="flex items-center justify-center rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-2 text-white/60 hover:text-white transition-all"
+            className="flex items-center justify-center rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-2.5 text-white/60 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
@@ -509,11 +512,11 @@ export function EventMap({
       {/* ─── Bottom-left: event count + recurring toggle ─── */}
       <div className="absolute bottom-[72px] sm:bottom-3 left-2 sm:left-3 z-[1000] flex flex-col gap-1.5">
         {/* Event count badge */}
-        <div className="rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-white/90">
+        <div className="rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2 text-[11px] font-medium text-white/90">
           <span className="font-bold text-white">{visibleEvents.length}</span>{" "}
           {visibleEvents.length === 1 ? "evento" : "eventos"}
           {activeTypeFilter && (
-            <span className="ml-1 text-accent-light font-semibold">
+            <span className="ml-1 text-indigo-light font-semibold">
               · {activeTypeFilter}
             </span>
           )}
@@ -525,10 +528,10 @@ export function EventMap({
             type="button"
             onClick={() => setHideRecurring((v) => !v)}
             title={hideRecurring ? "Mostrar recurrentes" : "Ocultar recurrentes"}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-semibold tracking-wide transition-all shadow-lg backdrop-blur-md ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-semibold tracking-wide transition-all duration-200 shadow-xl backdrop-blur-xl ${
               hideRecurring
-                ? "bg-accent/25 border border-accent/40 text-accent-light"
-                : "bg-black/75 border border-white/15 text-white/60 hover:text-white/90"
+                ? "bg-indigo/25 border border-indigo/40 text-indigo-light"
+                : "bg-[rgba(6,6,17,0.85)] border border-white/[0.12] text-white/60 hover:text-white/90"
             }`}
           >
             <RotateCw className="h-3 w-3 shrink-0" />
@@ -538,7 +541,7 @@ export function EventMap({
       </div>
 
       {/* ─── Bottom-right: legend (desktop only) ─── */}
-      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-2 text-[10px] max-w-[300px]">
+      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .map(([type, color]) => (

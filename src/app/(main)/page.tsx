@@ -60,11 +60,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     <>
       {/* Hero tagline */}
       <section className="pt-4 pb-2 fade-up">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white-light">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
-          <span className="bg-[linear-gradient(90deg,#8B5CF6_0%,#A78BFA_24%,#C4B5FD_48%,#7DD3C7_58%,#A78BFA_76%,#8B5CF6_100%)] bg-[length:220%_auto] bg-clip-text text-transparent animate-[text-shimmer_4.4s_linear_infinite]">
+          <span className="bg-[linear-gradient(90deg,#8B5CF6_0%,#A78BFA_20%,#6EE7B7_42%,#34D399_58%,#A7F3D0_70%,#A78BFA_84%,#8B5CF6_100%)] bg-[length:220%_auto] bg-clip-text text-transparent animate-[text-shimmer_4.4s_linear_infinite]">
             Donde comienza tu próxima salida
           </span>
         </h1>

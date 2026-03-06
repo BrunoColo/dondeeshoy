@@ -4,7 +4,7 @@ import { useState } from "react";
 import { EventList } from "./event-list";
 import { NearbyButton } from "./nearby-button";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { Flame, Sparkles, RotateCw } from "lucide-react";
+import { Flame, RotateCw } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 
 interface HomeEventsClientProps {
@@ -69,11 +69,10 @@ export function HomeEventsClient({
       {(events.length > 0 || hasFilters) && (
         <div className="fade-up">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-indigo-light" strokeWidth={2.5} />
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-indigo-light">
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#6EE7B7]">
               Eventos únicos de hoy
             </h2>
-            <span className="text-[10px] text-indigo-light/85">
+            <span className="text-[10px] text-[#9FE7C8]">
               ({events.length})
             </span>
           </div>

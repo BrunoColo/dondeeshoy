@@ -268,11 +268,11 @@ export function Header() {
         {/* Desktop: Publicar button — gradient sólido */}
         <Link
           href="/publicar"
-          className="hidden lg:flex items-center rounded-full px-4 py-1.5 text-[12px] font-bold text-white transition-all duration-200 shrink-0 hover:border-accent/45 hover:bg-accent/18"
+          className="hidden lg:flex items-center rounded-full px-5 py-2 text-[12px] font-bold text-white transition-all duration-200 shrink-0 hover:brightness-110 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:-translate-y-px active:scale-[0.97]"
           style={{
-            background: "rgba(13,148,136,0.12)",
-            border: "1px solid rgba(20,184,166,0.28)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+            background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0D9488 100%)",
+            border: "1px solid rgba(99,102,241,0.40)",
+            boxShadow: "0 2px 12px rgba(99,102,241,0.20), inset 0 1px 0 rgba(255,255,255,0.12)",
           }}
         >
           Publicar

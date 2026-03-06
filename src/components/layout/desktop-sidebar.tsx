@@ -43,30 +43,15 @@ export async function DesktopSidebar() {
     <aside className="flex flex-col w-full">
       <div className="sticky top-[60px] flex flex-col gap-2.5 overflow-x-hidden py-4 pr-1">
 
-        {/* ── LIVE CLOCK — Premium card con gradiente ── */}
+        {/* ── LIVE CLOCK — consistente con el resto del sidebar ── */}
         <div
-          className="relative overflow-hidden rounded-xl p-4"
+          className="rounded-xl overflow-hidden p-4"
           style={{
-            background: "linear-gradient(135deg, rgba(2,2,7,0.99) 0%, rgba(3,2,10,0.99) 50%, rgba(2,3,8,0.99) 100%)",
-            border: "1px solid rgba(99,102,241,0.35)",
-            boxShadow: "0 6px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.10), inset 0 1px 0 rgba(255,255,255,0.07)",
+            background: "linear-gradient(135deg, rgba(10,10,22,0.90) 0%, rgba(12,10,24,0.93) 100%)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
           }}
         >
-          {/* Gradient overlay — más intenso para que resalte */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "linear-gradient(135deg, rgba(99,102,241,0.16) 0%, rgba(13,148,136,0.10) 100%)",
-            }}
-          />
-          {/* Glow orb */}
-          <div
-            className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
-            style={{
-              background: "radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)",
-              filter: "blur(12px)",
-            }}
-          />
           <SidebarLiveClock />
         </div>
 
@@ -299,14 +284,14 @@ export async function DesktopSidebar() {
               </div>
             </div>
 
-            {/* CTA button — gradient sólido */}
+            {/* CTA button — gradient visible */}
             <Link
               href="/publicar"
-              className="flex items-center justify-center rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:border-accent/45 hover:bg-accent/18"
+              className="flex items-center justify-center rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:brightness-110 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:-translate-y-px active:scale-[0.97]"
               style={{
-                background: "rgba(13,148,136,0.12)",
-                border: "1px solid rgba(20,184,166,0.28)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+                background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0D9488 100%)",
+                border: "1px solid rgba(99,102,241,0.40)",
+                boxShadow: "0 2px 12px rgba(99,102,241,0.20), inset 0 1px 0 rgba(255,255,255,0.12)",
               }}
             >
               Publicar mi evento

@@ -102,7 +102,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
               PRÓXIMOS
             </p>
             <p className="text-[13px] font-medium text-muted-foreground">
-              {subtitle}
+              {subtitle} {totalCount !== undefined ? `(${totalCount} eventos)` : ""}
             </p>
           </div>
         </div>
