@@ -43,51 +43,83 @@ const TYPE_ICONS: Record<string, string> = {
   otro: "📌",
 };
 
-/** Create a colored marker element for Mapbox GL — circle + pointer, no rotation */
+/** Create a colored marker element.
+ *  IMPORTANT: Do NOT set `position` on the wrapper — Mapbox GL applies
+ *  `position: absolute` via the `.mapboxgl-marker` class and uses CSS
+ *  `transform` to project it on screen.  Overriding that with
+ *  `position: relative` breaks zoom because the marker starts in
+ *  document flow instead of at (0,0) of the marker container. */
 function createMarkerElement(color: string, eventType: string, isSelected = false): HTMLDivElement {
-  const circleSize = isSelected ? 36 : 30;
-  const pointerH = isSelected ? 8 : 6;
+  const circleSize = isSelected ? 34 : 28;
+  const pointerH = isSelected ? 7 : 5;
+  const totalH = circleSize + pointerH - 1; // -1 overlap
 
-  // Container: holds circle + pointer, anchored at bottom-center
+  // Wrapper — only width/height so Mapbox can compute the anchor offset.
+  // `position` is intentionally NOT set; .mapboxgl-marker (absolute) handles it.
   const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.flexDirection = "column";
-  wrapper.style.alignItems = "center";
+  wrapper.style.width = `${circleSize}px`;
+  wrapper.style.height = `${totalH}px`;
   wrapper.style.cursor = "pointer";
-  wrapper.style.transition = "transform 0.2s ease";
 
-  // Circle
+  // Circle — absolutely positioned inside the wrapper
   const circle = document.createElement("div");
+  circle.style.position = "absolute";
+  circle.style.top = "0";
+  circle.style.left = "0";
   circle.style.width = `${circleSize}px`;
   circle.style.height = `${circleSize}px`;
   circle.style.borderRadius = "50%";
   circle.style.background = color;
-  circle.style.border = `2.5px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.6)"}`;
+  circle.style.border = `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.7)"}`;
   circle.style.display = "flex";
   circle.style.alignItems = "center";
   circle.style.justifyContent = "center";
   circle.style.boxShadow = isSelected
     ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.45)`
-    : "0 2px 8px rgba(0,0,0,0.4)";
+    : "0 2px 6px rgba(0,0,0,0.35)";
+  circle.style.transition = "box-shadow 0.2s ease, filter 0.2s ease";
+  circle.dataset.role = "circle";
+
+  // Pulse ring for selected marker
+  if (isSelected) {
+    const pulse = document.createElement("div");
+    pulse.style.position = "absolute";
+    pulse.style.top = "0";
+    pulse.style.left = "0";
+    pulse.style.width = `${circleSize}px`;
+    pulse.style.height = `${circleSize}px`;
+    pulse.style.borderRadius = "50%";
+    pulse.style.border = `2px solid ${color}`;
+    pulse.style.animation = "marker-pulse 2s ease-out infinite";
+    pulse.style.pointerEvents = "none";
+    wrapper.appendChild(pulse);
+  }
 
   // Emoji
   const icon = document.createElement("span");
-  icon.style.fontSize = isSelected ? "15px" : "13px";
+  icon.style.fontSize = isSelected ? "14px" : "12px";
   icon.style.lineHeight = "1";
   icon.style.userSelect = "none";
   icon.textContent = TYPE_ICONS[eventType] ?? "📌";
   circle.appendChild(icon);
   wrapper.appendChild(circle);
 
-  // Triangle pointer
+  // Triangle pointer — absolute, centred at bottom
   const pointer = document.createElement("div");
+  pointer.style.position = "absolute";
+  pointer.style.bottom = "0";
+  pointer.style.left = "50%";
+  pointer.style.transform = "translateX(-50%)";
   pointer.style.width = "0";
   pointer.style.height = "0";
   pointer.style.borderLeft = `${pointerH}px solid transparent`;
   pointer.style.borderRight = `${pointerH}px solid transparent`;
   pointer.style.borderTop = `${pointerH}px solid ${color}`;
-  pointer.style.marginTop = "-1px";
   wrapper.appendChild(pointer);
+
+  // Drop-in entrance animation (on the wrapper — uses opacity+scale only,
+  // NOT translate, so it doesn't fight Mapbox's positioning transform).
+  wrapper.style.animation = "marker-drop 0.35s cubic-bezier(0.34,1.56,0.64,1) both";
 
   return wrapper;
 }
@@ -141,6 +173,7 @@ export function EventMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const initialStyleRef = useRef(true);
 
   const [styleKey, setStyleKey] = useState<MapStyleKey>("oscuro");
   const [hideRecurring, setHideRecurring] = useState(false);
@@ -211,15 +244,22 @@ export function EventMap({
     };
   }, []);
 
-  // Handle style switching
+  // Handle style switching — setMapReady(false) here so we don't call it inside the effect
   const handleStyleChange = useCallback((key: MapStyleKey) => {
-    setStyleKey(key);
     setMapReady(false);
+    setStyleKey(key);
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+
+    // Skip on mount — map was already created with the initial style in the init effect
+    if (initialStyleRef.current) {
+      initialStyleRef.current = false;
+      return;
+    }
+
     // Clear markers before switching
     for (const [, marker] of markersRef.current) marker.remove();
     markersRef.current.clear();
@@ -242,11 +282,16 @@ export function EventMap({
         : "Consultar";
     const timeLabel = formatTime(event.startTime ?? null);
 
+    const typeColor = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
     const container = document.createElement("div");
     container.innerHTML = `
       <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 280px;">
-        <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #1a1a1a; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #666;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; box-shadow: 0 0 6px ${typeColor}88; flex-shrink: 0;"></span>
+          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${typeColor};">${event.eventType}</span>
+        </div>
+        <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #F1F5F9; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
+        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #94A3B8;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>📍</span>
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
@@ -254,10 +299,10 @@ export function EventMap({
           ${timeLabel ? `<div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${timeLabel}</span></div>` : ""}
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>🎫</span>
-            <span>${price}</span>
+            <span style="font-weight: 600; color: ${event.isFree ? "#34D399" : "#CBD5E1"};">${price}</span>
           </div>
         </div>
-        <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; padding: 6px 12px; border-radius: 8px; background: #f0fdfa; border: 1px solid #99f6e4; font-size: 12px; font-weight: 500; color: #0f766e; text-decoration: none;">
+        <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 7px 12px; border-radius: 10px; background: rgba(13,148,136,0.15); border: 1px solid rgba(13,148,136,0.35); font-size: 12px; font-weight: 600; color: #14B8A6; text-decoration: none; transition: background 0.2s ease;">
           Ver evento →
         </a>
       </div>
@@ -266,7 +311,8 @@ export function EventMap({
     const popup = new mapboxgl.Popup({
       closeButton: true,
       maxWidth: "300px",
-      offset: 25,
+      offset: 28,
+      className: "dark-popup",
     })
       .setLngLat([event.longitude, event.latitude])
       .setDOMContent(container)
@@ -297,14 +343,21 @@ export function EventMap({
       const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
       const el = createMarkerElement(color, event.eventType, isSelected);
 
-      // Hover effect — scale from bottom center (the pin tip)
-      el.style.transformOrigin = "center bottom";
-      el.addEventListener("mouseenter", () => {
-        el.style.transform = "scale(1.2)";
-      });
-      el.addEventListener("mouseleave", () => {
-        el.style.transform = "scale(1)";
-      });
+      // Hover effect — glow on circle child only, NO transform to avoid
+      // conflicting with Mapbox's internal marker positioning.
+      const circleEl = el.querySelector('[data-role="circle"]') as HTMLElement | null;
+      if (circleEl) {
+        el.addEventListener("mouseenter", () => {
+          circleEl.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.9), 0 0 12px ${color}80, 0 4px 16px rgba(0,0,0,0.5)`;
+          circleEl.style.filter = "brightness(1.2)";
+        });
+        el.addEventListener("mouseleave", () => {
+          circleEl.style.boxShadow = isSelected
+            ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.45)`
+            : "0 2px 6px rgba(0,0,0,0.35)";
+          circleEl.style.filter = "brightness(1)";
+        });
+      }
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -368,7 +421,7 @@ export function EventMap({
       <div ref={mapContainerRef} className="h-full w-full" />
 
       {/* ─── Top bar: date pills + style/fit ─── */}
-      <div className="absolute top-[52px] lg:top-3 left-3 right-3 z-[1000] flex items-start justify-between gap-2">
+      <div className="absolute top-2 lg:top-3 left-2 right-2 z-[1000] flex items-start justify-between gap-2">
         {/* Date filter pills */}
         <div className="flex items-center gap-0.5 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md p-1">
           {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
@@ -436,7 +489,7 @@ export function EventMap({
       </div>
 
       {/* ─── Bottom-left: event count + recurring toggle ─── */}
-      <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-1.5">
+      <div className="absolute bottom-[72px] sm:bottom-3 left-2 sm:left-3 z-[1000] flex flex-col gap-1.5">
         {/* Event count badge */}
         <div className="rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-white/90">
           <span className="font-bold text-white">{visibleEvents.length}</span>{" "}
@@ -467,7 +520,7 @@ export function EventMap({
       </div>
 
       {/* ─── Bottom-right: legend (desktop only) ─── */}
-      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-2 text-[10px] max-w-[320px]">
+      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-black/75 border border-white/15 shadow-lg backdrop-blur-md px-3 py-2 text-[10px] max-w-[300px]">
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .map(([type, color]) => (
