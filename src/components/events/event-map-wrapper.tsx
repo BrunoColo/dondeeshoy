@@ -43,19 +43,19 @@ interface EventMapWrapperProps {
 
 /** Color per event type */
 const TYPE_COLORS: Record<string, string> = {
-  fiesta: "#14B8A6",    // teal (was violet — aligned with new accent)
+  fiesta: "#F97316",
   festival: "#EC4899",
   concierto: "#0EA5E9",
   recital: "#06B6D4",
   cultural: "#6366F1",
   deportivo: "#22C55E",
-  gastronomico: "#F97316",
-  familiar: "#84CC16",
+  gastronomico: "#14B8A6",
+  familiar: "#10B981",
   feria: "#F43F5E",
   taller: "#14B8A6",
   club: "#6366F1",
   bar: "#F59E0B",
-  teatro: "#10B981",
+  teatro: "#84CC16",
   otro: "#94A3B8",
 };
 

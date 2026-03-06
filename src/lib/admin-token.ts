@@ -12,8 +12,16 @@ const decoder = new TextDecoder();
 
 function toBase64Url(input: string | Uint8Array): string {
   const bytes = typeof input === "string" ? encoder.encode(input) : input;
-  let binary = "";
 
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  let binary = "";
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
@@ -27,6 +35,11 @@ function toBase64Url(input: string | Uint8Array): string {
 function fromBase64Url(input: string): Uint8Array {
   const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(padded, "base64"));
+  }
+
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
 

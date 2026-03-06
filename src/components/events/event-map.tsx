@@ -9,39 +9,61 @@ import type { EventType } from "@/types/events";
 
 /** Marker color per event type */
 const TYPE_COLORS: Record<string, string> = {
-  fiesta: "#14B8A6",
+  fiesta: "#F97316",
   festival: "#EC4899",
   concierto: "#0EA5E9",
   recital: "#06B6D4",
   cultural: "#6366F1",
   deportivo: "#22C55E",
-  gastronomico: "#F97316",
-  familiar: "#84CC16",
+  gastronomico: "#14B8A6",
+  familiar: "#10B981",
   feria: "#F43F5E",
   taller: "#14B8A6",
   club: "#6366F1",
   bar: "#F59E0B",
-  teatro: "#10B981",
+  teatro: "#84CC16",
   otro: "#94A3B8",
 };
 
-/** Category icons (emoji) per event type */
-const TYPE_ICONS: Record<string, string> = {
-  fiesta: "🎉",
-  festival: "🎪",
-  concierto: "🎵",
-  recital: "🎤",
-  cultural: "🎨",
-  deportivo: "⚽",
-  gastronomico: "🍽️",
-  familiar: "👨‍👩‍👧",
-  feria: "🛍️",
-  taller: "🔧",
-  club: "🎶",
-  bar: "🍺",
-  teatro: "🎭",
-  otro: "📌",
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Category icons (SVG markup) per event type */
+const TYPE_ICON_MARKUP: Record<string, string> = {
+  fiesta: '<path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /><circle cx="12" cy="12" r="2.5" />',
+  festival: '<path d="M12 3.5 14.7 8.9 20.6 9.8 16.3 14 17.3 19.9 12 17.1 6.7 19.9 7.7 14 3.4 9.8 9.3 8.9Z" fill="currentColor" stroke="none" />',
+  concierto: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
+  recital: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
+  cultural: '<path d="M7 5.5A2.5 2.5 0 0 1 9.5 8v10A2.5 2.5 0 0 0 7 15.5H5V5.5Zm10 0A2.5 2.5 0 0 0 14.5 8v10A2.5 2.5 0 0 1 17 15.5h2V5.5Z" fill="currentColor" stroke="none" /><path d="M9.5 8h5M9.5 12h5M9.5 16h5" />',
+  deportivo: '<circle cx="12" cy="12" r="7.5" /><path d="M12 4.5c1.8 1.4 2.9 2.9 3.4 4.5-.8 1.2-2 2.1-3.4 2.8-1.4-.7-2.6-1.6-3.4-2.8.5-1.6 1.6-3.1 3.4-4.5Zm-3.4 7.3L6 16l3.8 2.5M15.4 11.8 18 16l-3.8 2.5" />',
+  gastronomico: '<path d="M8 4v7M6 4v7M8 8H6M15 4v7" /><path d="M18 4c0 3-1 4.7-3 5.2V20" />',
+  familiar: '<circle cx="9" cy="9" r="2.2" fill="currentColor" stroke="none" /><circle cx="15.5" cy="8.2" r="2.6" fill="currentColor" stroke="none" /><path d="M5.5 18a4 4 0 0 1 7 0M11.5 18a4.8 4.8 0 0 1 8 0" />',
+  feria: '<path d="M7 8.5h10l-1 9H8Zm2-3h6l1 3H8Z" /><path d="M10 11.5h4" />',
+  taller: '<path d="M14.8 6.2a3 3 0 0 0-3.9 3.9L5 16v3h3l5.9-5.9a3 3 0 0 0 3.9-3.9l-2.2 2.2-1.6-1.6Z" fill="currentColor" stroke="none" />',
+  club: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
+  bar: '<path d="M6 5h12l-4.5 5v3.8l-2 1.2V10Z" /><path d="M10.5 18h3" />',
+  teatro: '<path d="M7 6.5h10v6.8c-2-.8-3.8-.8-5.5.2-1.5.8-2.9.9-4.5.1Z" /><path d="M9.2 9.4h.01M14.8 9.4h.01" /><path d="M9.5 12c.8.7 1.6 1 2.5 1s1.7-.3 2.5-1" />',
+  otro: '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" /><path d="M12 4.5c-3.6 0-6.5 2.9-6.5 6.4 0 4.8 6.5 8.6 6.5 8.6s6.5-3.8 6.5-8.6c0-3.5-2.9-6.4-6.5-6.4Z" />',
 };
+
+function createMarkerIcon(eventType: string, isSelected: boolean): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  const iconSize = isSelected ? 16 : 14;
+
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", String(iconSize));
+  svg.setAttribute("height", String(iconSize));
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", isSelected ? "1.9" : "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.style.color = "#F8FAFC";
+  svg.style.filter = "drop-shadow(0 1px 2px rgba(0,0,0,0.35))";
+  svg.style.pointerEvents = "none";
+  svg.innerHTML = TYPE_ICON_MARKUP[eventType] ?? TYPE_ICON_MARKUP.otro;
+
+  return svg;
+}
 
 /** Create a colored marker element.
  *  IMPORTANT: Do NOT set `position` on the wrapper — Mapbox GL applies
@@ -69,7 +91,7 @@ function createMarkerElement(color: string, eventType: string, isSelected = fals
   circle.style.width = `${circleSize}px`;
   circle.style.height = `${circleSize}px`;
   circle.style.borderRadius = "50%";
-  circle.style.background = color;
+  circle.style.background = `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.24), rgba(255,255,255,0.02) 34%, transparent 35%), ${color}`;
   circle.style.border = `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.7)"}`;
   circle.style.display = "flex";
   circle.style.alignItems = "center";
@@ -95,12 +117,8 @@ function createMarkerElement(color: string, eventType: string, isSelected = fals
     wrapper.appendChild(pulse);
   }
 
-  // Emoji
-  const icon = document.createElement("span");
-  icon.style.fontSize = isSelected ? "14px" : "12px";
-  icon.style.lineHeight = "1";
-  icon.style.userSelect = "none";
-  icon.textContent = TYPE_ICONS[eventType] ?? "📌";
+  // SVG icon
+  const icon = createMarkerIcon(eventType, isSelected);
   circle.appendChild(icon);
   wrapper.appendChild(circle);
 
@@ -175,7 +193,7 @@ export function EventMap({
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const initialStyleRef = useRef(true);
 
-  const [styleKey, setStyleKey] = useState<MapStyleKey>("oscuro");
+  const [styleKey, setStyleKey] = useState<MapStyleKey>("calles");
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
   const [mapReady, setMapReady] = useState(false);
@@ -219,7 +237,7 @@ export function EventMap({
     mapboxgl.accessToken = token;
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: MAP_STYLES.oscuro,
+      style: MAP_STYLES.calles,
       center: [-56.1645, -34.9011],
       zoom: 12,
       attributionControl: true,

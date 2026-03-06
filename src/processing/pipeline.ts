@@ -299,7 +299,9 @@ async function processRawEvent(
 
   const confidenceScore = calculateConfidenceScore(enriched);
 
-  const duplicateEventId = await findDuplicateEventId(enriched);
+  const duplicateEventId = await findDuplicateEventId(enriched, {
+    isRecurring,
+  });
 
   const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore, isRecurring));
 

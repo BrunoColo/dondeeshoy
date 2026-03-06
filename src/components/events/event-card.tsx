@@ -182,7 +182,7 @@ export function EventCard({
         )}
 
         {/* Bottom info bar */}
-        <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2.5">
+        <div className="flex items-center justify-between border-t border-white/[0.10] bg-[linear-gradient(180deg,rgba(9,15,26,0.78)_0%,rgba(4,8,16,0.92)_100%)] px-4 py-2.5 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
           <div className="flex items-center gap-2 min-w-0">
             {isTrending && (
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 border border-orange-500/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 shrink-0">

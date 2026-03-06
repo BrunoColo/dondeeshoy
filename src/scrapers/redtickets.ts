@@ -22,7 +22,11 @@ const EVENT_PATH_REGEX = /\/evento\/([^/]+)\/(\d+)\/?$/i;
  * Using `?,*,0,{page}` matches all events in all categories.
  */
 function buildSearchUrl(page: number): string {
-  return `${scraperConfig.redticketsBaseUrl}/busqueda?,*,0,${page}`;
+  if (page === 0) {
+    return scraperConfig.redticketsSearchUrl;
+  }
+
+  return scraperConfig.redticketsSearchUrl.replace(/,\d+\/?$/, `,${page}`);
 }
 
 /** Metadata extracted from search result cards to enrich detail scraping */
@@ -44,6 +48,30 @@ function toNumber(val: unknown): number | null {
 /** Deduplicate and sort an array of numbers */
 function uniqueNumbers(values: number[]): number[] {
   return [...new Set(values)].sort((a, b) => a - b);
+}
+
+function extractTotalSearchPages($: cheerio.CheerioAPI): number | null {
+  const bodyText = normalizeWhitespace($("body").text());
+  if (!bodyText) return null;
+
+  const pageMatch = bodyText.match(/P[áa]gina\s+\d+\s+de\s+(\d+)/i);
+  if (pageMatch) {
+    const totalPages = Number.parseInt(pageMatch[1], 10);
+    if (Number.isFinite(totalPages) && totalPages > 0) {
+      return totalPages;
+    }
+  }
+
+  const rangeMatch = bodyText.match(/(\d+)\s*-\s*(\d+)\s+de\s+(\d+)\s+Resultados/i);
+  if (!rangeMatch) return null;
+
+  const pageSize = Number.parseInt(rangeMatch[2], 10) - Number.parseInt(rangeMatch[1], 10) + 1;
+  const totalResults = Number.parseInt(rangeMatch[3], 10);
+  if (!Number.isFinite(pageSize) || !Number.isFinite(totalResults) || pageSize <= 0 || totalResults <= 0) {
+    return null;
+  }
+
+  return Math.ceil(totalResults / pageSize);
 }
 
 export class RedTicketsScraper extends BaseScraper {
@@ -110,18 +138,34 @@ export class RedTicketsScraper extends BaseScraper {
    */
   private async discoverFromSearchPages(): Promise<string[]> {
     const allLinks: string[] = [];
-    const maxPages = scraperConfig.maxSearchPages;
+    const hardMaxPages = scraperConfig.maxSearchPages;
     const seenLinks = new Set<string>();
     let consecutiveEmpty = 0;
     let consecutiveWithoutNewLinks = 0;
+    let pageLimit = hardMaxPages;
 
-    for (let page = 0; page < maxPages; page++) {
+    console.log(
+      `[redtickets] starting paginated discovery from ${scraperConfig.redticketsSearchUrl}`,
+    );
+
+    for (let page = 0; page < pageLimit; page++) {
       const searchUrl = buildSearchUrl(page);
 
       try {
         const html = await fetchHtml(searchUrl);
         const $ = cheerio.load(html);
         const pageLinks: string[] = [];
+
+        const detectedTotalPages = extractTotalSearchPages($);
+        if (detectedTotalPages) {
+          const boundedTotalPages = Math.min(hardMaxPages, detectedTotalPages);
+          if (boundedTotalPages !== pageLimit) {
+            pageLimit = boundedTotalPages;
+            console.log(
+              `[redtickets] detected ${detectedTotalPages} search pages (bounded to ${pageLimit})`,
+            );
+          }
+        }
 
         $("a[href]").each((_, element) => {
           const href = $(element).attr("href");
@@ -184,7 +228,7 @@ export class RedTicketsScraper extends BaseScraper {
         }
 
         // Polite delay between search page requests
-        if (page < maxPages - 1) {
+        if (page < pageLimit - 1) {
           await sleep(500);
         }
       } catch (error) {

@@ -13,8 +13,11 @@ function isPlaceholderVenue(venue: string): boolean {
   return v === PLACEHOLDER_VENUE || v === "por confirmar" || v === "" || v === "tba";
 }
 
-export async function findDuplicateEventId(normalized: NormalizedEventInput): Promise<string | null> {
-  const isRecurring = detectRecurrence(normalized);
+export async function findDuplicateEventId(
+  normalized: NormalizedEventInput,
+  options?: { isRecurring?: boolean },
+): Promise<string | null> {
+  const isRecurring = options?.isRecurring ?? detectRecurrence(normalized);
 
   if (isRecurring) {
     // Recurring events are not tied to a specific date — match by name + city only

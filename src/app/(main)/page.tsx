@@ -64,7 +64,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           Descubrí Uruguay
         </p>
         <h1 className="mt-1 font-display text-2xl sm:text-[30px] font-extrabold leading-tight">
-          <span className="text-shimmer">
+          <span className="bg-[linear-gradient(90deg,#8B5CF6_0%,#A78BFA_28%,#C4B5FD_52%,#A78BFA_76%,#8B5CF6_100%)] bg-[length:220%_auto] bg-clip-text text-transparent animate-[text-shimmer_4.4s_linear_infinite]">
             Donde comienza tu próxima salida
           </span>
         </h1>
@@ -77,11 +77,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
       <div className="mb-4 pt-4 fade-up">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo/20 to-accent/10 border border-indigo/20 shadow-[0_0_20px_rgba(99,102,241,0.15)] glow-pulse">
-              <Zap className="h-4.5 w-4.5 text-indigo-light drop-shadow-[0_0_6px_rgba(129,140,248,0.5)]" strokeWidth={2.5} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-400/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-400/10 shadow-[0_0_20px_rgba(139,92,246,0.18)] glow-pulse">
+              <Zap className="h-4.5 w-4.5 text-violet-300 drop-shadow-[0_0_6px_rgba(167,139,250,0.45)]" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-indigo-light">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-violet-300">
                 HOY
               </p>
               <p className="text-[13px] font-medium text-[#CBD5E1] capitalize">
