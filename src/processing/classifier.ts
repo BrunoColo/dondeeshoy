@@ -19,6 +19,27 @@ export interface ClassificationContext {
   dateText?: string | null;
 }
 
+export type RecurrenceDay =
+  | "lunes"
+  | "martes"
+  | "miercoles"
+  | "jueves"
+  | "viernes"
+  | "sabado"
+  | "domingo";
+
+export interface ParsedRecurrenceInfo {
+  isRecurring: boolean;
+  kind: "none" | "daily" | "weekly" | "range" | "weekend" | "year-round";
+  confidence: "none" | "medium" | "high";
+  days: RecurrenceDay[];
+  timeText: string | null;
+  sourceText: string | null;
+  summary: string | null;
+  openEnded: boolean;
+  extraSchedules: number;
+}
+
 /* ─── Source category → EventType direct mapping ───
  * Keys are normalised (lowercase, trimmed, accents removed).
  * When a scraper already classifies the event we trust it first. */
@@ -231,29 +252,200 @@ const KNOWN_CULTURAL_VENUES = [
  * One-off events that merely mention a day-of-week or a start time must NOT match.
  */
 const DAY = `(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)`;
-const RECURRENCE_PATTERNS = [
-  // Explicit "every day / all year" markers
-  /\btodos\s+los\s+d[ií]as\b/i,
+const RECURRENCE_DAY_ORDER: RecurrenceDay[] = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+const RECURRENCE_TIME_REGEX =
+  /(?:de\s+\d{1,2}(?::\d{2})?\s*(?:a|-|–)\s*\d{1,2}(?::\d{2})?|\d{1,2}(?::\d{2})?\s*(?:a|-|–)\s*\d{1,2}(?::\d{2})?|\d{1,2}(?::\d{2})?\s*hs?)/gi;
+const RECURRENCE_YEAR_ROUND_PATTERNS = [
   /\btodo\s+el\s+a[nñ]o\b/i,
   /\bdurante\s+todo\s+el\s+a[nñ]o\b/i,
+  /\btodos\s+los\s+d[ií]as\s+del\s+a[nñ]o\b/i,
   /\babierto\s+todo\s+el\s+a[nñ]o\b/i,
-  /\babierto\s+(todos\s+los\s+d[ií]as|siempre)\b/i,
-  // "DayA a DayB" — with or without "de" prefix (matches "Lunes a Jueves", "de Martes a Viernes", etc.)
-  new RegExp(`\\b(?:de\\s+)?${DAY}\\s+a\\s+${DAY}\\b`, "i"),
-  // "todos los fines de semana" / "cada fin de semana"
+  /\bprevi[ao]\s+coordinaci[oó]n\b/i,
+];
+const RECURRENCE_DAILY_PATTERNS = [
+  /\btodos\s+los\s+d[ií]as\b/i,
+  /\blunes\s+a\s+domingo\b/i,
+  /\blunes\s+a\s+domingos\b/i,
+  /\bde\s+lunes\s+a\s+domingo\b/i,
+  /\bde\s+lunes\s+a\s+domingos\b/i,
+];
+const RECURRENCE_WEEKEND_PATTERNS = [
   /\btodos\s+los\s+fines?\s*de?\s*semana\b/i,
   /\bcada\s+fin\s*de\s*semana\b/i,
-  // "todos los [day]" / "cada [day]" — the core recurring-day markers
-  new RegExp(`\\btodos?\\s+los?\\s+${DAY}\\b`, "i"),
-  new RegExp(`\\bcada\\s+${DAY}\\b`, "i"),
-  // Multi-day combos that imply weekly schedule
   /\bs[aá]bados?\s+y\s+domingos?\b/i,
-  /\bviernes\s+y\s+s[aá]bados?\b/i,
-  /\bjueves\s+y\s+viernes\b/i,
-  /\bmartes\s+y\s+jueves\b/i,
-  /\blun(?:es)?\.?\s*a\s*vie(?:rnes)?\.?\b/i,
   /\bs[aá]b\.?\s*y\s*dom\.?\b/i,
-  ];
+  /\bviernes\s+a\s+domingos?\b/i,
+  /\btodos\s+los\s+viernes\s+a\s+domingos?\b/i,
+];
+const RECURRENCE_SINGLE_DAY_PATTERNS = [
+  new RegExp(`\\btodos?\\s+los?\\s+(${DAY})\\b`, "ig"),
+  new RegExp(`\\bcada\\s+(${DAY})\\b`, "ig"),
+];
+const RECURRENCE_RANGE_PATTERN = new RegExp(`\\b(?:de\\s+)?(${DAY})\\s+a\\s+(${DAY})\\b`, "ig");
+const RECURRENCE_DAY_TOKEN_REGEX = new RegExp(`\\b${DAY}\\b`, "ig");
+const CALENDAR_DATE_REGEX = /\b\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b/i;
+
+function normalizeSpanish(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeRecurrenceDay(raw: string): RecurrenceDay | null {
+  const value = normalizeSpanish(raw)
+    .replace(/\./g, "")
+    .trim();
+
+  if (value.startsWith("mier")) return "miercoles";
+  if (value.startsWith("sab")) return "sabado";
+  if (value.startsWith("dom")) return "domingo";
+  if (value.startsWith("lun")) return "lunes";
+  if (value.startsWith("mar")) return "martes";
+  if (value.startsWith("jue")) return "jueves";
+  if (value.startsWith("vie")) return "viernes";
+  return null;
+}
+
+function uniqueRecurrenceDays(days: Iterable<RecurrenceDay>): RecurrenceDay[] {
+  return [...new Set(days)].sort(
+    (left, right) => RECURRENCE_DAY_ORDER.indexOf(left) - RECURRENCE_DAY_ORDER.indexOf(right),
+  );
+}
+
+function expandRecurrenceDayRange(start: RecurrenceDay, end: RecurrenceDay): RecurrenceDay[] {
+  const startIndex = RECURRENCE_DAY_ORDER.indexOf(start);
+  const endIndex = RECURRENCE_DAY_ORDER.indexOf(end);
+
+  if (startIndex === -1 || endIndex === -1) return [];
+  if (startIndex <= endIndex) {
+    return RECURRENCE_DAY_ORDER.slice(startIndex, endIndex + 1);
+  }
+
+  return [...RECURRENCE_DAY_ORDER.slice(startIndex), ...RECURRENCE_DAY_ORDER.slice(0, endIndex + 1)];
+}
+
+function extractRecurrenceTimeText(text: string): string | null {
+  const matches = text.match(RECURRENCE_TIME_REGEX) ?? [];
+  const cleaned = matches.map((match) => normalizeWhitespace(match)).filter(Boolean);
+  return cleaned.length > 0 ? [...new Set(cleaned)].join(" · ") : null;
+}
+
+function buildRecurrenceSummary(kind: ParsedRecurrenceInfo["kind"], days: RecurrenceDay[], extraSchedules: number): string | null {
+  if (kind === "daily") return "Todos los días";
+  if (kind === "year-round") return "Todo el año";
+  if (kind === "weekend") return "Fines de semana";
+  if (days.length === 0) return null;
+
+  const labels = days.map((day) => day.charAt(0).toUpperCase() + day.slice(1));
+  const base = labels.join(", ");
+  return extraSchedules > 0 ? `${base} (+${extraSchedules} más)` : base;
+}
+
+export function parseRecurrenceInfo(text: string | null | undefined): ParsedRecurrenceInfo {
+  const sourceText = normalizeWhitespace(text ?? "") || null;
+  if (!sourceText) {
+    return {
+      isRecurring: false,
+      kind: "none",
+      confidence: "none",
+      days: [],
+      timeText: null,
+      sourceText: null,
+      summary: null,
+      openEnded: false,
+      extraSchedules: 0,
+    };
+  }
+
+  const normalized = normalizeSpanish(sourceText);
+  const days = new Set<RecurrenceDay>();
+  const explicitCalendarDate = CALENDAR_DATE_REGEX.test(normalized);
+  const extraSchedules = Number.parseInt(normalized.match(/&\s*(\d+)\s+mas/)?.[1] ?? "0", 10) || 0;
+
+  let kind: ParsedRecurrenceInfo["kind"] = "none";
+  let confidence: ParsedRecurrenceInfo["confidence"] = "none";
+  let openEnded = false;
+
+  if (RECURRENCE_YEAR_ROUND_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    RECURRENCE_DAY_ORDER.forEach((day) => days.add(day));
+    kind = /todos\s+los\s+dias/.test(normalized) ? "daily" : "year-round";
+    confidence = "high";
+    openEnded = true;
+  }
+
+  if (RECURRENCE_DAILY_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    RECURRENCE_DAY_ORDER.forEach((day) => days.add(day));
+    kind = kind === "none" ? "daily" : kind;
+    confidence = "high";
+  }
+
+  for (const match of normalized.matchAll(RECURRENCE_RANGE_PATTERN)) {
+    const start = normalizeRecurrenceDay(match[1]);
+    const end = normalizeRecurrenceDay(match[2]);
+    if (!start || !end) continue;
+    expandRecurrenceDayRange(start, end).forEach((day) => days.add(day));
+    kind = days.size >= 7 ? "daily" : "range";
+    confidence = "high";
+  }
+
+  if (RECURRENCE_WEEKEND_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    ["sabado", "domingo"].forEach((day) => days.add(day as RecurrenceDay));
+    kind = kind === "none" ? "weekend" : kind;
+    confidence = confidence === "none" ? "high" : confidence;
+  }
+
+  for (const pattern of RECURRENCE_SINGLE_DAY_PATTERNS) {
+    for (const match of normalized.matchAll(pattern)) {
+      const day = normalizeRecurrenceDay(match[1]);
+      if (!day) continue;
+      days.add(day);
+      kind = kind === "none" ? "weekly" : kind;
+      confidence = confidence === "none" ? "high" : confidence;
+    }
+  }
+
+  if (days.size === 0 || confidence === "none") {
+    const detectedDays = uniqueRecurrenceDays(
+      [...normalized.matchAll(RECURRENCE_DAY_TOKEN_REGEX)]
+        .map((match) => normalizeRecurrenceDay(match[0]))
+        .filter((day): day is RecurrenceDay => day !== null),
+    );
+
+    const hasRecurringListContext =
+      /\|/.test(normalized) ||
+      /\by\b/.test(normalized) ||
+      /&\s*\d+\s+mas/.test(normalized) ||
+      /todos?\s+los/.test(normalized) ||
+      /cada\s+/.test(normalized);
+
+    if (detectedDays.length >= 2 && !explicitCalendarDate && hasRecurringListContext) {
+      detectedDays.forEach((day) => days.add(day));
+      kind = detectedDays.includes("sabado") && detectedDays.includes("domingo") ? "weekend" : "weekly";
+      confidence = "medium";
+    }
+  }
+
+  const resolvedDays = uniqueRecurrenceDays(days);
+  const timeText = extractRecurrenceTimeText(sourceText);
+  const isRecurring = resolvedDays.length > 0 && confidence !== "none";
+
+  return {
+    isRecurring,
+    kind: isRecurring ? kind : "none",
+    confidence: isRecurring ? confidence : "none",
+    days: resolvedDays,
+    timeText,
+    sourceText,
+    summary: isRecurring ? buildRecurrenceSummary(kind, resolvedDays, extraSchedules) : null,
+    openEnded,
+    extraSchedules,
+  };
+}
 
 
 /**
@@ -331,8 +523,7 @@ export function detectRecurrence(normalized: NormalizedEventInput, extraText?: s
   // the dateText field which is NOT part of NormalizedEventInput.
   const text = `${normalized.name} ${normalized.description ?? ""} ${extraText ?? ""}`;
 
-  // Only flag as recurring when explicit year-round schedule patterns are found
-  return RECURRENCE_PATTERNS.some((p) => p.test(text));
+  return parseRecurrenceInfo(text).isRecurring;
 }
 
 /**

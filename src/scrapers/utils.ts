@@ -1,3 +1,6 @@
+import * as http from "node:http";
+import * as https from "node:https";
+
 import { Ratelimit } from "@upstash/ratelimit";
 import type { CheerioAPI } from "cheerio";
 
@@ -11,6 +14,9 @@ const rateLimiter = new Ratelimit({
   prefix: "ratelimit:scrapers",
 });
 
+const INSECURE_CERT_FALLBACK_HOSTS = new Set(["www.cartelera.com.uy", "cartelera.montevideo.com.uy"]);
+const MAX_FALLBACK_REDIRECTS = 6;
+
 export async function enforceRateLimit(key: string): Promise<void> {
   const { success, reset } = await rateLimiter.limit(key);
 
@@ -23,21 +29,102 @@ export async function enforceRateLimit(key: string): Promise<void> {
 }
 
 export async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
-      accept: "text/html,application/xhtml+xml",
-    },
-    signal: AbortSignal.timeout(scraperConfig.timeoutMs),
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+        accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(scraperConfig.timeoutMs),
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} al obtener ${url}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} al obtener ${url}`);
+    }
+
+    return response.text();
+  } catch (error) {
+    if (!shouldUseInsecureCertFallback(url, error)) {
+      throw error;
+    }
+
+    console.warn(`[scrapers] TLS fallback por certificado vencido en ${new URL(url).host}`);
+    return fetchHtmlIgnoringExpiredCert(url);
+  }
+}
+
+function shouldUseInsecureCertFallback(url: string, error: unknown): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    const code = error instanceof Error && "cause" in error
+      ? (error.cause as { code?: string } | undefined)?.code
+      : undefined;
+
+    return code === "CERT_HAS_EXPIRED" && INSECURE_CERT_FALLBACK_HOSTS.has(hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function fetchHtmlIgnoringExpiredCert(url: string, redirectCount = 0): Promise<string> {
+  if (redirectCount > MAX_FALLBACK_REDIRECTS) {
+    throw new Error(`Demasiados redirects al obtener ${url}`);
   }
 
-  return response.text();
+  const parsedUrl = new URL(url);
+  const client = parsedUrl.protocol === "http:" ? http : https;
+
+  return new Promise<string>((resolve, reject) => {
+    const request = client.get(
+      parsedUrl,
+      {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+          accept: "text/html,application/xhtml+xml",
+        },
+        ...(parsedUrl.protocol === "https:" && INSECURE_CERT_FALLBACK_HOSTS.has(parsedUrl.hostname)
+          ? { rejectUnauthorized: false }
+          : {}),
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = response.headers.location;
+
+        if (status >= 300 && status < 400 && location) {
+          response.resume();
+          const nextUrl = new URL(location, parsedUrl).toString();
+          void fetchHtmlIgnoringExpiredCert(nextUrl, redirectCount + 1).then(resolve, reject);
+          return;
+        }
+
+        if (status < 200 || status >= 300) {
+          response.resume();
+          reject(new Error(`HTTP ${status} al obtener ${url}`));
+          return;
+        }
+
+        response.setEncoding("utf8");
+        let body = "";
+
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+
+        response.on("end", () => {
+          resolve(body);
+        });
+      },
+    );
+
+    request.setTimeout(scraperConfig.timeoutMs, () => {
+      request.destroy(new Error(`Timeout al obtener ${url}`));
+    });
+
+    request.on("error", reject);
+  });
 }
 
 export async function withRetry<T>(

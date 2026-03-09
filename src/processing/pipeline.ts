@@ -262,12 +262,14 @@ async function processRawEvent(
   // dateText may contain schedule info like "lunes a viernes" or "sábados y domingos"
   // that is critical for recurrence detection but not stored in NormalizedEventInput.
   const dateText = typeof rawData.dateText === "string" ? rawData.dateText : null;
+  const searchDateText = typeof rawData.searchDateText === "string" ? rawData.searchDateText : null;
+  const recurrenceHintText = [dateText, searchDateText].filter(Boolean).join(" \n ") || null;
 
   const heuristic = classifyEvent(enriched, {
     source: rawEvent.source,
     category,
     genre,
-    dateText,
+    dateText: recurrenceHintText,
   });
   let classification = {
     eventType: heuristic.eventType,

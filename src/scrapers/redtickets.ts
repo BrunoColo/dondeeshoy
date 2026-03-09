@@ -32,6 +32,7 @@ function buildSearchUrl(page: number): string {
 /** Metadata extracted from search result cards to enrich detail scraping */
 interface SearchCardMeta {
   category: string | null;
+  dateText: string | null;
   imageUrl: string | null;
 }
 
@@ -133,7 +134,7 @@ export class RedTicketsScraper extends BaseScraper {
   /**
    * Paginate through RedTickets search results to discover event URLs.
    * Stops when a page returns zero new event links or the max page limit is hit.
-   * Also extracts card-level metadata (category, thumbnail) from each
+  * Also extracts card-level metadata (category, thumbnail, schedule text) from each
    * search result for later enrichment during detail scraping.
    */
   private async discoverFromSearchPages(): Promise<string[]> {
@@ -177,7 +178,8 @@ export class RedTicketsScraper extends BaseScraper {
           );
           pageLinks.push(eventUrl);
 
-          // Extract search card metadata (category, image) if not already cached
+          // Extract search card metadata (category, image, schedule text)
+          // if not already cached
           if (!this.searchCardMeta.has(eventUrl)) {
             const meta = this.extractCardMeta($, element);
             if (meta) {
@@ -244,7 +246,7 @@ export class RedTicketsScraper extends BaseScraper {
   }
 
   /**
-   * Extract category and image metadata from the DOM context around an
+  * Extract category, schedule and image metadata from the DOM context around an
    * event link on a search results page. Walks up to the nearest card-like
    * container and looks for category badges and thumbnail images.
    */
@@ -265,7 +267,21 @@ export class RedTicketsScraper extends BaseScraper {
     if (!$card.length) return null;
 
     let category: string | null = null;
+    let dateText: string | null = null;
     let imageUrl: string | null = null;
+
+    const dateInfo = $card
+      .find("img[src*='ico_date']")
+      .first()
+      .parent()
+      .find("span.EventInfo, span[class*='EventInfo']")
+      .first();
+    if (dateInfo.length) {
+      const text = normalizeWhitespace(dateInfo.text());
+      if (text && text.length < 200) {
+        dateText = text;
+      }
+    }
 
     // Look for category text — RedTickets uses inline-styled elements:
     // a <li> containing a small colored-dot <div> + an <a> with the category name.
@@ -318,8 +334,8 @@ export class RedTicketsScraper extends BaseScraper {
       });
     }
 
-    if (category || imageUrl) {
-      return { category, imageUrl };
+    if (category || dateText || imageUrl) {
+      return { category, dateText, imageUrl };
     }
     return null;
   }
@@ -362,6 +378,7 @@ export class RedTicketsScraper extends BaseScraper {
     const detailCategory = this.extractCategory($);
     const cardMeta = this.searchCardMeta.get(url);
     const category = cardMeta?.category || detailCategory || null;
+    const searchDateText = cardMeta?.dateText || null;
 
     // Image: prefer detail page, fallback to search card thumbnail
     const finalImageUrl = imageUrl || cardMeta?.imageUrl || null;
@@ -398,6 +415,7 @@ export class RedTicketsScraper extends BaseScraper {
         description,
         category,
         dateText,
+        ...(searchDateText ? { searchDateText } : {}),
         venueText: rtVenueName,
         venueAddress: rtVenueAddress,
         imageUrl: finalImageUrl,

@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 
 import { db } from "./db";
+import { getPipelineMonitorState } from "./pipeline-monitor";
 import { events, rawEvents, eventSources, bannedEvents } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
 import { eq, desc, and, gte, sql, count, ilike } from "drizzle-orm";
@@ -437,10 +438,13 @@ export async function getScraperStats() {
 // ============= Pipeline Stats =============
 
 export async function getPipelineStats() {
-  const [totalRaw] = await db.select({ count: count() }).from(rawEvents);
-  const [processed] = await db.select({ count: count() }).from(rawEvents).where(eq(rawEvents.processed, true));
-  const [withError] = await db.select({ count: count() }).from(rawEvents).where(sql`${rawEvents.processingError} IS NOT NULL`);
-  const [totalEvents] = await db.select({ count: count() }).from(events);
+  const [[totalRaw], [processed], [withError], [totalEvents], monitor] = await Promise.all([
+    db.select({ count: count() }).from(rawEvents),
+    db.select({ count: count() }).from(rawEvents).where(eq(rawEvents.processed, true)),
+    db.select({ count: count() }).from(rawEvents).where(sql`${rawEvents.processingError} IS NOT NULL`),
+    db.select({ count: count() }).from(events),
+    getPipelineMonitorState(),
+  ]);
 
   // Recent errors
   const recentErrors = await db
@@ -463,6 +467,7 @@ export async function getPipelineStats() {
     withError: withError?.count ?? 0,
     totalEvents: totalEvents?.count ?? 0,
     conversionRate: totalRaw?.count ? ((totalEvents?.count ?? 0) / totalRaw.count) * 100 : 0,
+    monitor,
     recentErrors: recentErrors.map((e) => ({
       ...e,
       title: e.title as string,

@@ -1,5 +1,5 @@
 import { getPipelineStats, getRawEvents } from "@/lib/admin-queries";
-import { PipelineClient } from "./pipeline-client";
+import { PipelineClient, PipelineRunClient } from "./pipeline-client";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +45,8 @@ export default async function PipelinePage() {
         <p className="text-zinc-500 text-sm">Estado del procesamiento de eventos</p>
       </div>
 
+      <PipelineRunClient initialMonitor={stats.monitor} />
+
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="border border-zinc-800 rounded p-4">
@@ -70,8 +72,7 @@ export default async function PipelinePage() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-4">
-        <PipelineClient action="run" label="Run Pipeline" />
+      <div className="flex flex-wrap gap-4">
         <PipelineClient action="mark-past" label="Mark Past" />
       </div>
 

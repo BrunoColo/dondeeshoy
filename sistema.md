@@ -1,443 +1,627 @@
-# Análisis del Sistema — Scrapers → Eventos Reales
+# Sistema de DondeEsHoy
 
-*Última actualización: 2026-02-27. Refleja el estado actual del código en `main`.*
+*Última actualización: 2026-03-09.*
 
----
-
-## Flujo General
-
-```
-[Vercel Cron] 14:00–16:30 UTC diario
-      │
-      ├─ /api/scrape/redtickets   → RedTicketsScraper
-      ├─ /api/scrape/entraste     → EntrasteScraper
-      ├─ /api/scrape/cobraticket  → CobraTicketScraper
-      ├─ /api/scrape/ticketfacil  → TicketFacilScraper
-      ├─ /api/scrape/cartelera    → CarteleraScraper
-      ├─ /api/scrape/mvd-eventos  → MvdEventosScraper
-      └─ /api/scrape/mientrada    → MiEntradaScraper
-                │
-                ↓  UPSERT en raw_events (processed=false)
-         [raw_events table — JSONB]
-                │
-17:00 UTC → /api/scrape/process  (maxDuration=300s, drain loop hasta pending=0)
-                │
-         por cada raw_event:
-           normalizeRawEvent()
-           shouldRejectEvent()
-           geocodeVenue()
-           detectDepartment()
-           classifyEvent() [± classifyEventWithAi()]
-           calculateConfidenceScore()
-           findDuplicateEventId()
-           createEvent() / mergeEventData()
-                │
-                ↓
-         [events table]
-                │
-03:00 UTC → mark-past (status='past' donde date < today)
-17:30 UTC → reclassify-otros (reintento de clasificación IA para tipo 'otro')
-```
+Este documento resume el estado actual del sistema, sus features principales, cómo se conectan sus partes y qué decisiones técnicas importan hoy para mantenerlo o seguir evolucionándolo.
 
 ---
 
-## 1. Scrapers
+## 1. Qué es DondeEsHoy
 
-### 1.1 BaseScraper
+**DondeEsHoy** es una plataforma que junta eventos de Uruguay en un solo lugar.
 
-Clase abstracta base. Define el contrato:
+El sistema:
 
-- `discoverUrls()` → lista de URLs a scrapear
-- `scrapeEvent(url)` → `ScrapedRawEvent | null`
-- `saveRawEvent()` → **`protected`** (permite que subclases lo llamen directamente)
-- `run()` → itera URLs, aplica rate limit (Upstash Redis, 1 req/s), retry x3 con backoff 400ms×intento, UPSERT en `raw_events` por `(source, source_id)`
-
-**Problema abierto:** El rate limit aplica 1 req/s por fuente pero no hay cap global de tiempo. RedTickets con 800 URLs tarda ~26 min teórico (timeout de Vercel Pro: 300s). El scraper puede quedar con trabajo parcialmente hecho sin error explícito.
-
-**Problema abierto:** El UPSERT resetea `processed=false` y borra `processingError` siempre. Eventos rechazados permanentemente vuelven a la cola en cada ciclo.
+- descubre eventos desde múltiples fuentes externas,
+- guarda primero los datos crudos,
+- los limpia y clasifica,
+- detecta duplicados,
+- publica el resultado final en la web,
+- y además permite recibir newsletters, enviar eventos manualmente y administrar todo desde un panel interno.
 
 ---
 
-### 1.2 CobraTicket
+## 2. Features actuales
 
-**Calidad: Alta.**
+### Sitio público
 
-**Campos extraídos:** title, description, category, dateText (ISO), startTime, endTime, venueName, venueAddress, city ("Ciudad, Departamento"), latitude, longitude, imageUrl, isFree, prices, ageRestriction, organizer.
+- **Home de hoy** con eventos del día.
+- **Sección separada para eventos recurrentes**.
+- **“Los más buscados”** usando vistas recientes en Redis.
+- **Botón “Cerca de mí”** para ordenar eventos por ubicación del usuario.
+- **Página `/proximos`** con eventos futuros y filtros rápidos (`mañana`, `fin de semana`, fecha puntual).
+- **Página `/mapa`** con eventos geolocalizados y opción de ocultar recurrentes.
+- **Página de detalle por slug** en `/evento/[slug]`.
+- **Filtros** por texto, tipo, género, departamento, gratis, noche y recurrencia.
+- **Formulario para publicar eventos** desde `/publicar`.
+- **Suscripción por email** con preferencias por departamento, tipo y frecuencia.
 
-**Extracción de datos estructurados:**
-- `extractSvelteKitProps` tiene 3 estrategias en cascada:
-  1. `<script type="application/json">` — SvelteKit ≥2, sin eval (más común)
-  2. `const data = [...]` inline via `new Function()` — versión antigua, fallback
-  3. DOM parsing — último recurso, con warn log explícito
-- Coordenadas GPS desde `latlng` del payload SvelteKit
-- Fecha ISO estricta (`2026-02-19 23:59:00`)
-- Campo `city` formateado como "Punta del Este, Maldonado"
+### Backoffice / administración
 
-**Problemas abiertos:**
+- Login admin.
+- Dashboard con estadísticas.
+- Gestión de submissions.
+- Revisión de eventos rechazados o baneados.
+- Stats de scrapers.
+- Vista de raw events y errores del pipeline.
+- Ejecución manual de scrapers y reprocesado de eventos crudos.
 
-1. **Precios desde texto libre.** Los tipos de entrada se cargan client-side desde Firebase y no están en el SSR. Los precios que llegan son los que el organizador menciona en descripción — inconsistente entre eventos.
+### Automatización
 
-2. **`isFree` por texto.** Si la descripción no menciona "gratis" pero el evento lo es (precios en Firebase), `isFree=false` con `prices=[]`, lo que puede disparar la heurística `currency="USD"` del normalizador.
-
----
-
-### 1.3 RedTickets
-
-**Calidad: Alta.** Mayor volumen (~500–800 URLs por ciclo).
-
-**Campos extraídos:** title, description, category, dateText, venueText, venueAddress, imageUrl, prices (GeneXus JSON), latitude, longitude (iframe Google Maps), isFree.
-
-**Lo que funciona bien:**
-- Precios desde `vPURCHASEOPTIONSRESPONSE` — datos estructurados, `unitPrice` sin fees
-- `isFree` explícito desde `Evt.isFree` del payload GeneXus
-- Coordenadas desde iframe Maps embed
-
-**Problemas abiertos:**
-
-1. **Cap de 10 páginas de discovery.** Si hay más de 10 páginas de resultados, eventos válidos quedan fuera.
-
-2. **2 requests por evento** (search page + detail page). Con 800 URLs = 1600 requests totales, supera el timeout de Vercel.
-
-3. **Selector de categoría frágil:** `li > div[style*="border-radius"][style*="height: 10px"]` depende de inline styles específicos. Un cambio de CSS lo rompe silenciosamente.
+- **7 scrapers automáticos** corriendo por cron en Vercel.
+- **Pipeline de procesamiento** posterior al scraping.
+- **Marcado automático de eventos pasados**.
+- **Reclasificación nocturna de eventos `otro`** con IA.
+- **Newsletter diaria y semanal**.
 
 ---
 
-### 1.4 TicketFacil
+## 3. Arquitectura general
 
-**Calidad: Media-alta.**
-
-**Campos extraídos:** title, description, dateText (YYYY-MM-DD), startTime, endTime, venueName, venueAddress, imageUrl, prices, isFree.
-
-**Lo que funciona bien:**
-- Discovery por REST API de accesofacil, no HTML
-- Filtros pre-scraping agresivos (membresías, eventos fuera de Uruguay)
-- Precios desde `initPrice` attributes en `/registerToEvent/`
-- `isFree` guardado en `rawData.isFreeText`; el normalizador lee tanto `isFree` como `isFreeText` ✅
-
-**Problemas abiertos:**
-
-1. **Sin coordenadas.** Depende de KNOWN_VENUES o Mapbox para todos sus eventos (~200-400/ciclo).
-
-2. **`fetchPricesFromRegisterPage` silencia errores** con `return []`. Fallo HTTP queda sin log.
-
-3. **Sin campo `category`.** Todos sus eventos van a heurísticas de texto en el clasificador.
-
----
-
-### 1.5 Cartelera
-
-**Calidad: Media.**
-
-**Campos extraídos:** title, genre, duration, description, venueName, venueAddress, imageUrl, prices, cast, dateText, startTime. Un `raw_event` por fecha de función.
-
-**Lo que funciona bien:**
-- Multi-fecha: genera un `raw_event` por función individual
-- `saveExtra()` eliminado — usa `BaseScraper.saveRawEvent()` directamente ✅
-- Conteo de `saved` corregido: acumula `extraSaved` correctamente ✅
-
-**Problemas abiertos:**
-
-1. **Sin coordenadas.**
-
-2. **`_pendingMultiDateEvents` — dependencia de orden implícita.** `run()` inicializa el array antes de llamar a `scrapeEvent()`, correcto, pero es frágil si se refactoriza la clase base.
-
-3. **`parseDateHeading()` asume año actual/siguiente** sin validar si la fecha ya pasó.
-
-4. **Selectores CSS específicos** (`.lista-horarios > li`, `.subheading`, `.hora`). Cambio de diseño los rompe sin error.
-
----
-
-### 1.6 MVD Eventos
-
-**Calidad: Media.**
-
-**Campos extraídos:** title (con parent event), description, dateText, venueName, venueAddress, category, imageUrl, isFree.
-
-**Lo que funciona bien:**
-- Estructura Drupal estable (`field--name-*`)
-- Categoría desde campos Drupal
-- `extractDates()` ahora busca primero en `article/main/.node__content` — no en `$.text()` completo ✅
-- `_MONTHS` muerto eliminado ✅
-
-**Problemas abiertos:**
-
-1. **Sin coordenadas ni precios.** Sitio gubernamental que no expone ninguno.
-
-2. **Discovery no distingue `/actividad/` permanentes** de eventos puntuales. El filtro actual solo excluye `agenda-anteriores`.
-
-3. **`extractSourceId` reemplaza `/` con `--`.** Cambio de URL del sitio genera duplicados.
-
----
-
-### 1.7 Entraste
-
-**Calidad: Alta** *(reescrito completamente — commit f964615)*.
-
-**Campos extraídos:** title, description, dateText (YYYY-MM-DD desde Unix timestamp), startTime, venueName, venueAddress, latitude, longitude, imageUrl, prices (por tanda), isFree.
-
-**Cómo funciona ahora:**
-
-| Campo | Origen en el HTML | Antes |
-|-------|-------------------|-------|
-| Fecha/hora | `data-eventstart` (Unix timestamp) | Regex de texto libre |
-| Precios | `data-ticket='{"price":"300",...}'` por fila | `extractMoneyValues()` sobre body |
-| `isFree` | Todos los tickets con `price=0` | No se detectaba |
-| Coordenadas | `const lat = X; const lng = Y` en script inline | No se extraían |
-| Venue | `.location-section h3/p` | `<p>Venue: X<br>` con split |
-| Descripción | `#event-description` | No se extraía |
-| Discovery | Homepage + todas las páginas `/with/<organizador>` | Solo homepage |
-
-**Problemas abiertos:**
-
-1. **Volumen pequeño** (~15-30 eventos). Entraste es una plataforma chica en Uruguay. No hay API pública de listado conocida.
-
-2. **Sin descripción en algunos eventos.** El `#event-description` puede estar vacío si el organizador no la completó.
-
----
-
-### 1.8 MiEntrada
-
-**Calidad: Media.**
-
-**Campos extraídos:** title, imageUrl, venueName, venueAddress, department, lat, lng (de Google Maps link), dates (array DD/MM/YYYY), aperturaTime, description, prices.
-
-**Lo que funciona bien:**
-- Coordenadas desde URL de Google Maps (`maps/search/LAT,LNG`)
-- `department` del formato "Venue, Ciudad/Departamento"
-- Strips de boilerplate WhatsApp
-- El normalizador lee `rawData.lat`/`rawData.lng`, `rawData.dates[]` y `rawData.department` correctamente ✅
-
-**Problemas abiertos:**
-
-1. **`dates[]` es un array de fechas** — el normalizador usa solo el primer elemento. Eventos multi-fecha de MiEntrada generan un único `raw_event` con solo la primera fecha, no uno por fecha como hace Cartelera.
-
-2. **`aperturaTime` no se lee en el normalizador.** El campo existe en `rawData` pero el normalizador lee `rawData.startTime`. La hora de apertura se pierde.
-
----
-
-## 2. Normalizador
-
-**Estado actual — correcciones aplicadas:**
-- Lee `rawData.lat`/`rawData.lng` (MiEntrada) además de `rawData.latitude`/`rawData.longitude` ✅
-- Lee `rawData.dates[]` como `dateText` cuando `rawData.dateText` está vacío (MiEntrada) ✅
-- Lee `rawData.department` como `scraperCity` (MiEntrada) ✅
-- Lee `rawData.isFreeText` además de `rawData.isFree` (TicketFacil) ✅
-- Pasa coordenadas a `detectDepartment()` para priorizar GPS sobre texto ✅
-- `scheduleText` eliminado de `NormalizedEventInput` — no se persistía ni usaba ✅
-
-### 2.1 Parsing de fechas
-
-4 estrategias en orden: DD/MM/YYYY → DD/MM/YY → YYYY-MM-DD → "N de mes" en español. Si todo falla con `dateText` no vacío, llama a OpenAI GPT-4o-mini.
-
-**Problema abierto: doble parsing nombre+fecha.** El normalizador parsea fecha del `name` Y del `dateText`. Si ambos producen fecha válida, usa la del nombre. Eventos con fechas en el título ("Festival Rock 2025") pueden heredar año incorrecto.
-
-**Problema abierto: `aperturaTime` de MiEntrada.** `rawData.aperturaTime` no se lee — el normalizador lee `rawData.startTime`. La hora de apertura de MiEntrada se pierde silenciosamente.
-
-### 2.2 Detección de moneda
-
-```typescript
-const currency = hasUsdHint || (priceMax !== null && priceMax < 50) ? "USD" : "UYU";
+```text
+Fuentes externas
+  ├─ RedTickets
+  ├─ CobraTicket
+  ├─ TicketFacil
+  ├─ Cartelera
+  ├─ MVD Eventos
+  ├─ Entraste
+  └─ MiEntrada
+         ↓
+Scrapers
+         ↓
+raw_events (datos crudos en PostgreSQL)
+         ↓
+Pipeline de procesamiento
+  ├─ normalizer
+  ├─ reject rules
+  ├─ geocoder
+  ├─ department detector
+  ├─ classifier (+ IA en fallback)
+  ├─ deduplicator
+  └─ merge / create event
+         ↓
+events (tabla final para mostrar al usuario)
+         ↓
+Queries del sitio + APIs + páginas Next.js
+         ↓
+Web pública / mapa / admin / newsletter
 ```
 
-Heurística `priceMax < 50` puede clasificar como USD un taller comunitario de $30 UYU. Riesgo bajo pero real.
+---
 
-### 2.3 Venue cleaning
+## 4. Stack actual
 
-`cleanVenueName()` corta en keywords específicos. Nuevos formatos de scrapers pueden pasar nombres sucios sin aviso.
+| Capa | Tecnología |
+|------|------------|
+| Frontend / SSR | Next.js 16 + React 19 |
+| Estilos | Tailwind CSS 4 |
+| Base de datos | PostgreSQL |
+| ORM | Drizzle ORM |
+| Cache / rate limit / locks | Upstash Redis |
+| Geocodificación | Coordenadas del scraper + venues conocidos + Mapbox |
+| Clasificación ambigua | OpenAI |
+| Emails | Resend |
+| Deploy | Vercel |
+| Mapa | Leaflet / React-Leaflet |
 
 ---
 
-## 3. Geocodificador
+## 5. Flujo de datos real
 
-### 3.1 Flujo
+### 5.1 Scraping
 
-```
-1. ¿Coords en normalized.latitude/longitude? → usar directamente (scraper)
-2. ¿Venue en KNOWN_VENUES (~133 entries)? → usar coords del lookup
-3. ¿NEXT_PUBLIC_MAPBOX_TOKEN? → Mapbox API (bounding box Uruguay)
-4. → null
-```
+Cada scraper:
 
-**Corrección aplicada:** clave `"espacio cultural"` eliminada de KNOWN_VENUES — era demasiado genérica ✅
+1. descubre URLs o items de una fuente,
+2. extrae los datos disponibles,
+3. arma un objeto crudo,
+4. hace **UPSERT** en `raw_events` usando `(source, source_id)` como identidad lógica.
 
-### 3.2 Problemas abiertos en KNOWN_VENUES
+Eso significa que si un evento ya fue scrapeado antes, se actualiza el registro crudo en vez de duplicarlo.
 
-- Lookup por substring (`text.includes(key)`) puede dar falsos positivos. Ej: "Bar Sala Zitarrosa 2" matchearía "sala zitarrosa".
-- Cobertura del interior de Uruguay es parcial.
+### 5.2 Almacenamiento intermedio
 
-### 3.3 Token de Mapbox
+La tabla `raw_events` guarda:
 
-`NEXT_PUBLIC_MAPBOX_TOKEN` es un token de cliente. Si tiene restricciones de dominio en Mapbox, las llamadas server-side pueden fallar silenciosamente.
+- fuente,
+- id original de la fuente,
+- URL,
+- `raw_data` en JSON,
+- fecha de scraping,
+- si ya fue procesado,
+- error de procesamiento si lo hubo.
 
----
+### 5.3 Pipeline
 
-## 4. Detector de Departamentos
+El pipeline toma `raw_events` con `processed = false` y los procesa uno por uno:
 
-### 4.1 Prioridad
+1. **normalizeRawEvent()**
+   - limpia texto,
+   - interpreta fecha y hora,
+   - normaliza venue,
+   - detecta precios,
+   - detecta si es gratis,
+   - intenta coordenadas y departamento.
 
-Coordenadas → texto (venue + address + scraperCity) → nombre del evento → default "Montevideo". Correcto.
+2. **shouldRejectEvent()**
+   - filtra cosas que no son eventos reales,
+   - por ejemplo membresías, alquileres, turnos, promociones, clases permanentes, paquetes privados, etc.
 
-### 4.2 Bounding boxes con solapamientos
+3. **geocodeVenue()**
+   - usa primero coordenadas del scraper,
+   - si no hay, busca en venues conocidos,
+   - si tampoco hay, intenta con Mapbox.
 
-Los bboxes se solapan. El código resuelve verificando Montevideo primero, luego itera en orden. No hay manejo explícito de zonas ambiguas.
+4. **detectDepartment()**
+   - prioriza coordenadas,
+   - luego texto del venue/dirección,
+   - y si no alcanza, cae en heurísticas.
 
-**Caso conocido:** banda entre lat -34.895 y -34.950 que cae fuera del bbox de Montevideo pero dentro del de Canelones. Puntos de Ciudad de la Costa quedan como Canelones (correcto); puntos al límite pueden quedar mal.
+5. **classifyEvent()**
+   - intenta tipo por categoría original de la fuente,
+   - luego por reglas de texto,
+   - y en casos ambiguos puede usar IA.
 
-### 4.3 Inconsistencia PROBLEMATIC_KEYWORDS / UNAMBIGUOUS
+6. **findDuplicateEventId()**
+   - busca si el evento ya existe.
 
-`"artigas"` aparece en ambos sets. La lógica efectivamente no lo skipea, por lo que puede matchear como departamento Artigas a partir de solo la palabra "artigas" en dirección — contradiciendo el comentario en el código.
+7. **createEvent() / mergeEventData()**
+   - crea el evento nuevo,
+   - o enriquece uno existente si era el mismo.
 
----
+### 5.4 Consumo por el sitio
 
-## 5. Clasificador
+Las páginas públicas no leen `raw_events`.
 
-### 5.1 SOURCE_CATEGORY_MAP
-
-Mapea categorías de scrapers a EventType. CobraTicket y MVD Eventos lo proveen consistentemente. RedTickets a veces. TicketFacil y Entraste no proveen categoría.
-
-### 5.2 Regex rules — problemas abiertos
-
-- `"club"` con `/\bclub\b/i` matchea "Club Atlético", "Club de teatro" → falsos positivos.
-- `"bar"` con `/\bbar\b/i` matchea "Barbería", "embarque" → falsos positivos.
-- `/\bsocio(s)?\b/i` en REJECT_PATTERNS rechaza "Noche de Socios" legítimo.
-
-### 5.3 Reclasificación nocturna
-
-Eventos entre 23:00–01:59 → `"fiesta"` automáticamente.
-**Corregido:** `teatro`, `deportivo`, `cultural` y `festival` están excluidos de esta regla ✅
-
-### 5.4 REJECT_PATTERNS — envíos
-
-**Corregido:** `/env[ií]os?/i` reemplazado por patrones que requieren contexto de shipping explícito ✅
-
----
-
-## 6. Deduplicador
-
-- Similitud: bigrams Dice coefficient. Score = `nameSim × 0.75 + venueSim × 0.25`. Threshold: `>= 0.82`.
-- **Corregido:** `.limit(300)` en ambas queries de candidatos ✅
-
-**Problema abierto:** threshold 0.82 puede ser demasiado alto para nombres muy cortos (ej: "Jazz").
+Todo lo visible para el usuario sale de la tabla final `events`, usando queries centralizadas en `src/lib/queries.ts`.
 
 ---
 
-## 7. Pipeline
+## 6. Fuentes actuales de scraping
 
-### 7.1 Drain loop
+### RedTickets
 
-**Corregido:** el endpoint `/api/scrape/process` ahora tiene `maxDuration=300s` y procesa batches en loop hasta que `pending=0` o hasta los 270s. `runProcessingPipeline` retorna el conteo real de pendientes restantes ✅
+- Fuente de mayor volumen.
+- Descubrimiento correcto: búsqueda paginada, no homepage.
+- Trae buenos precios desde payload estructurado.
+- Puede traer coordenadas.
 
-### 7.2 mergeEventData — mejoras aplicadas
+### CobraTicket
 
-- **Protección de fechas:** solo `TRUSTED_DATE_SOURCES` (`cobraticket`, `redtickets`, `ticketfacil`, `mientrada`) pueden sobreescribir una fecha existente cuando difieren ✅
-- **Actualización de eventType:** si el existente es `"otro"` y el nuevo tiene tipo específico, se actualiza ✅
-- **Actualización de confidenceScore:** se actualiza cuando el nuevo supera al existente ✅
-- Selecciona `eventType` y `confidenceScore` del evento existente para comparar ✅
+- Fuente de alta calidad.
+- Suele traer fecha estructurada, venue y coordenadas.
+- Tiene mejor calidad de campos que otras fuentes.
 
-### 7.3 Problemas abiertos
+### TicketFacil
 
-- Procesamiento estrictamente secuencial. Sin paralelismo entre eventos del mismo batch.
-- Si la query inicial `getPendingRawEvents` falla, todo el batch falla.
+- Discovery vía API REST.
+- Sin coordenadas nativas en general.
+- Muchas veces depende de geocodificación posterior.
 
----
+### Cartelera
 
-## 8. Tabla de estado de defectos
+- Más enfocada en teatro / espectáculos.
+- Puede generar múltiples registros crudos para distintas funciones.
 
-| # | Defecto | Severidad | Estado |
-|---|---------|-----------|--------|
-| 1 | MiEntrada: `lat`/`lng` ≠ `latitude`/`longitude` en normalizador | **Crítica** | ✅ Corregido |
-| 2 | MiEntrada: `dates[]` no se lee como `dateText` en normalizador | **Crítica** | ✅ Corregido |
-| 3 | MiEntrada: `department` no se lee como `city` en normalizador | **Alta** | ✅ Corregido |
-| 4 | TicketFacil: `isFreeText` no coincide con `isFree` en normalizador | **Alta** | ✅ Corregido |
-| 5 | Pipeline `batchSize=50` con un solo cron diario | **Alta** | ✅ Corregido |
-| 6 | `deduplicator`: sin `.limit()` en query de candidatos | **Media** | ✅ Corregido |
-| 7 | `mergeEventData` sobrescribe fecha sin verificar confiabilidad | **Media** | ✅ Corregido |
-| 8 | `mergeEventData` no actualiza `eventType` ni `confidenceScore` | **Media** | ✅ Corregido |
-| 9 | CobraTicket: `new Function()` sin estrategia JSON primaria | **Media** | ✅ Corregido |
-| 10 | KNOWN_VENUES: `"espacio cultural"` demasiado genérico | **Media** | ✅ Corregido |
-| 11 | Cartelera: `saveExtra()` duplica lógica de `saveRawEvent()` | **Baja** | ✅ Corregido |
-| 12 | `scheduleText` en `NormalizedEventInput` nunca persiste | **Baja** | ✅ Corregido |
-| 13 | REJECT_PATTERN `/env[ií]os?/` demasiado amplio | **Baja** | ✅ Corregido |
-| 14 | `confidenceScore` no se actualiza en merge | **Baja** | ✅ Corregido |
-| 15 | Entraste: extracción por texto libre, sin coords, sin descripción | **Alta** | ✅ Corregido |
-| 16 | Clasificador: reclasificación nocturna sin excepciones por tipo | **Media** | ✅ Corregido |
-| 17 | MVD Eventos: `extractDates()` lee `$.text()` completo | **Media** | ✅ Corregido |
-| 18 | Cartelera: `saveExtra()` desincronizado con `saveRawEvent()` | **Baja** | ✅ Corregido |
-| 19 | `_MONTHS` declarado y no usado en `mvd-eventos.ts` | **Baja** | ✅ Corregido |
-| 20 | MiEntrada: `aperturaTime` no se lee en normalizador | **Baja** | ✅ Corregido |
-| 21 | CobraTicket: precios desde Firebase no disponibles en SSR | **Media** | ✅ Corregido |
-| 22 | RedTickets: cap de 10 páginas puede perder eventos | **Media** | ✅ Corregido |
-| 23 | Inconsistencia `PROBLEMATIC_KEYWORDS` vs `UNAMBIGUOUS` en dept-detector | **Baja** | ✅ Corregido |
-| 24 | `campo city` en schema llama "city" a lo que es un departamento | **Baja** | 🟡 En migración |
+### MVD Eventos
+
+- Agenda institucional.
+- Buena para eventos culturales de Montevideo.
+- Generalmente sin precios ni coordenadas.
+
+### Entraste
+
+- Menor volumen.
+- Extrae fechas, tickets, venue y coordenadas desde HTML / scripts inline.
+
+### MiEntrada
+
+- Puede traer múltiples fechas en arrays.
+- El normalizador hoy consume esos campos correctamente.
 
 ---
 
-## 9. Lo que funciona bien (estado actual)
+## 7. APIs del sistema
 
-- **Arquitectura en capas limpia**: scrapers → raw_events → pipeline → events.
-- **UPSERT en raw_events**: re-scrapear actualiza sin duplicar.
-- **Redis distributed lock por fuente**: evita runs concurrentes.
-- **`withTransientRetry`**: maneja desconexiones de DB sin perder trabajo.
-- **`shouldRejectEvent` antes de geocodificar**: ahorra llamadas a Mapbox/OpenAI.
-- **Bounding box sanity check en Mapbox**: descarta geocodificaciones fuera de Uruguay.
-- **Detección de departamento por coordenadas primero**: más confiable que texto.
-- **Entraste**: ahora extrae Unix timestamp, JSON de tickets, coords inline y descripción estructurada.
-- **MiEntrada**: coordenadas, fechas y departamento ahora se consumen correctamente en el normalizador.
-- **Pipeline drain loop**: procesa toda la cola en una sola invocación del cron.
-- **mergeEventData**: protege fechas ISO de sobreescritura y actualiza tipo/score cuando mejora.
-- **CobraTicket**: estrategia JSON-first evita `new Function()` en la mayoría de los casos.
+En este proyecto “API” significa rutas internas del propio sitio que conectan frontend, base de datos, automatizaciones y servicios externos.
+
+### 7.1 APIs públicas / semipúblicas
+
+#### `GET /api/events`
+
+Busca eventos con filtros y paginación.
+
+Parámetros soportados hoy:
+
+- `q`
+- `type`
+- `genre`
+- `department`
+- `free`
+- `limit`
+- `offset`
+- `meta=filters` para obtener opciones de filtros
+
+Características:
+
+- rate limit,
+- paginación,
+- sanitización de campos internos,
+- cache control para respuesta pública.
+
+#### `POST /api/events/view`
+
+Registra vistas de un evento.
+
+Hace 3 cosas en paralelo:
+
+- incrementa ranking diario en Redis,
+- incrementa ranking horario en Redis,
+- aumenta `viewCount` persistente en PostgreSQL.
+
+Esto alimenta “Los más buscados”.
+
+#### `GET /api/events/trending`
+
+Lee desde Redis el ranking de eventos más vistos/buscados del día.
+
+#### `GET /api/events/[id]`
+
+Hoy existe pero está **placeholder/base operativo**. No es el endpoint principal de detalle usado por la experiencia pública.
+
+#### `POST /api/submissions`
+
+Recibe eventos enviados por usuarios:
+
+- valida con Zod,
+- aplica honeypot,
+- limita abuso por IP,
+- guarda en base,
+- notifica por email al admin.
+
+#### `POST /api/subscriptions`
+
+Da de alta suscriptores para newsletters:
+
+- guarda preferencias,
+- genera tokens,
+- envía email de verificación,
+- evita duplicados verificados.
+
+#### `GET /api/subscriptions/verify`
+
+Confirma la suscripción por email.
+
+#### `GET /api/subscriptions/unsubscribe`
+
+Permite baja de la newsletter.
 
 ---
 
-## 10. Mejoras pendientes (siguiente sesión)
+### 7.2 APIs internas / admin
 
-### Prioridad media
+Bajo `src/app/api/admin/` hay endpoints para:
 
-- **Expansión de KNOWN_VENUES**: agregar venues frecuentes de TicketFacil extraídos de datos históricos.
+- login / logout,
+- stats,
+- listado de eventos,
+- submissions,
+- raw events,
+- scrapers,
+- pipeline,
+- baneados,
+- rechazados,
+- revisión manual.
 
-### Prioridad baja
-
-- **Completar rollout `city` → `department`**: schema, pipeline y queries nuevas ya escriben/leen `department`, pero aún faltan vistas/admin forms para dejar de depender visualmente de `city`.
-- **Tests para normalizador y deduplicador**: los casos edge de parsing de fechas y deduplicación son los más propensos a regresiones.
-- **Registrar fuente de geocodificación**: agregar campo `geocodeSource` ('scraper' | 'known_venues' | 'mapbox') para auditar calidad de coordenadas.
-- **REJECT_PATTERN `/\bsocio(s)?\b/`**: rechaza "Noche de Socios" legítimo. Requiere más contexto antes de rechazar.
-
----
-
-## Horarios de Cron Jobs (Uruguay - UTC-3)
-
-| Hora Uruguay | Hora UTC | Endpoint | Función |
-|--------------|----------|----------|---------|
-| 09:00 | 12:00 | `/api/cron/newsletter` | Envío de newsletter |
-| 11:00 | 14:00 | `/api/scrape/redtickets` | Scraping RedTickets (~500-800 eventos) |
-| 12:00 | 15:00 | `/api/scrape/entraste` | Scraping Entraste (~15-30 eventos) |
-| 12:30 | 15:30 | `/api/scrape/cobraticket` | Scraping CobraTicket (~100-200 eventos) |
-| 12:45 | 15:45 | `/api/scrape/ticketfacil` | Scraping TicketFacil (~200-400 eventos) |
-| 13:00 | 16:00 | `/api/scrape/cartelera` | Scraping Cartelera Uruguay (~50-100 funciones) |
-| 13:15 | 16:15 | `/api/scrape/mvd-eventos` | Scraping Agenda Montevideo (~30-60 eventos) |
-| 13:30 | 16:30 | `/api/scrape/mientrada` | Scraping MiEntrada (~20-50 eventos) |
-| 14:00 | 17:00 | `/api/scrape/process` | Procesamiento y normalización de eventos |
-| 14:30 | 17:30 | `/api/scrape/reclassify-otros` | Reclasificación IA de eventos "otro" |
-| 00:00 | 03:00 | `/api/scrape/mark-past` | Marcar eventos pasados |
-
-**Nota:** Horario de Uruguay = UTC-3 (puede ser UTC-2 en horario de verano).
+Estas APIs no son para uso público: alimentan el dashboard admin y tareas internas.
 
 ---
 
-## Nivel de Automatización
+### 7.3 APIs automatizadas por cron
 
-### ✅ Totalmente Automatizado
-- **Scraping**: 7 scrapers se ejecutan automáticamente todos los días via Vercel Cron
-- **Procesamiento**: Normalización, geocodificación y clasificación automáticas
-- **Deduplicación**: Automática (Dice coefficient)
-- **Clasificación IA**: Automática (GPT-4o-mini)
-- **Eventos pasados**: Marcado automático
-- **Reclasificación**: Automática para eventos "otro"
+Estas rutas son disparadas automáticamente por Vercel Cron y protegidas con secret / locks:
 
-### 🤖 Automatizado con Intervención
-- **Publicación de eventos**: Requiere revisión manual por admin
-- **Limpieza de datos**: Revisión manual periódica
+- `/api/scrape/redtickets`
+- `/api/scrape/entraste`
+- `/api/scrape/cobraticket`
+- `/api/scrape/ticketfacil`
+- `/api/scrape/cartelera`
+- `/api/scrape/mvd-eventos`
+- `/api/scrape/mientrada`
+- `/api/scrape/process`
+- `/api/scrape/mark-past`
+- `/api/scrape/reclassify-otros`
+- `/api/cron/newsletter`
 
 ---
 
-*Fin del análisis.*
+## 8. Cron jobs actuales
+
+| Hora UTC | Ruta | Función |
+|----------|------|---------|
+| 12:00 | `/api/cron/newsletter` | Newsletter diaria/semanal |
+| 14:00 | `/api/scrape/redtickets` | Scraping RedTickets |
+| 15:00 | `/api/scrape/entraste` | Scraping Entraste |
+| 15:30 | `/api/scrape/cobraticket` | Scraping CobraTicket |
+| 15:45 | `/api/scrape/ticketfacil` | Scraping TicketFacil |
+| 16:00 | `/api/scrape/cartelera` | Scraping Cartelera |
+| 16:15 | `/api/scrape/mvd-eventos` | Scraping MVD Eventos |
+| 16:30 | `/api/scrape/mientrada` | Scraping MiEntrada |
+| 17:00 | `/api/scrape/process` | Procesamiento de `raw_events` |
+| 17:30 | `/api/scrape/reclassify-otros` | Reintento IA para `otro` |
+| 03:00 | `/api/scrape/mark-past` | Marcar eventos pasados |
+
+**Referencia Uruguay:** normalmente UTC-3.
+
+---
+
+## 9. Modelo de datos importante
+
+### `raw_events`
+
+Es la bandeja de entrada cruda del sistema.
+
+No está pensada para mostrarla al usuario final.
+
+### `events`
+
+Es la tabla limpia/final.
+
+Campos clave:
+
+- `name`
+- `slug`
+- `description`
+- `date`
+- `startTime`, `endTime`
+- `venueName`, `venueAddress`
+- `latitude`, `longitude`
+- `city` y `department`
+- `eventType`, `musicGenre`
+- `priceMin`, `priceMax`, `currency`, `isFree`
+- `confidenceScore`
+- `viewCount`
+- `isRecurring`
+- `status`
+
+### `event_sources`
+
+Relaciona cada evento final con los raw events que contribuyeron a crearlo o enriquecerlo.
+
+Esto es importante para trazabilidad y merge entre múltiples fuentes.
+
+---
+
+## 10. Eventos recurrentes: estado actual
+
+Este es uno de los temas más importantes hoy.
+
+### 10.1 Cómo se detectan
+
+La recurrencia se detecta con reglas de texto en `classifier.ts`.
+
+Se marcan como recurrentes cuando aparecen patrones claros como:
+
+- “todos los días”
+- “todo el año”
+- “lunes a viernes”
+- “sábado y domingo”
+- “cada jueves”
+- “todos los fines de semana”
+
+La detección mira:
+
+- nombre,
+- descripción,
+- y también `dateText` original del scraper.
+
+Esto es clave porque a veces la recurrencia está en el texto crudo de fecha y no en el nombre.
+
+### 10.2 Cómo se guardan hoy
+
+Un evento recurrente **no se guarda en varias filas, una por cada día**.
+
+Hoy se guarda como:
+
+- **una sola fila** en `events`,
+- con `isRecurring = true`,
+- y con una fecha almacenada que suele ser la fecha parseada / primera fecha útil disponible.
+
+O sea: la fecha sigue existiendo, pero para los recurrentes **no se usa como “única verdad” de visibilidad**.
+
+### 10.3 Cómo se muestran
+
+En varias queries del sistema, los recurrentes se incluyen aunque la fecha exacta no coincida.
+
+Ejemplo real:
+
+- en home, `getEventsByDate(date)` incluye `events.date = date` **o** `isRecurring = true`.
+
+Por eso:
+
+- un evento normal aparece solo en su fecha,
+- un evento recurrente puede aparecer todos los días o en varias vistas aunque su fecha guardada sea otra.
+
+### 10.4 Cómo se deduplican
+
+Los eventos normales se comparan contra otros del mismo día y departamento.
+
+Los recurrentes se comparan distinto:
+
+- **ignoran la fecha**,
+- buscan coincidencias por nombre + venue en el mismo departamento,
+- justamente para no crear duplicados nuevos en cada scrape.
+
+### 10.5 Cómo se comportan en otras partes del sistema
+
+- `mark-past` **no** marca como pasados a los recurrentes.
+- En home se separan en una sección propia.
+- En `/proximos` se separan por cada grupo mostrado.
+- En el mapa se pueden ocultar con un toggle.
+- `getTrendingEvents()` excluye recurrentes para no mezclar “lo que pasa hoy” con “lo que existe siempre”.
+
+### 10.6 Limitación actual
+
+El sistema hoy sabe decir:
+
+- “esto es recurrente”
+
+pero **no sabe modelar con precisión**:
+
+- qué días exactos se repite,
+- desde cuándo hasta cuándo,
+- si aplica solo fines de semana,
+- si tiene excepciones,
+- cuál es su próxima ocurrencia real.
+
+En otras palabras: hoy la recurrencia es un **booleano útil para mostrar**, no una agenda completa.
+
+---
+
+## 11. Posibles mejoras para recurrentes
+
+Si se quiere mejorar este tema, lo natural sería pasar de un modelo simple (`isRecurring`) a uno más rico.
+
+### Mejora mínima razonable
+
+Agregar campos como:
+
+- `recurrenceType` (`daily`, `weekly`, `weekends`, `custom`)
+- `recurrenceDays` (ej. `['jueves', 'viernes']`)
+- `recurrenceTextOriginal`
+- `validFrom`
+- `validUntil`
+
+### Mejora intermedia
+
+Guardar además:
+
+- `nextOccurrenceDate`
+- `lastSeenAt`
+- `isAlwaysAvailable`
+
+### Mejora más sólida
+
+Separar:
+
+- **evento base**
+- y **ocurrencias**
+
+Ejemplo conceptual:
+
+- una tabla `events` para la identidad del evento,
+- una tabla `event_occurrences` para cada fecha concreta.
+
+Eso permitiría:
+
+- listar realmente solo los días correctos,
+- no mostrar un recurrente donde no corresponde,
+- manejar cancelaciones puntuales,
+- distinguir mejor un ciclo semanal de uno permanente.
+
+### Trade-off
+
+El modelo actual es simple, barato y útil.
+
+El modelo con ocurrencias sería más correcto, pero también más complejo para:
+
+- scrapers,
+- normalización,
+- deduplicación,
+- queries,
+- admin,
+- newsletters.
+
+---
+
+## 12. Newsletter y suscripciones
+
+### Newsletter
+
+`/api/cron/newsletter`:
+
+- envía **weekly** los jueves para viernes-sábado-domingo,
+- envía **daily** todos los días para mañana,
+- filtra eventos por preferencias del suscriptor,
+- usa locks para evitar ejecuciones duplicadas.
+
+### Suscriptores
+
+El usuario puede elegir:
+
+- departamentos,
+- tipos de evento,
+- frecuencia diaria o semanal.
+
+---
+
+## 13. Seguridad y control operativo
+
+- Rate limit en APIs públicas.
+- Rate limit específico para submissions, subscriptions, trending y views.
+- Honeypots en formularios.
+- Cron protegido por secret.
+- Locks distribuidos para evitar ejecuciones simultáneas.
+- Sanitización de respuestas públicas para no exponer campos internos.
+
+---
+
+## 14. Scripts de mantenimiento
+
+Además del flujo automático, el proyecto tiene scripts para:
+
+- re-scrapear,
+- revisar edge cases,
+- corregir departamentos,
+- arreglar duplicados,
+- ajustar recurrentes,
+- re-geocodificar,
+- verificar datos.
+
+Los más ligados a recurrencia hoy son:
+
+- `fix-recurring-events.mjs`
+- `fix-recurring-duplicates.mjs`
+- `fix-duplicates-and-recurring.mjs`
+
+---
+
+## 15. Estado general del sistema
+
+### Lo que está sólido
+
+- arquitectura en capas clara,
+- scrapers separados por fuente,
+- uso de `raw_events` como buffer seguro,
+- pipeline centralizado,
+- deduplicación razonable,
+- soporte de geolocalización y mapa,
+- ranking de vistas con Redis,
+- newsletters con preferencias,
+- buena base para admin y automatización.
+
+### Lo que hoy merece más atención
+
+- modelado más rico de eventos recurrentes,
+- consolidación final del campo `department` frente al legado de `city`,
+- mayor precisión de ocurrencias futuras en eventos no únicos,
+- observabilidad de errores por fuente,
+- tests automáticos para parsing y recurrencia.
+
+---
+
+## 16. Resumen ejecutivo
+
+DondeEsHoy hoy funciona como un **agregador automatizado de eventos de Uruguay** con:
+
+- scraping diario,
+- procesamiento centralizado,
+- publicación pública optimizada,
+- ranking por interacción,
+- newsletters segmentadas,
+- y panel admin.
+
+El sistema ya resuelve bien el caso principal de eventos únicos.
+
+En cambio, los **eventos recurrentes** hoy están resueltos con un enfoque práctico: se detectan y se muestran como recurrentes, pero todavía no se modelan como calendario completo de ocurrencias. Ese es probablemente el mejor candidato a mejora estructural si se busca subir precisión sin depender tanto de heurísticas.
