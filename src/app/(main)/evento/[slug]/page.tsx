@@ -4,6 +4,7 @@ import { getEventBySlug } from "@/lib/queries";
 import { EventDetail } from "@/components/events/event-detail";
 import { ViewTracker } from "@/components/events/view-tracker";
 import { siteConfig } from "@/config/site";
+import { EVENT_TYPE_LABELS } from "@/types/events";
 import type { Metadata } from "next";
 
 interface EventPageProps {
@@ -20,15 +21,18 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const canonicalUrl = `${siteConfig.url}/evento/${slug}`;
 
+  const description = event.description
+    ?? `${event.name} en ${event.venueName}, ${event.department ?? event.city}. ${event.date}.`;
+
   return {
     title: event.name,
-    description: `${event.name} en ${event.venueName} — ${event.date}`,
+    description,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
       title: event.name,
-      description: `${event.name} en ${event.venueName}`,
+      description,
       url: canonicalUrl,
       ...(event.imageUrl && {
         images: [{ url: event.imageUrl, width: 1200, height: 630 }],
@@ -65,28 +69,67 @@ async function EventDetailContent({ slug }: { slug: string }) {
     ? `${event.date}T${event.startTime}`
     : `${event.date}T20:00:00`;
 
+  const endDate = event.endTime
+    ? `${event.date}T${event.endTime}`
+    : undefined;
+
+  const eventDescription = event.description
+    ?? `${event.name} en ${event.venueName}, ${event.department ?? event.city}.`;
+
+  const locationAddress = event.venueAddress
+    ?? `${event.venueName}, ${event.department ?? event.city}, Uruguay`;
+
+  const offers = event.isFree
+    ? {
+        "@type": "Offer" as const,
+        url: event.ticketUrl ?? `${siteConfig.url}/evento/${event.slug}`,
+        priceCurrency: "UYU",
+        price: 0,
+        availability: "https://schema.org/InStock",
+        validFrom: event.createdAt.toISOString(),
+      }
+    : event.ticketUrl
+      ? {
+          "@type": "Offer" as const,
+          url: event.ticketUrl,
+          priceCurrency: event.currency ?? "UYU",
+          ...(event.priceMin != null && { price: event.priceMin }),
+          availability: "https://schema.org/InStock",
+          validFrom: event.createdAt.toISOString(),
+        }
+      : undefined;
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.name,
+    description: eventDescription,
     startDate,
+    ...(endDate && { endDate }),
     eventStatus,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     location: {
       "@type": "Place",
       name: event.venueName,
-      ...(event.venueAddress && { address: event.venueAddress }),
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: event.venueAddress ?? event.venueName,
+        addressLocality: event.department ?? event.city,
+        addressCountry: "UY",
+      },
     },
     ...(event.imageUrl && { image: [event.imageUrl] }),
-    ...(event.ticketUrl && {
-      offers: {
-        "@type": "Offer",
-        url: event.ticketUrl,
-        priceCurrency: event.currency ?? "UYU",
-        ...(event.priceMin != null && { price: event.priceMin }),
-        availability: "https://schema.org/InStock",
-      },
-    }),
+    ...(offers && { offers }),
+    organizer: {
+      "@type": "Organization",
+      name: event.venueName,
+      url: event.ticketUrl ?? `${siteConfig.url}/evento/${event.slug}`,
+    },
+    performer: {
+      "@type": "PerformingGroup",
+      name: event.name,
+    },
+    eventType: EVENT_TYPE_LABELS[event.eventType] ?? event.eventType,
   };
 
   return (

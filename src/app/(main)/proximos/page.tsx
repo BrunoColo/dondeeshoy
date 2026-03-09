@@ -14,6 +14,10 @@ export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export const metadata: Metadata = {
   title: "Próximos eventos",
+  description: "Próximos eventos en Uruguay. Conciertos, ferias, teatro, fiestas y más.",
+  alternates: {
+    canonical: "/proximos",
+  },
 };
 
 interface ProximosPageProps {

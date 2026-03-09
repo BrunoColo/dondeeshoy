@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: `Suscribite — ${siteConfig.name}`,
   description:
     "Recibí los mejores eventos de Uruguay en tu email. Newsletter semanal o diario con eventos filtrados por tus intereses.",
+  alternates: {
+    canonical: "/suscribirse",
+  },
   openGraph: {
     title: `Suscribite — ${siteConfig.name}`,
     description:

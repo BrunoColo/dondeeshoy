@@ -8,6 +8,9 @@ import { EventMapWrapper } from "@/components/events/event-map-wrapper";
 export const metadata: Metadata = {
   title: "Mapa — ¿Dónde es hoy?",
   description: "Encontrá eventos cerca tuyo en el mapa",
+  alternates: {
+    canonical: "/mapa",
+  },
 };
 
 export const revalidate = 3600;

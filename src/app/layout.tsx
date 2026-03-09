@@ -52,16 +52,14 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   keywords: ["eventos", "uruguay", "salidas", "conciertos", "ferias", "teatro", "actividades", "hoy"],
   authors: [{ name: "DondeEsHoy" }],
-  alternates: {
-    canonical: siteConfig.url,
-  },
+
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
       { url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" },
       { url: siteConfig.icon512Path, sizes: "512x512", type: "image/png" },
-      { url: siteConfig.logoPath, sizes: "512x512", type: "image/png" },
     ],
-    shortcut: [{ url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" }],
+    shortcut: [{ url: "/favicon.ico" }],
     apple: [{ url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",

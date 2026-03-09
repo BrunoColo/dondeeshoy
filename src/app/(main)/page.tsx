@@ -6,7 +6,14 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
 import { HomeEventsClient } from "@/components/events/home-events-client";
 import { Zap } from "lucide-react";
+import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export const revalidate = 300; // ISR: revalidate every 5 minutes
 
