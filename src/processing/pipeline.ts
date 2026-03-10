@@ -89,11 +89,16 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
     } catch (error) {
       result.errors += 1;
 
+      // Redact error: only store message (no stack trace with internal paths)
+      const safeMessage = error instanceof Error
+        ? error.message.slice(0, 500)
+        : "Unknown processing error";
+
       await withTransientRetry("set-processing-error", async () =>
         db
           .update(rawEvents)
           .set({
-            processingError: String(error),
+            processingError: safeMessage,
           })
           .where(eq(rawEvents.id, rawEvent.id)),
       );

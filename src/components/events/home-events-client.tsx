@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EventList } from "./event-list";
 import { NearbyButton } from "./nearby-button";
+import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Flame, RotateCw } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
@@ -13,6 +14,9 @@ interface HomeEventsClientProps {
   trending: Event[];
   trendingIds: string[];
   hasFilters: boolean;
+  weekendEvents?: Event[];
+  weekendTotalCount?: number;
+  weekendLabel?: string;
 }
 
 export function HomeEventsClient({
@@ -21,6 +25,9 @@ export function HomeEventsClient({
   trending,
   trendingIds,
   hasFilters,
+  weekendEvents = [],
+  weekendTotalCount = 0,
+  weekendLabel = "",
 }: HomeEventsClientProps) {
   const [sortByDistance, setSortByDistance] = useState(false);
   const { position, loading, error, requestLocation } = useGeolocation();
@@ -85,6 +92,15 @@ export function HomeEventsClient({
             </div>
           )}
         </div>
+      )}
+
+      {/* Weekend preview (Mon–Thu only, when no filters) */}
+      {weekendEvents.length > 0 && !hasFilters && (
+        <WeekendPreview
+          events={weekendEvents}
+          totalCount={weekendTotalCount}
+          weekendLabel={weekendLabel}
+        />
       )}
 
       {/* Recurring / always-available section */}

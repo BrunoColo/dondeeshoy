@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import { escapeHtml } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "onboarding@resend.dev";
@@ -286,7 +287,7 @@ export async function sendNewsletterDigest(
             <div style="flex: 1; min-width: 0;">
               <!-- Event name -->
               <div style="font-size: 14px; font-weight: 600; color: #F8FAFC; margin-bottom: 6px; line-height: 1.4;">
-                ${event.name}
+                ${escapeHtml(event.name)}
               </div>
               <!-- Meta row -->
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -294,7 +295,7 @@ export async function sendNewsletterDigest(
                   ${typeLabel}
                 </span>
                 ${time ? `<span style="font-size: 12px; color: #94A3B8; font-family: monospace;">🕐 ${time}</span>` : ""}
-                <span style="font-size: 12px; color: #94A3B8;">📍 ${event.venueName}</span>
+                <span style="font-size: 12px; color: #94A3B8;">📍 ${escapeHtml(event.venueName)}</span>
               </div>
               <!-- Price -->
               <div style="margin-top: 6px; font-size: 12px; color: ${event.isFree ? "#34D399" : "#CBD5E1"}; font-weight: 600;">

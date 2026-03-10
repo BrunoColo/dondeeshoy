@@ -208,7 +208,7 @@ export function Header() {
 
         {/* Desktop: Search — always visible inline bar */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <div className="relative w-[240px] lg:w-[300px]">
+          <div className="relative w-[260px] lg:w-[340px] xl:w-[400px]">
             <Search
               className={cn(
                 "absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200",

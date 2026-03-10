@@ -5,6 +5,7 @@ import { events } from "@/lib/db/schema/events";
 import { eq, and, gte, lte, asc, desc, sql, ilike, or, isNotNull, inArray } from "drizzle-orm";
 import type { EventType, EventFilters } from "@/types/events";
 import { DEPARTMENT_BOUNDS, type UruguayDepartment } from "@/processing/department-detector";
+import { escapeLikePattern } from "@/lib/utils";
 
 /* ─── Columns used by list/card views (skip heavy/unused fields) ─── */
 const listColumns = {
@@ -106,7 +107,7 @@ function buildFilterConditions(filters?: EventFilters) {
     conditions.push(eq(events.isRecurring, false));
   }
   if (filters?.q && filters.q.trim().length > 0) {
-    const query = filters.q.trim();
+    const query = escapeLikePattern(filters.q.trim());
     const pattern = `%${query}%`;
     conditions.push(
       or(
@@ -447,6 +448,44 @@ export async function getEventsWithCoordinates(date?: string) {
     .from(events)
     .where(and(...conditions))
     .orderBy(asc(events.date), asc(events.startTime));
+}
+
+/**
+ * Get the top-ranked weekend events (non-recurring) for the preview section.
+ * Only useful Monday–Thursday; callers should check the day before invoking.
+ */
+export async function getWeekendHighlights(weekendStart: string, weekendEnd: string, limit: number = 6) {
+  return db
+    .select(listColumns)
+    .from(events)
+    .where(
+      and(
+        activeStatus,
+        gte(events.date, weekendStart),
+        lte(events.date, weekendEnd),
+        eq(events.isRecurring, false),
+      ),
+    )
+    .orderBy(desc(rankingScore), asc(events.date), asc(events.startTime))
+    .limit(limit);
+}
+
+/**
+ * Count weekend events (non-recurring) for the preview badge.
+ */
+export async function getWeekendEventCount(weekendStart: string, weekendEnd: string) {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(events)
+    .where(
+      and(
+        activeStatus,
+        gte(events.date, weekendStart),
+        lte(events.date, weekendEnd),
+        eq(events.isRecurring, false),
+      ),
+    );
+  return Number(result[0]?.count ?? 0);
 }
 
 /* ─── Helpers ─── */

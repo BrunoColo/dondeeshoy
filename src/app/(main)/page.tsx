@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { getEventsByDate, getFilterOptions, getHourlyTrendingEvents } from "@/lib/queries";
-import { getTodayUY, formatDateES } from "@/lib/format";
+import { getEventsByDate, getFilterOptions, getHourlyTrendingEvents, getWeekendHighlights, getWeekendEventCount } from "@/lib/queries";
+import { getTodayUY, formatDateES, getWeekendDatesUY, getDayOfWeekUY } from "@/lib/format";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
@@ -47,11 +47,18 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
 
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free || filters.night);
 
-  // Fetch events + filter options + trending in parallel (3 queries instead of 5)
-  const [allEvents, filterOptions, trending] = await Promise.all([
+  // Check if we should show the weekend preview (Mon-Thu only)
+  const dayOfWeek = getDayOfWeekUY(); // 0=Sun, 6=Sat
+  const showWeekendPreview = dayOfWeek >= 1 && dayOfWeek <= 4; // Mon-Thu
+  const weekend = showWeekendPreview ? getWeekendDatesUY() : null;
+
+  // Fetch events + filter options + trending + weekend in parallel
+  const [allEvents, filterOptions, trending, weekendEvents, weekendCount] = await Promise.all([
     getEventsByDate(today, filters),
     getFilterOptions(today),
     hasFilters ? Promise.resolve([]) : getHourlyTrendingEvents(today, 3),
+    weekend ? getWeekendHighlights(weekend.start, weekend.end, 6) : Promise.resolve([]),
+    weekend ? getWeekendEventCount(weekend.start, weekend.end) : Promise.resolve(0),
   ]);
 
   // Separate recurring (daily/weekly) from unique (one-time) events
@@ -62,6 +69,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
 
   // Build set of trending IDs for badge display
   const trendingIds = trending.map((e) => e.id);
+
+  // Build weekend label
+  const weekendLabel = weekend
+    ? `${formatDateES(weekend.start).split(" ").slice(1).join(" ")} — ${formatDateES(weekend.end).split(" ").slice(1).join(" ")}`
+    : "";
 
   return (
     <>
@@ -127,13 +139,16 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
         />
       </div>
 
-      {/* Client wrapper: Nearby button + Trending + Events + Recurring */}
+      {/* Client wrapper: Nearby button + Trending + Events + Weekend Preview + Recurring */}
       <HomeEventsClient
         events={events}
         recurringEvents={recurringEvents}
         trending={trending}
         trendingIds={trendingIds}
         hasFilters={hasFilters}
+        weekendEvents={weekendEvents}
+        weekendTotalCount={weekendCount}
+        weekendLabel={weekendLabel}
       />
 
       {/* Global empty state only when there are truly no events at all */}

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import { escapeHtml } from "@/lib/utils";
 import type { NewEventSubmission } from "@/lib/db/schema";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@dondeeshoy.com";
@@ -31,7 +32,7 @@ export async function notifyNewSubmission(
     ? `${supabaseUrl.replace(".supabase.co", ".supabase.co")}/project/default/editor`
     : "https://supabase.com";
 
-  const isFreeLabel = submission.isFree ? "✅ Gratis" : `💰 ${submission.priceRange ?? "Pago"}`;
+  const isFreeLabel = submission.isFree ? "✅ Gratis" : `💰 ${escapeHtml(submission.priceRange ?? "Pago")}`;
 
   const html = `
 <!DOCTYPE html>
@@ -40,26 +41,26 @@ export async function notifyNewSubmission(
 <body style="font-family: sans-serif; background: #0f0f13; color: #e2e8f0; padding: 24px; max-width: 600px; margin: 0 auto;">
   <div style="background: #1a1a2e; border: 1px solid #7c3aed33; border-radius: 12px; padding: 24px;">
     <h1 style="color: #a855f7; font-size: 20px; margin: 0 0 4px;">🎉 Nueva solicitud de evento</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 24px;">ID: <code style="background:#ffffff10; padding: 2px 6px; border-radius: 4px;">${submission.id}</code></p>
+    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 24px;">ID: <code style="background:#ffffff10; padding: 2px 6px; border-radius: 4px;">${escapeHtml(submission.id)}</code></p>
 
     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <tr><td style="padding: 8px 0; color: #94a3b8; width: 140px;">Evento</td><td style="padding: 8px 0; font-weight: bold;">${submission.eventName}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Fecha</td><td style="padding: 8px 0;">${submission.eventDate}${submission.eventTime ? ` a las ${submission.eventTime}` : ""}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Tipo</td><td style="padding: 8px 0; text-transform: capitalize;">${submission.eventType}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Venue</td><td style="padding: 8px 0;">${submission.venueName}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Dirección</td><td style="padding: 8px 0;">${submission.venueAddress}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Ciudad</td><td style="padding: 8px 0;">${submission.city}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8; width: 140px;">Evento</td><td style="padding: 8px 0; font-weight: bold;">${escapeHtml(submission.eventName)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Fecha</td><td style="padding: 8px 0;">${escapeHtml(submission.eventDate)}${submission.eventTime ? ` a las ${escapeHtml(submission.eventTime)}` : ""}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Tipo</td><td style="padding: 8px 0; text-transform: capitalize;">${escapeHtml(submission.eventType)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Venue</td><td style="padding: 8px 0;">${escapeHtml(submission.venueName)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Dirección</td><td style="padding: 8px 0;">${escapeHtml(submission.venueAddress)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Ciudad</td><td style="padding: 8px 0;">${escapeHtml(submission.city)}</td></tr>
       <tr><td style="padding: 8px 0; color: #94a3b8;">Entradas</td><td style="padding: 8px 0;">${isFreeLabel}</td></tr>
-      ${submission.ticketUrl ? `<tr><td style="padding: 8px 0; color: #94a3b8;">Link tickets</td><td style="padding: 8px 0;"><a href="${submission.ticketUrl}" style="color: #a855f7;">${submission.ticketUrl}</a></td></tr>` : ""}
-      <tr><td style="padding: 8px 0; color: #94a3b8; vertical-align: top;">Descripción</td><td style="padding: 8px 0;">${submission.description}</td></tr>
+      ${submission.ticketUrl ? `<tr><td style="padding: 8px 0; color: #94a3b8;">Link tickets</td><td style="padding: 8px 0;"><a href="${escapeHtml(submission.ticketUrl)}" style="color: #a855f7;">${escapeHtml(submission.ticketUrl)}</a></td></tr>` : ""}
+      <tr><td style="padding: 8px 0; color: #94a3b8; vertical-align: top;">Descripción</td><td style="padding: 8px 0;">${escapeHtml(submission.description)}</td></tr>
     </table>
 
     <hr style="border: none; border-top: 1px solid #ffffff10; margin: 20px 0;" />
 
     <h2 style="color: #e2e8f0; font-size: 15px; margin: 0 0 12px;">Contacto</h2>
     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <tr><td style="padding: 6px 0; color: #94a3b8; width: 140px;">Nombre</td><td style="padding: 6px 0;">${submission.contactName}</td></tr>
-      <tr><td style="padding: 6px 0; color: #94a3b8;">Email</td><td style="padding: 6px 0;"><a href="mailto:${submission.contactEmail}" style="color: #a855f7;">${submission.contactEmail}</a></td></tr>
+      <tr><td style="padding: 6px 0; color: #94a3b8; width: 140px;">Nombre</td><td style="padding: 6px 0;">${escapeHtml(submission.contactName)}</td></tr>
+      <tr><td style="padding: 6px 0; color: #94a3b8;">Email</td><td style="padding: 6px 0;"><a href="mailto:${escapeHtml(submission.contactEmail)}" style="color: #a855f7;">${escapeHtml(submission.contactEmail)}</a></td></tr>
     </table>
 
     <div style="margin-top: 24px; text-align: center;">
@@ -76,7 +77,7 @@ export async function notifyNewSubmission(
   await getResend().emails.send({
     from: FROM_EMAIL,
     to: ADMIN_EMAIL,
-    subject: `[Nueva solicitud] ${submission.eventName} — ${submission.eventDate}`,
+    subject: `[Nueva solicitud] ${submission.eventName.slice(0, 100)} — ${submission.eventDate}`,
     html,
   });
 }

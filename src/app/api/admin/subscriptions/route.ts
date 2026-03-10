@@ -3,6 +3,7 @@ import { verifyCookie } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { emailSubscribers } from "@/lib/db/schema/subscribers";
 import { desc, sql, ilike, eq } from "drizzle-orm";
+import { escapeLikePattern } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const isAuthenticated = await verifyCookie();
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const whereClause = search
-      ? ilike(emailSubscribers.email, `%${search}%`)
+      ? ilike(emailSubscribers.email, `%${escapeLikePattern(search)}%`)
       : undefined;
 
     const [subscribers, [{ count }]] = await Promise.all([

@@ -91,6 +91,15 @@ export function getWeekendDatesUY(): { start: string; end: string } {
 }
 
 /**
+ * Get the current day of the week in UY timezone (0=Sun, 6=Sat)
+ */
+export function getDayOfWeekUY(): number {
+  const now = new Date();
+  const uyDate = new Date(now.toLocaleString("en-US", { timeZone: UY_TIMEZONE }));
+  return uyDate.getDay();
+}
+
+/**
  * Get the current time in UY as { hours, minutes }
  */
 export function getNowUY(): { hours: number; minutes: number } {
