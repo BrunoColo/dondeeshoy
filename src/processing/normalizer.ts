@@ -231,6 +231,31 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
     return { date, startTime, wasFallback: false };
   }
 
+  // Try DD/MM format without year (common in RedTickets labels like 11/03)
+  const ddmmNoYearMatch = value.match(/(\d{1,2})[/\-.](\d{1,2})(?![/\-.]\d)/);
+  if (ddmmNoYearMatch) {
+    const day = Number.parseInt(ddmmNoYearMatch[1], 10);
+    const month = Number.parseInt(ddmmNoYearMatch[2], 10);
+
+    let year = now.getFullYear();
+    const candidate = new Date(Date.UTC(year, month - 1, day));
+    const daysDiff = (candidate.getTime() - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000;
+
+    if (daysDiff < -30) {
+      year += 1;
+    }
+
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+    let startTime: string | null = null;
+    if (timeMatch) {
+      const hour = Number.parseInt(timeMatch[1], 10);
+      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    }
+    return { date, startTime, wasFallback: false };
+  }
+
   // Try YYYY-MM-DD format
   const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {

@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
+import { decode } from "html-entities";
 
 import { scraperConfig } from "@/config/scraper-config";
 
@@ -971,7 +972,8 @@ export class RedTicketsScraper extends BaseScraper {
 
     if (gxStateValue) {
       try {
-        const state = JSON.parse(gxStateValue) as Record<string, unknown>;
+        const decodedState = decode(gxStateValue);
+        const state = JSON.parse(decodedState) as Record<string, unknown>;
         // Find the key that ends with vPURCHASEOPTIONSRESPONSE
         // (the prefix varies: W0013, W0014, etc.)
         const purchaseKey = Object.keys(state).find((k) =>

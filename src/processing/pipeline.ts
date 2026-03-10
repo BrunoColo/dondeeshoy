@@ -30,6 +30,14 @@ type EventClassification = {
   typeAuthority: ClassificationAuthority;
 };
 
+type LinkedEventCandidate = {
+  id: string;
+  status: "active" | "cancelled" | "past";
+  isRecurring: boolean;
+  startTime: string | null;
+  updatedAt: Date;
+};
+
 export async function runProcessingPipeline(batchSize = 50): Promise<PipelineResult> {
   const pendingRawEvents = await withTransientRetry("pending-raw-events", async () =>
     db
@@ -319,6 +327,29 @@ async function processRawEvent(
 
   const confidenceScore = calculateConfidenceScore(enriched);
 
+  const linkedEventId = await findLinkedEventIdForRawEvent(rawEvent.id, isRecurring);
+
+  if (linkedEventId) {
+    await mergeEventData(linkedEventId, enriched, {
+      source: rawEvent.source,
+      classification,
+      confidenceScore,
+      isRecurring,
+    });
+
+    await withTransientRetry("mark-processed", async () =>
+      db
+        .update(rawEvents)
+        .set({
+          processed: true,
+          processingError: null,
+        })
+        .where(eq(rawEvents.id, rawEvent.id)),
+    );
+
+    return usedAi ? "merged+ai" : "merged";
+  }
+
   const duplicateEventId = await findDuplicateEventId(enriched, {
     isRecurring,
   });
@@ -330,6 +361,7 @@ async function processRawEvent(
       source: rawEvent.source,
       classification,
       confidenceScore,
+      isRecurring,
     });
   }
 
@@ -455,6 +487,7 @@ async function mergeEventData(
       typeAuthority: "heuristic" | "source" | "ai";
     };
     confidenceScore: string;
+    isRecurring: boolean;
   },
 ): Promise<void> {
   const existingRows = await withTransientRetry("load-existing-event", async () =>
@@ -474,6 +507,7 @@ async function mergeEventData(
         longitude: events.longitude,
         city: events.city,
         department: events.department,
+        isRecurring: events.isRecurring,
         eventType: events.eventType,
         confidenceScore: events.confidenceScore,
       })
@@ -577,6 +611,10 @@ async function mergeEventData(
     updates.department = normalized.city;
   }
 
+  if (incoming.isRecurring && existing.isRecurring !== true) {
+    updates.isRecurring = true;
+  }
+
   // ── eventType: update when the incoming classification is more confident ──
   // "otro" is the lowest-confidence catch-all type. If the existing event is
   // "otro" and the incoming source has a real type, upgrade it.
@@ -609,6 +647,45 @@ async function mergeEventData(
   await withTransientRetry("update-merged-event", async () =>
     db.update(events).set(updates).where(eq(events.id, eventId)),
   );
+}
+
+async function findLinkedEventIdForRawEvent(rawEventId: string, incomingIsRecurring: boolean): Promise<string | null> {
+  const linkedRows = await withTransientRetry("load-linked-event", async () =>
+    db
+      .select({
+        id: events.id,
+        status: events.status,
+        isRecurring: events.isRecurring,
+        startTime: events.startTime,
+        updatedAt: events.updatedAt,
+      })
+      .from(eventSources)
+      .innerJoin(events, eq(eventSources.eventId, events.id))
+      .where(eq(eventSources.rawEventId, rawEventId)),
+  );
+
+  if (linkedRows.length === 0) return null;
+
+  const ranked = linkedRows
+    .slice()
+    .sort((left: LinkedEventCandidate, right: LinkedEventCandidate) => {
+      const leftScore = scoreLinkedEventCandidate(left, incomingIsRecurring);
+      const rightScore = scoreLinkedEventCandidate(right, incomingIsRecurring);
+
+      if (leftScore !== rightScore) return rightScore - leftScore;
+      return right.updatedAt.getTime() - left.updatedAt.getTime();
+    });
+
+  return ranked[0]?.id ?? null;
+}
+
+function scoreLinkedEventCandidate(candidate: LinkedEventCandidate, incomingIsRecurring: boolean): number {
+  let score = 0;
+  if (candidate.status === "active") score += 4;
+  if (candidate.startTime) score += 2;
+  if (candidate.isRecurring === incomingIsRecurring) score += 3;
+  if (candidate.isRecurring) score += 1;
+  return score;
 }
 
 function isPlaceholderVenue(value: string | null): boolean {
