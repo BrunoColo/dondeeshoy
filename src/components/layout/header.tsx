@@ -1,17 +1,41 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { EVENT_TYPE_LABELS, type EventType } from "@/types/events";
 import { Search, X } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { HEADER_NAV_ITEMS } from "@/config/navigation";
 
+interface SearchSuggestion {
+  id: string;
+  slug: string;
+  name: string;
+  date: string;
+  venueName: string;
+  eventType: EventType;
+}
+
+function formatSuggestionDate(date: string) {
+  try {
+    return new Intl.DateTimeFormat("es-UY", {
+      day: "numeric",
+      month: "short",
+    }).format(new Date(`${date}T00:00:00`));
+  } catch {
+    return date;
+  }
+}
+
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -23,6 +47,51 @@ export function Header() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const query = searchValue.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      setIsLoadingSuggestions(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsLoadingSuggestions(true);
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Search suggestions failed: ${response.status}`);
+        }
+
+        const data = (await response.json()) as { suggestions?: SearchSuggestion[] };
+        setSuggestions(data.suggestions ?? []);
+        setHighlightedIndex(-1);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error("[header] Failed to load search suggestions", error);
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchValue]);
 
   // Sync search input with URL param
   useEffect(() => {
@@ -44,6 +113,8 @@ export function Header() {
 
   const submitSearch = useCallback(
     (value: string) => {
+      setSuggestions([]);
+      setHighlightedIndex(-1);
       const params = new URLSearchParams(searchParams.toString());
       if (value.trim()) {
         params.set("q", value.trim());
@@ -57,20 +128,142 @@ export function Header() {
     [router, pathname, searchParams],
   );
 
+  const navigateToSuggestion = useCallback(
+    (suggestion: SearchSuggestion) => {
+      setSuggestions([]);
+      setHighlightedIndex(-1);
+      setSearchOpen(false);
+      setSearchFocused(false);
+      setSearchValue(suggestion.name);
+      router.push(`/evento/${suggestion.slug}`);
+    },
+    [router],
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") submitSearch(searchValue);
-    if (e.key === "Escape") closeSearch();
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (suggestions.length === 0) return;
+      setHighlightedIndex((prev) => (prev + 1) % suggestions.length);
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (suggestions.length === 0) return;
+      setHighlightedIndex((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+        navigateToSuggestion(suggestions[highlightedIndex]);
+        return;
+      }
+      submitSearch(searchValue);
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (searchValue.trim() || suggestions.length > 0) {
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+      } else {
+        closeSearch();
+      }
+    }
   };
 
   const closeSearch = () => {
     setSearchOpen(false);
     setSearchValue("");
+    setSearchFocused(false);
+    setSuggestions([]);
+    setHighlightedIndex(-1);
+    setIsLoadingSuggestions(false);
     const params = new URLSearchParams(searchParams.toString());
     if (params.has("q")) {
       params.delete("q");
       const qs = params.toString();
       router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     }
+  };
+
+  const showSuggestions = searchFocused && searchValue.trim().length >= 2;
+
+  const renderSuggestions = (isMobile: boolean) => {
+    if (!showSuggestions) return null;
+
+    return (
+      <div
+        className={cn(
+          "absolute left-0 right-0 top-[calc(100%+0.55rem)] z-[70] overflow-hidden rounded-[24px] border border-white/[0.14] bg-[rgba(6,8,18,0.96)] backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.45)]",
+          isMobile ? "max-h-[65vh]" : "max-h-[28rem]",
+        )}
+      >
+        <div className="border-b border-white/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7DD3FC]">
+          Sugerencias rápidas
+        </div>
+
+        {isLoadingSuggestions ? (
+          <div className="px-4 py-4 text-sm text-[#A8B8CC]">Buscando eventos…</div>
+        ) : suggestions.length > 0 ? (
+          <ul className="max-h-[inherit] overflow-y-auto py-2">
+            {suggestions.map((suggestion, index) => {
+              const isActive = index === highlightedIndex;
+
+              return (
+                <li key={suggestion.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => navigateToSuggestion(suggestion)}
+                    className={cn(
+                      "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-150",
+                      isActive
+                        ? "bg-[linear-gradient(135deg,rgba(13,148,136,0.18),rgba(99,102,241,0.18))]"
+                        : "hover:bg-white/[0.06]",
+                    )}
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.05] text-[#8B5CF6]">
+                      <Search className="h-4 w-4" strokeWidth={2} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-white">{suggestion.name}</div>
+                      <div className="mt-1 truncate text-xs text-[#9FB0C4]">{suggestion.venueName}</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[#C4D0E0]">
+                        <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2 py-0.5">
+                          {EVENT_TYPE_LABELS[suggestion.eventType]}
+                        </span>
+                        <span>{formatSuggestionDate(suggestion.date)}</span>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="px-4 py-4 text-sm text-[#A8B8CC]">
+            No encontré coincidencias directas. Probá Enter para ver todos los resultados.
+          </div>
+        )}
+
+        <div className="border-t border-white/[0.08] p-2">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => submitSearch(searchValue)}
+            className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-[#D7E3F3] transition-colors hover:bg-white/[0.06]"
+          >
+            <span className="truncate">Ver todos los resultados para “{searchValue.trim()}”</span>
+            <span className="shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#7DD3FC]">Enter</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -100,9 +293,12 @@ export function Header() {
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
                 placeholder="Buscar eventos…"
                 className="w-full rounded-full bg-[rgba(4,4,12,0.85)] border border-white/[0.18] pl-10 pr-4 py-2.5 text-[14px] text-foreground placeholder:text-[#8A9BB0] focus:outline-none focus:border-accent/50 focus:shadow-[0_0_16px_rgba(13,148,136,0.25)] transition-all duration-200"
               />
+              {renderSuggestions(true)}
             </div>
             {searchValue.trim().length > 0 && (
               <button
@@ -223,7 +419,7 @@ export function Header() {
               onChange={(e) => setSearchValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
               placeholder="Buscar eventos, artistas…"
               className="w-full rounded-full pl-10 pr-10 py-2 text-[13px] text-foreground placeholder:text-[#8A9BB0] focus:outline-none transition-all duration-200"
               style={{
@@ -262,6 +458,7 @@ export function Header() {
                 ⌘K
               </span>
             ) : null}
+            {renderSuggestions(false)}
           </div>
         </div>
 

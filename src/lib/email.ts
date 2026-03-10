@@ -33,6 +33,7 @@ export async function notifyNewSubmission(
     : "https://supabase.com";
 
   const isFreeLabel = submission.isFree ? "✅ Gratis" : `💰 ${escapeHtml(submission.priceRange ?? "Pago")}`;
+  const eventTypeLabel = escapeHtml(submission.eventType ?? "otro");
 
   const html = `
 <!DOCTYPE html>
@@ -46,7 +47,7 @@ export async function notifyNewSubmission(
     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
       <tr><td style="padding: 8px 0; color: #94a3b8; width: 140px;">Evento</td><td style="padding: 8px 0; font-weight: bold;">${escapeHtml(submission.eventName)}</td></tr>
       <tr><td style="padding: 8px 0; color: #94a3b8;">Fecha</td><td style="padding: 8px 0;">${escapeHtml(submission.eventDate)}${submission.eventTime ? ` a las ${escapeHtml(submission.eventTime)}` : ""}</td></tr>
-      <tr><td style="padding: 8px 0; color: #94a3b8;">Tipo</td><td style="padding: 8px 0; text-transform: capitalize;">${escapeHtml(submission.eventType)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #94a3b8;">Tipo</td><td style="padding: 8px 0; text-transform: capitalize;">${eventTypeLabel}</td></tr>
       <tr><td style="padding: 8px 0; color: #94a3b8;">Venue</td><td style="padding: 8px 0;">${escapeHtml(submission.venueName)}</td></tr>
       <tr><td style="padding: 8px 0; color: #94a3b8;">Dirección</td><td style="padding: 8px 0;">${escapeHtml(submission.venueAddress)}</td></tr>
       <tr><td style="padding: 8px 0; color: #94a3b8;">Ciudad</td><td style="padding: 8px 0;">${escapeHtml(submission.city)}</td></tr>

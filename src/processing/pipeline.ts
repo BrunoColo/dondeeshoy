@@ -22,6 +22,14 @@ export interface PipelineResult {
   aiClassified: number;
 }
 
+type ClassificationAuthority = "heuristic" | "source" | "ai";
+
+type EventClassification = {
+  eventType: ReturnType<typeof classifyEvent>["eventType"];
+  musicGenre: string | null;
+  typeAuthority: ClassificationAuthority;
+};
+
 export async function runProcessingPipeline(batchSize = 50): Promise<PipelineResult> {
   const pendingRawEvents = await withTransientRetry("pending-raw-events", async () =>
     db
@@ -279,10 +287,10 @@ async function processRawEvent(
     dateText: recurrenceHintText,
     isRecurringHint,
   });
-  let classification = {
+  let classification: EventClassification = {
     eventType: heuristic.eventType,
     musicGenre: heuristic.musicGenre,
-    typeAuthority: (heuristic.fromSourceCategory ? "source" : "heuristic") as "source" | "heuristic",
+    typeAuthority: heuristic.fromSourceCategory ? "source" : "heuristic",
   };
   const isRecurring = heuristic.isRecurring;
 

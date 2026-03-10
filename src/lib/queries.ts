@@ -309,6 +309,61 @@ export async function searchEvents(filters: EventFilters, limit: number = 50, of
     .offset(offset);
 }
 
+export interface SearchSuggestion {
+  id: string;
+  slug: string;
+  name: string;
+  date: string;
+  venueName: string;
+  eventType: EventType;
+}
+
+/**
+ * Lightweight suggestions for the header autocomplete.
+ * Prioritises name matches first, then venue matches, then the composite ranking.
+ */
+export async function getSearchSuggestions(query: string, limit: number = 5): Promise<SearchSuggestion[]> {
+  const normalized = query.trim();
+  if (normalized.length < 2) return [];
+
+  const escaped = escapeLikePattern(normalized);
+  const containsPattern = `%${escaped}%`;
+  const prefixPattern = `${escaped}%`;
+
+  return db
+    .select({
+      id: events.id,
+      slug: events.slug,
+      name: events.name,
+      date: events.date,
+      venueName: events.venueName,
+      eventType: events.eventType,
+    })
+    .from(events)
+    .where(
+      and(
+        activeStatus,
+        or(
+          ilike(events.name, containsPattern),
+          ilike(events.venueName, containsPattern),
+        )!,
+      ),
+    )
+    .orderBy(
+      sql`CASE
+        WHEN ${events.name} ILIKE ${prefixPattern} THEN 0
+        WHEN ${events.name} ILIKE ${containsPattern} THEN 1
+        WHEN ${events.venueName} ILIKE ${prefixPattern} THEN 2
+        ELSE 3
+      END`,
+      desc(rankingScore),
+      asc(events.date),
+      asc(events.startTime),
+      asc(events.name),
+    )
+    .limit(limit);
+}
+
 /**
  * Get trending events (most viewed) for a date — excludes recurring events.
  * Requires at least 3 views to avoid showing barely-seen events as "most searched".
