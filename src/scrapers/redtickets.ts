@@ -36,6 +36,13 @@ interface SearchCardMeta {
   imageUrl: string | null;
 }
 
+interface ExtractedScheduleMeta {
+  dateIso: string | null;
+  startTime: string | null;
+  scheduleCount: number;
+  isRecurringHint: boolean;
+}
+
 /** Safely coerce an unknown value to a number, returning null on failure */
 function toNumber(val: unknown): number | null {
   if (typeof val === "number") return Number.isNaN(val) ? null : val;
@@ -405,6 +412,11 @@ export class RedTicketsScraper extends BaseScraper {
 
     // Extract description from meta tags or page content
     const description = this.extractDescription($);
+    const scheduleMeta = this.extractScheduleMeta(
+      $,
+      html,
+      `${title} ${description ?? ""} ${dateText ?? ""} ${searchDateText ?? ""}`,
+    );
 
     return {
       source: "redtickets",
@@ -416,6 +428,10 @@ export class RedTicketsScraper extends BaseScraper {
         category,
         dateText,
         ...(searchDateText ? { searchDateText } : {}),
+        ...(scheduleMeta.dateIso ? { dateIso: scheduleMeta.dateIso } : {}),
+        ...(scheduleMeta.startTime ? { startTime: scheduleMeta.startTime } : {}),
+        ...(scheduleMeta.scheduleCount > 1 ? { scheduleCount: scheduleMeta.scheduleCount } : {}),
+        ...(scheduleMeta.isRecurringHint ? { isRecurringHint: true } : {}),
         venueText: rtVenueName,
         venueAddress: rtVenueAddress,
         imageUrl: finalImageUrl,
@@ -830,6 +846,112 @@ export class RedTicketsScraper extends BaseScraper {
       return evt?.isFree === true ? true : null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Extract a canonical ISO date/start time from the embedded purchase JSON.
+   * RedTickets often uses captions like event names in the visible date label,
+   * while the GeneXus payload keeps the actual schedule.
+   */
+  private extractScheduleMeta(
+    $: cheerio.CheerioAPI,
+    html: string,
+    contextText: string,
+  ): ExtractedScheduleMeta {
+    const purchaseData = this.extractGxPurchaseResponse($, html);
+    if (!purchaseData) {
+      return {
+        dateIso: null,
+        startTime: null,
+        scheduleCount: 0,
+        isRecurringHint: false,
+      };
+    }
+
+    try {
+      const evt = (purchaseData as Record<string, unknown>).Evt as
+        | Record<string, unknown>
+        | undefined;
+      const dates = evt?.Dates as Array<Record<string, unknown>> | undefined;
+
+      if (!Array.isArray(dates) || dates.length === 0) {
+        return {
+          dateIso: null,
+          startTime: null,
+          scheduleCount: 0,
+          isRecurringHint: false,
+        };
+      }
+
+      const normalizedContext = normalizeWhitespace(contextText);
+      const isOpenEnded =
+        /\bcualquier\s+d[ií]a\b/i.test(normalizedContext) ||
+        /\bcualquier\s+horario\b/i.test(normalizedContext) ||
+        /\b(?:puede\s+ser\s+)?utilizad[oa]\s+en\s+cualquier\s+d[ií]a\b/i.test(normalizedContext) ||
+        /\btodo\s+el\s+a[nñ]o\b/i.test(normalizedContext) ||
+        /\btodos\s+los\s+d[ií]as\b/i.test(normalizedContext);
+
+      const validDates = dates
+        .map((date) => ({
+          dateIso:
+            typeof date.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date.date)
+              ? date.date
+              : null,
+          soldOut: date.soldOut === true,
+          times: Array.isArray(date.Times)
+            ? (date.Times as Array<Record<string, unknown>>)
+            : [],
+        }))
+        .filter(
+          (
+            date,
+          ): date is {
+            dateIso: string;
+            soldOut: boolean;
+            times: Array<Record<string, unknown>>;
+          } => date.dateIso !== null,
+        );
+
+      if (validDates.length === 0) {
+        return {
+          dateIso: null,
+          startTime: null,
+          scheduleCount: 0,
+          isRecurringHint: isOpenEnded,
+        };
+      }
+
+      const today = new Date();
+      const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const futureDates = validDates.filter((date) => date.dateIso >= todayIso);
+      const primaryDate = isOpenEnded
+        ? null
+        : futureDates.find((date) => !date.soldOut) ?? futureDates[0] ?? validDates[0] ?? null;
+
+      let startTime: string | null = null;
+      if (primaryDate) {
+        const firstAvailableTime = primaryDate.times.find((time) => time.soldOut !== true) ?? primaryDate.times[0];
+        const caption = typeof firstAvailableTime?.caption === "string" ? firstAvailableTime.caption : "";
+        const match = caption.match(/(\d{1,2}):(\d{2})/);
+        if (match) {
+          startTime = `${match[1].padStart(2, "0")}:${match[2]}:00`;
+        }
+      }
+
+      return {
+        dateIso: primaryDate?.dateIso ?? null,
+        startTime,
+        scheduleCount: validDates.length,
+        isRecurringHint: isOpenEnded || validDates.length > 1,
+      };
+    } catch {
+      return {
+        dateIso: null,
+        startTime: null,
+        scheduleCount: 0,
+        isRecurringHint: false,
+      };
     }
   }
 

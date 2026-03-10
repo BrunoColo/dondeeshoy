@@ -17,6 +17,8 @@ export interface ClassificationContext {
   genre?: string | null;
   /** Raw dateText from the scraper — used for recurrence detection */
   dateText?: string | null;
+  /** Explicit scraper hint for multi-date or open-ended schedules */
+  isRecurringHint?: boolean;
 }
 
 export type RecurrenceDay =
@@ -261,6 +263,9 @@ const RECURRENCE_YEAR_ROUND_PATTERNS = [
   /\btodos\s+los\s+d[ií]as\s+del\s+a[nñ]o\b/i,
   /\babierto\s+todo\s+el\s+a[nñ]o\b/i,
   /\bprevi[ao]\s+coordinaci[oó]n\b/i,
+  /\bcualquier\s+d[ií]a\b/i,
+  /\bcualquier\s+horario\b/i,
+  /\b(?:puede\s+ser\s+)?utilizad[oa]\s+en\s+cualquier\s+d[ií]a\b/i,
 ];
 const RECURRENCE_DAILY_PATTERNS = [
   /\btodos\s+los\s+d[ií]as\b/i,
@@ -339,6 +344,7 @@ function buildRecurrenceSummary(kind: ParsedRecurrenceInfo["kind"], days: Recurr
   if (kind === "daily") return "Todos los días";
   if (kind === "year-round") return "Todo el año";
   if (kind === "weekend") return "Fines de semana";
+  if (days.length === 0 && extraSchedules > 0) return `${extraSchedules + 1} fechas`;
   if (days.length === 0) return null;
 
   const labels = days.map((day) => day.charAt(0).toUpperCase() + day.slice(1));
@@ -430,9 +436,14 @@ export function parseRecurrenceInfo(text: string | null | undefined): ParsedRecu
     }
   }
 
+  if (confidence === "none" && extraSchedules >= 3) {
+    kind = "range";
+    confidence = "medium";
+  }
+
   const resolvedDays = uniqueRecurrenceDays(days);
   const timeText = extractRecurrenceTimeText(sourceText);
-  const isRecurring = resolvedDays.length > 0 && confidence !== "none";
+  const isRecurring = confidence !== "none" && (resolvedDays.length > 0 || extraSchedules >= 3 || openEnded);
 
   return {
     isRecurring,
@@ -472,6 +483,8 @@ const REJECT_PATTERNS = [
   // Subscription plans
   /\bplan\s+mensual\b/i,
   /\babonos?\s+mensual(es)?\b/i,
+  /\b(?:pase|abono|plan|membres[ií]a|escuela|suscripci[oó]n)\s+anual\b/i,
+  /\bescuela\s+anual\b/i,
   /\bpiscina\b.*\b(abierta|horario|temporada)\b/i,
   // Job postings / classifieds
   /\bse\s+busca\b.*\b(personal|empleado|mozo|cocinero)\b/i,
@@ -486,8 +499,13 @@ const REJECT_PATTERNS = [
   // Pure ads / promos without event
   /\bdescuento\s+\d+%/i,
   /\bpromoci[oó]n\s+(especial|exclusiva|del\s+d[ií]a)\b/i,
+  /\bsuscrib[ií]te\b/i,
+  /\bhac[eé]\s+tu\s+donaci[oó]n\b/i,
+  /^\s*colabor[aá]\s+con\s+/i,
   // Recurring classes / schedules (not one-time events)
   /\bclases?\s+(regulares?|permanentes?|semanales?)\b/i,
+  /\btodos?\s+los\s+talleres?\s+de\s+verano\b/i,
+  /\bsolo\s+asist[íi]\s+en\s+el\s+d[ií]a\s+y\s+horario\s+de\s+la\s+actividad\b/i,
   // Generic placeholder / test entries
   /\bevento\s+de\s+prueba\b/i,
   /\btest\s+event\b/i,
@@ -518,6 +536,10 @@ const REJECT_PATTERNS = [
  * @param extraText - Additional text to check (e.g. rawData.dateText from the scraper)
  */
 export function detectRecurrence(normalized: NormalizedEventInput, extraText?: string | null): boolean {
+  if (extraText && parseRecurrenceInfo(extraText).isRecurring) {
+    return true;
+  }
+
   // Check name, description, AND any extra text (e.g. dateText from the scraper).
   // Many scrapers put the schedule ("lunes a viernes", "sábados y domingos") in
   // the dateText field which is NOT part of NormalizedEventInput.
@@ -559,8 +581,13 @@ function shouldReclassifyAsFiesta(
  * Determine whether a raw event should be completely rejected (not stored).
  * Returns a reason string if rejected, or null if acceptable.
  */
-export function shouldRejectEvent(normalized: NormalizedEventInput): string | null {
-  const text = `${normalized.name} ${normalized.description ?? ""}`;
+export function shouldRejectEvent(
+  normalized: NormalizedEventInput,
+  context?: { source?: string; category?: string | null; dateText?: string | null },
+): string | null {
+  const text = normalizeWhitespace(
+    `${normalized.name} ${normalized.description ?? ""} ${context?.category ?? ""} ${context?.dateText ?? ""} ${context?.source ?? ""}`,
+  );
 
   for (const pattern of REJECT_PATTERNS) {
     if (pattern.test(text)) {
@@ -609,7 +636,7 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
   const musicGenre = GENRE_RULES.find((rule) => rule.regex.test(text))?.genre ?? null;
   // Pass dateText so schedule patterns like "lunes a viernes" or "sábados y domingos"
   // in the scraper's dateText field are also considered for recurrence detection.
-  const isRecurring = detectRecurrence(normalized, context?.dateText);
+  const isRecurring = context?.isRecurringHint === true || detectRecurrence(normalized, context?.dateText);
 
   // ── 1. Source category: trust the scraper's own classification first ──
   // Exception: if the text heuristics strongly indicate a high-priority type

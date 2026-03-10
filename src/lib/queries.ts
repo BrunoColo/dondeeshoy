@@ -136,8 +136,7 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
   if (dateRange) {
     dateCondition = sql`${events.date} >= ${dateRange.start} AND ${events.date} <= ${dateRange.end}`;
   } else if (date) {
-    // Include events for this exact date OR recurring events (which appear every day)
-    dateCondition = sql`(${events.date} = ${date} OR ${events.isRecurring} = true)`;
+    dateCondition = sql`${events.date} = ${date}`;
   }
 
   const rows = await db.execute<{
@@ -188,7 +187,9 @@ export async function getFilterOptions(date?: string, dateRange?: { start: strin
 
 /**
  * Get all active events for a specific date, with optional filters.
- * Always includes recurring events (they repeat regardless of their stored date).
+ * Only includes events explicitly scheduled for the requested date.
+ * Recurring/open-ended listings should not be injected automatically because
+ * several sources do not expose recurrence days with enough precision.
  */
 export async function getEventsByDate(date: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
@@ -199,7 +200,7 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
     .where(
       and(
         activeStatus,
-        or(eq(events.date, date), eq(events.isRecurring, true)),
+        eq(events.date, date),
         ...filterConditions,
       ),
     )

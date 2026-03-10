@@ -52,12 +52,15 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   // ── MiEntrada stores dates as an array (rawData.dates: string[]).
   // Pick the first element and use it as dateText when the standard field is missing.
   const rawDatesArray = Array.isArray(rawData.dates) ? (rawData.dates as string[]) : null;
+  const rawDateIso = sanitizeText((rawData.dateIso as string) ?? "");
   const rawDateText = sanitizeText((rawData.dateText as string) ?? "");
-  const dateText = rawDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "");
+  const rawSearchDateText = sanitizeText((rawData.searchDateText as string) ?? "");
+  const dateText = rawDateIso || rawDateText || rawSearchDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "");
 
   // Always try to parse date from the event title/name - many scrapers put the date in the title
   // like "EVENT NAME - Viernes 20/02/26" but only put generic text in dateText like "VIERNES DE EVENT"
   const dateFromName = parseUruguayDateTime(name);
+  const dateFromDescription = parseUruguayDateTime(description ?? "");
   
   // Try to parse date from dateText first
   let parsedDate = parseUruguayDateTime(dateText);
@@ -71,6 +74,11 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
     // Both have dates - prefer the one from name if it's more specific (has actual numbers)
     // This is a heuristic: title dates like "20/02/26" are usually more accurate than scraped dateText
     parsedDate = dateFromName;
+  }
+
+  if (parsedDate.wasFallback && !dateFromDescription.wasFallback) {
+    parsedDate = dateFromDescription;
+    console.log('[NORMALIZER] Using date from description:', parsedDate.date);
   }
   
   const aiResolvedDate =
@@ -107,7 +115,7 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   // NOTE: TicketFacil stores this as rawData.isFreeText (not rawData.isFree) —
   // we read both to avoid missing free events from that source.
   const bodyText = sanitizeText(
-    `${(rawData.title as string) ?? ""} ${(rawData.description as string) ?? ""} ${(rawData.dateText as string) ?? ""}`,
+    `${(rawData.title as string) ?? ""} ${(rawData.description as string) ?? ""} ${(rawData.dateText as string) ?? ""} ${(rawData.searchDateText as string) ?? ""}`,
   ).toLowerCase();
   const scraperSaysIsFree = rawData.isFree === true || rawData.isFreeText === true;
   const textSaysFree = /\b(gratis|entrada libre|free|sin cargo|sin costo)\b/i.test(bodyText);

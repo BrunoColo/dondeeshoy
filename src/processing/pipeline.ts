@@ -184,9 +184,20 @@ async function processRawEvent(
   options: { aiEnabled: boolean },
 ): Promise<"created" | "merged" | "skipped" | "ai" | "created+ai" | "merged+ai"> {
   const normalized = await normalizeRawEvent(rawEvent);
+  const rawData = rawEvent.rawData as Record<string, unknown>;
+  const category = typeof rawData.category === "string" ? rawData.category : null;
+  const genre = typeof rawData.genre === "string" ? rawData.genre : null;
+  const dateText = typeof rawData.dateText === "string" ? rawData.dateText : null;
+  const searchDateText = typeof rawData.searchDateText === "string" ? rawData.searchDateText : null;
+  const recurrenceHintText = [dateText, searchDateText].filter(Boolean).join(" \n ") || null;
+  const isRecurringHint = rawData.isRecurringHint === true;
 
   // Reject non-events before geocoding/classifying (saves API calls)
-  const rejectReason = shouldRejectEvent(normalized);
+  const rejectReason = shouldRejectEvent(normalized, {
+    source: rawEvent.source,
+    category,
+    dateText: recurrenceHintText,
+  });
   if (rejectReason) {
     console.log(`[pipeline] skipping raw_event ${rawEvent.id}: ${rejectReason}`);
     await withTransientRetry("mark-rejected", async () =>
@@ -256,24 +267,17 @@ async function processRawEvent(
     console.warn(`[pipeline] venue registry sync failed for raw_event ${rawEvent.id}`, error);
   }
 
-  const rawData = rawEvent.rawData as Record<string, unknown>;
-  const category = typeof rawData.category === "string" ? rawData.category : null;
-  const genre = typeof rawData.genre === "string" ? rawData.genre : null;
-  // dateText may contain schedule info like "lunes a viernes" or "sábados y domingos"
-  // that is critical for recurrence detection but not stored in NormalizedEventInput.
-  const dateText = typeof rawData.dateText === "string" ? rawData.dateText : null;
-  const searchDateText = typeof rawData.searchDateText === "string" ? rawData.searchDateText : null;
-  const recurrenceHintText = [dateText, searchDateText].filter(Boolean).join(" \n ") || null;
-
   const heuristic = classifyEvent(enriched, {
     source: rawEvent.source,
     category,
     genre,
     dateText: recurrenceHintText,
+    isRecurringHint,
   });
   let classification = {
     eventType: heuristic.eventType,
     musicGenre: heuristic.musicGenre,
+    typeAuthority: (heuristic.fromSourceCategory ? "source" : "heuristic") as "source" | "heuristic",
   };
   const isRecurring = heuristic.isRecurring;
 
@@ -294,6 +298,7 @@ async function processRawEvent(
       classification = {
         eventType: aiClassification.eventType,
         musicGenre: aiClassification.musicGenre,
+        typeAuthority: "ai",
       };
       usedAi = true;
     }
@@ -431,7 +436,11 @@ async function mergeEventData(
   normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
   incoming: {
     source: string;
-    classification: { eventType: ReturnType<typeof classifyEvent>["eventType"]; musicGenre: string | null };
+    classification: {
+      eventType: ReturnType<typeof classifyEvent>["eventType"];
+      musicGenre: string | null;
+      typeAuthority: "heuristic" | "source" | "ai";
+    };
     confidenceScore: string;
   },
 ): Promise<void> {
@@ -562,8 +571,14 @@ async function mergeEventData(
   const existingConfidence = Number.parseFloat(existing.confidenceScore ?? "0");
   const incomingConfidence = Number.parseFloat(incoming.confidenceScore);
 
-  if (existing.eventType === "otro" && incoming.classification.eventType !== "otro") {
-    updates.eventType = incoming.classification.eventType;
+  const incomingType = incoming.classification.eventType;
+  const shouldTrustIncomingType = incoming.classification.typeAuthority === "source";
+
+  if (shouldTrustIncomingType && incomingType !== existing.eventType) {
+    updates.eventType = incomingType;
+    updates.musicGenre = incoming.classification.musicGenre;
+  } else if (existing.eventType === "otro" && incomingType !== "otro") {
+    updates.eventType = incomingType;
     if (incoming.classification.musicGenre) {
       updates.musicGenre = incoming.classification.musicGenre;
     }
