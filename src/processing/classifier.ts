@@ -436,7 +436,12 @@ export function parseRecurrenceInfo(text: string | null | undefined): ParsedRecu
     }
   }
 
-  if (confidence === "none" && extraSchedules >= 3) {
+  // Multi-date listings like "Sábado 14 de Marzo - 20:30 hs & 6 más" should
+  // not be auto-promoted to recurring just because the card mentions extra
+  // schedule count. When the text already contains an explicit calendar date,
+  // those extra schedules usually represent discrete future performances that
+  // the scrapers may already expand into date-specific raw events.
+  if (confidence === "none" && extraSchedules >= 3 && !explicitCalendarDate) {
     kind = "range";
     confidence = "medium";
   }
