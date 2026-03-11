@@ -152,7 +152,7 @@ export async function geocodeVenue(
   const registryMatch = await findVenueCoordinates(normalized.venueName, normalized.city);
 
   if (registryMatch) {
-    const result = {
+    const result: GeocodeResult = {
       latitude: registryMatch.latitude,
       longitude: registryMatch.longitude,
       source: "lookup",
@@ -166,7 +166,7 @@ export async function geocodeVenue(
   const lookup = lookupKnownVenue(normalized.venueName, normalized.venueAddress);
 
   if (lookup) {
-    const result = {
+    const result: GeocodeResult = {
       latitude: lookup.latitude,
       longitude: lookup.longitude,
       source: "lookup",
@@ -229,7 +229,7 @@ export async function geocodeVenue(
       return result;
     }
 
-    const result = {
+    const result: GeocodeResult = {
       latitude: lat,
       longitude: lng,
       source: "mapbox",
