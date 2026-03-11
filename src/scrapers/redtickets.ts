@@ -37,12 +37,26 @@ interface SearchCardMeta {
   imageUrl: string | null;
 }
 
+interface DateScheduleInfo {
+  dateIso: string;
+  startTime: string | null;
+}
+
 interface ExtractedScheduleMeta {
   dateIso: string | null;
   startTime: string | null;
   scheduleCount: number;
   isRecurringHint: boolean;
+  /** All individual future, non-sold-out dates for this event */
+  allDates: DateScheduleInfo[];
 }
+
+/**
+ * Maximum number of individual dates to expand into separate raw_events.
+ * Events with more dates than this (that aren't caught by open-ended text
+ * detection) are treated as recurring to avoid flooding the database.
+ */
+const MAX_EXPAND_DATES = 120;
 
 /** Safely coerce an unknown value to a number, returning null on failure */
 function toNumber(val: unknown): number | null {
@@ -350,7 +364,7 @@ export class RedTicketsScraper extends BaseScraper {
 
   /* ─────────────────────── Detail Scraping ─────────────────────── */
 
-  protected async scrapeEvent(url: string): Promise<ScrapedRawEvent | null> {
+  protected async scrapeEvent(url: string): Promise<ScrapedRawEvent | ScrapedRawEvent[] | null> {
     const sourceId = this.extractSourceId(url);
 
     if (!sourceId) {
@@ -419,28 +433,57 @@ export class RedTicketsScraper extends BaseScraper {
       `${title} ${description ?? ""} ${dateText ?? ""} ${searchDateText ?? ""}`,
     );
 
+    const baseRawData = {
+      title,
+      description,
+      category,
+      dateText,
+      ...(searchDateText ? { searchDateText } : {}),
+      ...(scheduleMeta.dateIso ? { dateIso: scheduleMeta.dateIso } : {}),
+      ...(scheduleMeta.startTime ? { startTime: scheduleMeta.startTime } : {}),
+      ...(scheduleMeta.scheduleCount > 1 ? { scheduleCount: scheduleMeta.scheduleCount } : {}),
+      ...(scheduleMeta.isRecurringHint ? { isRecurringHint: true } : {}),
+      venueText: rtVenueName,
+      venueAddress: rtVenueAddress,
+      imageUrl: finalImageUrl,
+      prices,
+      ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
+      ...(gxFree === true ? { isFree: true } : {}),
+      extractedAt: new Date().toISOString(),
+    };
+
+    // Multi-date expansion: if the event has multiple specific future dates
+    // (and isn't open-ended/recurring), create one raw event per date.
+    if (
+      scheduleMeta.allDates.length > 1 &&
+      !scheduleMeta.isRecurringHint
+    ) {
+      const expanded: ScrapedRawEvent[] = scheduleMeta.allDates.map(
+        (dateInfo) => ({
+          source: "redtickets" as const,
+          sourceId: `${sourceId}-${dateInfo.dateIso}`,
+          sourceUrl: url,
+          rawData: {
+            ...baseRawData,
+            dateIso: dateInfo.dateIso,
+            startTime: dateInfo.startTime,
+            // Each expanded event is a standalone date, not recurring
+            isRecurringHint: undefined,
+            scheduleCount: undefined,
+          },
+        }),
+      );
+      console.log(
+        `[redtickets] expanded "${title}" into ${expanded.length} date-specific events`,
+      );
+      return expanded;
+    }
+
     return {
       source: "redtickets",
       sourceId,
       sourceUrl: url,
-      rawData: {
-        title,
-        description,
-        category,
-        dateText,
-        ...(searchDateText ? { searchDateText } : {}),
-        ...(scheduleMeta.dateIso ? { dateIso: scheduleMeta.dateIso } : {}),
-        ...(scheduleMeta.startTime ? { startTime: scheduleMeta.startTime } : {}),
-        ...(scheduleMeta.scheduleCount > 1 ? { scheduleCount: scheduleMeta.scheduleCount } : {}),
-        ...(scheduleMeta.isRecurringHint ? { isRecurringHint: true } : {}),
-        venueText: rtVenueName,
-        venueAddress: rtVenueAddress,
-        imageUrl: finalImageUrl,
-        prices,
-        ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
-        ...(gxFree === true ? { isFree: true } : {}),
-        extractedAt: new Date().toISOString(),
-      },
+      rawData: baseRawData,
     };
   }
 
@@ -867,6 +910,7 @@ export class RedTicketsScraper extends BaseScraper {
         startTime: null,
         scheduleCount: 0,
         isRecurringHint: false,
+        allDates: [],
       };
     }
 
@@ -882,6 +926,7 @@ export class RedTicketsScraper extends BaseScraper {
           startTime: null,
           scheduleCount: 0,
           isRecurringHint: false,
+          allDates: [],
         };
       }
 
@@ -920,6 +965,7 @@ export class RedTicketsScraper extends BaseScraper {
           startTime: null,
           scheduleCount: 0,
           isRecurringHint: isOpenEnded,
+          allDates: [],
         };
       }
 
@@ -930,21 +976,45 @@ export class RedTicketsScraper extends BaseScraper {
         ? null
         : futureDates.find((date) => !date.soldOut) ?? futureDates[0] ?? validDates[0] ?? null;
 
-      let startTime: string | null = null;
-      if (primaryDate) {
-        const firstAvailableTime = primaryDate.times.find((time) => time.soldOut !== true) ?? primaryDate.times[0];
-        const caption = typeof firstAvailableTime?.caption === "string" ? firstAvailableTime.caption : "";
-        const match = caption.match(/(\d{1,2}):(\d{2})/);
-        if (match) {
-          startTime = `${match[1].padStart(2, "0")}:${match[2]}:00`;
-        }
-      }
+      /** Extract a HH:MM:SS start time from a date's Time entries */
+      const extractStartTime = (
+        times: Array<Record<string, unknown>>,
+      ): string | null => {
+        const firstAvailable =
+          times.find((t) => t.soldOut !== true) ?? times[0];
+        const caption =
+          typeof firstAvailable?.caption === "string"
+            ? firstAvailable.caption
+            : "";
+        const m = caption.match(/(\d{1,2}):(\d{2})/);
+        return m ? `${m[1].padStart(2, "0")}:${m[2]}:00` : null;
+      };
+
+      const startTime = primaryDate
+        ? extractStartTime(primaryDate.times)
+        : null;
+
+      // Build the array of individual expandable dates (future, non-sold-out)
+      const expandableDates: DateScheduleInfo[] = isOpenEnded
+        ? []
+        : futureDates
+            .filter((d) => !d.soldOut)
+            .map((d) => ({
+              dateIso: d.dateIso,
+              startTime: extractStartTime(d.times),
+            }));
+
+      // Only treat as recurring if text is clearly open-ended OR the date count
+      // exceeds the expansion threshold (likely a year-round attraction).
+      const isRecurringHint =
+        isOpenEnded || expandableDates.length > MAX_EXPAND_DATES;
 
       return {
         dateIso: primaryDate?.dateIso ?? null,
         startTime,
         scheduleCount: validDates.length,
-        isRecurringHint: isOpenEnded || validDates.length > 1,
+        isRecurringHint,
+        allDates: expandableDates,
       };
     } catch {
       return {
@@ -952,6 +1022,7 @@ export class RedTicketsScraper extends BaseScraper {
         startTime: null,
         scheduleCount: 0,
         isRecurringHint: false,
+        allDates: [],
       };
     }
   }

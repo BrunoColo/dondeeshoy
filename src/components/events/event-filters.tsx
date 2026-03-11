@@ -16,6 +16,7 @@ interface EventFiltersProps {
   availableDepartments?: string[];
   /** Total results count (shown when filters are active) */
   resultCount?: number;
+  extraClearKeys?: string[];
   className?: string;
 }
 
@@ -42,6 +43,7 @@ export function EventFilters({
   availableGenres = [],
   availableDepartments = [],
   resultCount,
+  extraClearKeys = [],
   className,
 }: EventFiltersProps) {
   const router = useRouter();
@@ -55,8 +57,12 @@ export function EventFilters({
   const activeFree = searchParams.get("free") === "true";
   const activeNight = searchParams.get("night") === "true";
   const activeSearch = searchParams.get("q");
+  const hasActiveExtraFilters = extraClearKeys.some((key) => {
+    const value = searchParams.get(key);
+    return value !== null && value !== "";
+  });
 
-  const hasActiveFilters = !!(activeType || activeGenre || activeDepartment || activeFree || activeNight || activeSearch);
+  const hasActiveFilters = !!(activeType || activeGenre || activeDepartment || activeFree || activeNight || activeSearch || hasActiveExtraFilters);
 
   const updateFilter = useCallback(
     (key: string, value: string | null) => {

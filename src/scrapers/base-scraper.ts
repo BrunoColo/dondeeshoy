@@ -26,7 +26,7 @@ export abstract class BaseScraper {
   }
 
   protected abstract discoverUrls(): Promise<string[]>;
-  protected abstract scrapeEvent(url: string): Promise<ScrapedRawEvent | null>;
+  protected abstract scrapeEvent(url: string): Promise<ScrapedRawEvent | ScrapedRawEvent[] | null>;
 
   async run(): Promise<ScraperRunResult> {
     const startedAtDate = new Date();
@@ -49,9 +49,12 @@ export abstract class BaseScraper {
           continue;
         }
 
-        scraped += 1;
-        await this.saveRawEvent(payload);
-        saved += 1;
+        const payloads = Array.isArray(payload) ? payload : [payload];
+        scraped += payloads.length;
+        for (const item of payloads) {
+          await this.saveRawEvent(item);
+          saved += 1;
+        }
       } catch (error) {
         errors += 1;
         console.error(`[${this.source}] error scrapeando ${url}`, error);

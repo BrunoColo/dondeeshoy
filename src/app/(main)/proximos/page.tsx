@@ -124,6 +124,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
           availableGenres={genres}
           availableDepartments={departments}
           resultCount={totalCount}
+          extraClearKeys={["when", "fecha"]}
         />
       </div>
 

@@ -33,6 +33,20 @@ export function ProximosEventsClient({ groups }: ProximosEventsClientProps) {
 
   const geoState = { position, sortByDistance };
 
+  const getCountLabel = (eventsCount: number, recurringCount: number) => {
+    if (eventsCount > 0) {
+      const eventsLabel = `${eventsCount} ${eventsCount === 1 ? "evento" : "eventos"}`;
+
+      if (recurringCount > 0) {
+        return `${eventsLabel} + ${recurringCount} ${recurringCount === 1 ? "recurrente" : "recurrentes"}`;
+      }
+
+      return eventsLabel;
+    }
+
+    return `${recurringCount} ${recurringCount === 1 ? "recurrente" : "recurrentes"}`;
+  };
+
   return (
     <div>
       {/* Single "cerca de mí" button at the top */}
@@ -64,13 +78,11 @@ export function ProximosEventsClient({ groups }: ProximosEventsClientProps) {
                     Mañana
                   </span>
                 )}
-                <h2 className="font-display text-sm font-semibold text-muted-foreground capitalize">
-                  Eventos · {isTomorrow ? formatDateES(date) : label}
+                <h2 className="font-display text-[15px] font-semibold text-foreground capitalize sm:text-base">
+                  {isTomorrow ? formatDateES(date) : label}
                 </h2>
-                <span className="text-[11px] text-text-muted">
-                  ({dateEvents.length > 0
-                    ? `${dateEvents.length} eventos${recurringDateEvents.length > 0 ? ` + ${recurringDateEvents.length} recurrentes` : ""}`
-                    : `${recurringDateEvents.length} recurrentes`})
+                <span className="text-[12px] text-text-muted sm:text-[13px]">
+                  ({getCountLabel(dateEvents.length, recurringDateEvents.length)})
                 </span>
               </div>
 

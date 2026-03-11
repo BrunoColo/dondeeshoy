@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { EventList } from "./event-list";
 import { NearbyButton } from "./nearby-button";
+import { SectionHeader } from "./section-header";
 import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { Flame, RotateCw } from "lucide-react";
+import { Flame, RotateCw, Sparkles } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 
 interface HomeEventsClientProps {
@@ -75,14 +76,19 @@ export function HomeEventsClient({
       {/* One-time / special events section */}
       {(events.length > 0 || hasFilters) && (
         <div className="fade-up">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#6EE7B7]">
-              Eventos únicos de hoy
-            </h2>
-            <span className="text-[10px] text-[#9FE7C8]">
-              ({events.length})
-            </span>
-          </div>
+          <SectionHeader
+            icon={Sparkles}
+            title="Eventos únicos de hoy"
+            subtitle="Solo por hoy"
+            count={events.length}
+            accent={{
+              iconWrap: "border-emerald-400/20 bg-gradient-to-br from-emerald-500/18 to-teal-500/10",
+              icon: "text-[#6EE7B7]",
+              title: "text-[#6EE7B7]",
+              subtitle: "text-[#9FE7C8]/80",
+              badge: "border-emerald-400/20 bg-emerald-500/12 text-[#9FE7C8]",
+            }}
+          />
 
           {events.length > 0 ? (
             <EventList events={events} trendingIds={trendingIds} geoState={geoState} />
@@ -105,18 +111,19 @@ export function HomeEventsClient({
 
       {/* Recurring / always-available section */}
       {recurringEvents.length > 0 && (        <div className="mt-8 mb-6 fade-up">
-          <div className="flex items-center gap-2 mb-2">
-            <RotateCw className="h-4 w-4 text-amber-300" strokeWidth={2.5} />
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.15em] text-amber-300">
-              Eventos recurrentes
-            </h2>
-            <span className="text-[10px] text-amber-200/85">
-              ({recurringEvents.length})
-            </span>
-          </div>
-          <p className="text-[11px] text-amber-100/80 mb-3">
-            Se repiten semanalmente o están disponibles durante gran parte del año
-          </p>
+          <SectionHeader
+            icon={RotateCw}
+            title="Eventos recurrentes"
+            subtitle="Se repiten semanalmente o están disponibles durante gran parte del año"
+            count={recurringEvents.length}
+            accent={{
+              iconWrap: "border-amber-400/20 bg-gradient-to-br from-amber-500/18 to-orange-500/10",
+              icon: "text-amber-300",
+              title: "text-amber-300",
+              subtitle: "text-amber-100/80",
+              badge: "border-amber-400/20 bg-amber-500/12 text-amber-200/90",
+            }}
+          />
           <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.04] p-3 sm:p-4">
             <EventList events={recurringEvents} geoState={geoState} />
           </div>

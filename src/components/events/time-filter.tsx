@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useRef, useTransition } from "react";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 
 type TimeWhen = "manana" | "finde";
 
@@ -84,17 +84,6 @@ export function TimeFilter({ className }: TimeFilterProps) {
     [router, pathname, searchParams, startTransition],
   );
 
-  const clearTimeFilter = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("when");
-    params.delete("fecha");
-    const qs = params.toString();
-
-    startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    });
-  }, [router, pathname, searchParams, startTransition]);
-
   // Format the selected date for display
   const formatSelectedDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split("-").map(Number);
@@ -163,17 +152,6 @@ export function TimeFilter({ className }: TimeFilterProps) {
         </div>
       </div>
 
-      {hasActiveTimeFilter && (
-        <div className="flex items-center justify-end pt-1">
-          <button
-            onClick={clearTimeFilter}
-            className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/[0.20] px-2.5 py-1 text-[11px] font-medium text-[#CBD5E1] hover:text-white hover:border-white/[0.35] hover:bg-white/[0.12] transition-all duration-200 cursor-pointer"
-          >
-            <X className="h-3 w-3" />
-            Limpiar
-          </button>
-        </div>
-      )}
     </div>
   );
 }
