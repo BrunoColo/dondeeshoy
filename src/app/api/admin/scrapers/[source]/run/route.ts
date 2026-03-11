@@ -1,5 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCookie } from "@/lib/admin-auth";
+import { CarteleraScraper } from "@/scrapers/cartelera";
+import { CobraTicketScraper } from "@/scrapers/cobraticket";
+import { EntrasteScraper } from "@/scrapers/entraste";
+import { MiEntradaScraper } from "@/scrapers/mientrada";
+import { MvdEventosScraper } from "@/scrapers/mvd-eventos";
+import { RedTicketsScraper } from "@/scrapers/redtickets";
+import { TicketFacilScraper } from "@/scrapers/ticketfacil";
+import { acquireCronLock, releaseCronLock } from "@/lib/security";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"] as const;
+
+type ValidSource = (typeof validSources)[number];
+
+function isValidSource(source: string): source is ValidSource {
+  return validSources.includes(source as ValidSource);
+}
+
+function createScraper(source: ValidSource) {
+  switch (source) {
+    case "redtickets":
+      return new RedTicketsScraper();
+    case "entraste":
+      return new EntrasteScraper();
+    case "cartelera":
+      return new CarteleraScraper();
+    case "mvd_eventos":
+      return new MvdEventosScraper();
+    case "cobraticket":
+      return new CobraTicketScraper();
+    case "ticketfacil":
+      return new TicketFacilScraper();
+    case "mientrada":
+      return new MiEntradaScraper();
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -13,38 +51,45 @@ export async function POST(
 
   const { source } = await params;
 
-  // Validar source
-  const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
-  if (!validSources.includes(source)) {
+  if (!isValidSource(source)) {
     return NextResponse.json({ error: "Invalid source" }, { status: 400 });
   }
 
-  try {
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-      return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
-    }
+  const lock = await acquireCronLock(source, 1_200);
 
-    // Llamar al endpoint de scrape existente
-    // Map source names with underscores to hyphenated route paths (e.g. mvd_eventos -> mvd-eventos)
-    const routeSource = source.replace(/_/g, "-");
-    const baseUrl = request.nextUrl.origin;
-    const response = await fetch(`${baseUrl}/api/scrape/${routeSource}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${cronSecret}`,
+  if (!lock) {
+    return NextResponse.json(
+      {
+        success: false,
+        source,
+        data: {
+          ok: false,
+          source,
+          error: "Scraper ya en ejecución. Se evitó una ejecución concurrente.",
+        },
       },
-    });
+      { status: 409 },
+    );
+  }
 
-    const data = await response.json();
-    
+  try {
+    const scraper = createScraper(source);
+    const result = await scraper.run();
+
     return NextResponse.json({
-      success: response.ok,
+      success: true,
       source,
-      data,
+      data: {
+        ok: true,
+        source,
+        message: "Scraper ejecutado correctamente.",
+        data: result,
+      },
     });
   } catch (error) {
     console.error("Scraper run error:", error);
     return NextResponse.json({ error: "Failed to run scraper" }, { status: 500 });
+  } finally {
+    await releaseCronLock(lock);
   }
 }

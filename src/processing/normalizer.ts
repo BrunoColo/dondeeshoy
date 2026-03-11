@@ -55,7 +55,13 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
   const rawDateIso = sanitizeText((rawData.dateIso as string) ?? "");
   const rawDateText = sanitizeText((rawData.dateText as string) ?? "");
   const rawSearchDateText = sanitizeText((rawData.searchDateText as string) ?? "");
-  const dateText = rawDateIso || rawDateText || rawSearchDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "");
+
+  // If the scraper already provides a valid ISO date (YYYY-MM-DD), use it directly
+  // instead of feeding it through the Spanish date parser where DD/MM/YY regex can misinterpret it.
+  const isoDateDirect = /^\d{4}-\d{2}-\d{2}$/.test(rawDateIso) ? rawDateIso : null;
+
+  // dateText is for the human-readable string parser — prefer rawDateText over rawDateIso
+  const dateText = rawDateText || rawSearchDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "") || rawDateIso;
 
   // Always try to parse date from the event title/name - many scrapers put the date in the title
   // like "EVENT NAME - Viernes 20/02/26" but only put generic text in dateText like "VIERNES DE EVENT"
@@ -86,7 +92,8 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
       ? await resolveDateWithAi(dateText)
       : null;
 
-  const date = aiResolvedDate?.date ?? parsedDate.date;
+  // Prefer the direct ISO date from the scraper, then AI/parsed date
+  const date = isoDateDirect ?? aiResolvedDate?.date ?? parsedDate.date;
   // Use explicit startTime from raw data if the parser couldn't extract one
   const rawStartTime =
     sanitizeText((rawData.startTime as string) ?? "") ||
@@ -202,15 +209,36 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
     const day = Number.parseInt(ddmmMatch[1], 10);
     const month = Number.parseInt(ddmmMatch[2], 10);
     const year = Number.parseInt(ddmmMatch[3], 10);
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
-    let startTime: string | null = null;
-    if (timeMatch) {
-      const hour = Number.parseInt(timeMatch[1], 10);
-      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
-      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    if (isValidCalendarDate(year, month, day)) {
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+      let startTime: string | null = null;
+      if (timeMatch) {
+        const hour = Number.parseInt(timeMatch[1], 10);
+        const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+        startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+      }
+      return { date, startTime, wasFallback: false };
     }
-    return { date, startTime, wasFallback: false };
+  }
+
+  // Try YYYY-MM-DD format (must come before DD/MM/YY to avoid misinterpreting ISO dates)
+  const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const year = Number.parseInt(isoMatch[1], 10);
+    const month = Number.parseInt(isoMatch[2], 10);
+    const day = Number.parseInt(isoMatch[3], 10);
+    if (isValidCalendarDate(year, month, day)) {
+      const date = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+      const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+      let startTime: string | null = null;
+      if (timeMatch) {
+        const hour = Number.parseInt(timeMatch[1], 10);
+        const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+        startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+      }
+      return { date, startTime, wasFallback: false };
+    }
   }
 
   // Try DD/MM/YY format (2-digit year, e.g. "21/02/26" for 2026)
@@ -220,15 +248,17 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
     const month = Number.parseInt(ddmmShortMatch[2], 10);
     const shortYear = Number.parseInt(ddmmShortMatch[3], 10);
     const year = shortYear >= 0 && shortYear <= 99 ? 2000 + shortYear : shortYear;
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
-    let startTime: string | null = null;
-    if (timeMatch) {
-      const hour = Number.parseInt(timeMatch[1], 10);
-      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
-      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    if (isValidCalendarDate(year, month, day)) {
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+      let startTime: string | null = null;
+      if (timeMatch) {
+        const hour = Number.parseInt(timeMatch[1], 10);
+        const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+        startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+      }
+      return { date, startTime, wasFallback: false };
     }
-    return { date, startTime, wasFallback: false };
   }
 
   // Try DD/MM format without year (common in RedTickets labels like 11/03)
@@ -245,29 +275,17 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
       year += 1;
     }
 
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
-    let startTime: string | null = null;
-    if (timeMatch) {
-      const hour = Number.parseInt(timeMatch[1], 10);
-      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
-      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+    if (isValidCalendarDate(year, month, day)) {
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
+      let startTime: string | null = null;
+      if (timeMatch) {
+        const hour = Number.parseInt(timeMatch[1], 10);
+        const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
+        startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+      }
+      return { date, startTime, wasFallback: false };
     }
-    return { date, startTime, wasFallback: false };
-  }
-
-  // Try YYYY-MM-DD format
-  const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) {
-    const date = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-    const timeMatch = value.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:hs?)?/i);
-    let startTime: string | null = null;
-    if (timeMatch) {
-      const hour = Number.parseInt(timeMatch[1], 10);
-      const minute = Number.parseInt(timeMatch[2] ?? "0", 10);
-      startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
-    }
-    return { date, startTime, wasFallback: false };
   }
 
   const dateMatch = value.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)/i);
@@ -290,6 +308,11 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
     year += 1;
   }
 
+  if (!isValidCalendarDate(year, month, day)) {
+    const fallbackDate = formatDate(now);
+    return { date: fallbackDate, startTime: null, wasFallback: true };
+  }
+
   const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   // Try time after "-", "a las", or standalone HH:MM
@@ -303,6 +326,24 @@ function parseUruguayDateTime(value: string): { date: string; startTime: string 
   const startTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 
   return { date, startTime, wasFallback: false };
+}
+
+function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return false;
+  }
+
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    candidate.getUTCFullYear() === year &&
+    candidate.getUTCMonth() === month - 1 &&
+    candidate.getUTCDate() === day
+  );
 }
 
 async function resolveDateWithAi(
@@ -342,7 +383,13 @@ async function resolveDateWithAi(
       startTime?: string | null;
     };
 
-    const validDate = typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date);
+    const validDate =
+      typeof parsed.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.date) &&
+      (() => {
+        const [year, month, day] = parsed.date.split("-").map((part) => Number.parseInt(part, 10));
+        return isValidCalendarDate(year, month, day);
+      })();
     const validTime =
       typeof parsed.startTime === "string" && /^\d{2}:\d{2}:\d{2}$/.test(parsed.startTime);
 
