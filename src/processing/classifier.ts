@@ -553,6 +553,22 @@ export function detectRecurrence(normalized: NormalizedEventInput, extraText?: s
   return parseRecurrenceInfo(text).isRecurring;
 }
 
+function shouldTrustRecurringHint(dateText?: string | null): boolean {
+  if (!dateText) return true;
+
+  const recurrence = parseRecurrenceInfo(dateText);
+
+  // If the text itself already shows a recurring pattern, trust it.
+  if (recurrence.isRecurring) {
+    return true;
+  }
+
+  // If the hint came with an explicit calendar date but no actual recurring
+  // pattern (e.g. "Sábado 14 de Marzo & 14 más"), treat it as a multi-date
+  // listing rather than a true recurring event.
+  return !CALENDAR_DATE_REGEX.test(normalizeSpanish(dateText));
+}
+
 /**
  * Check if the startTime indicates a late-night fiesta.
  * Events starting between 22:59 and 03:00 are always reclassified as "fiesta".
@@ -641,7 +657,9 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
   const musicGenre = GENRE_RULES.find((rule) => rule.regex.test(text))?.genre ?? null;
   // Pass dateText so schedule patterns like "lunes a viernes" or "sábados y domingos"
   // in the scraper's dateText field are also considered for recurrence detection.
-  const isRecurring = context?.isRecurringHint === true || detectRecurrence(normalized, context?.dateText);
+  const isRecurring =
+    (context?.isRecurringHint === true && shouldTrustRecurringHint(context?.dateText)) ||
+    detectRecurrence(normalized, context?.dateText);
 
   // ── 1. Source category: trust the scraper's own classification first ──
   // Exception: if the text heuristics strongly indicate a high-priority type
