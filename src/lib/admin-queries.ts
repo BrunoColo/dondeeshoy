@@ -542,7 +542,7 @@ const getRecentRawEventsCached = unstable_cache(
   },
 );
 
-export async function getRecentRawEvents(limit: number = 50) {
+export async function getRecentRawEvents(limit: number = 25) {
   return getRecentRawEventsCached(limit);
 }
 
@@ -817,7 +817,36 @@ export async function searchEvents(params: SearchEventsParams = {}) {
   const [total] = await db.select({ count: count() }).from(events).where(where);
 
   const items = await db
-    .select()
+    .select({
+      id: events.id,
+      name: events.name,
+      slug: events.slug,
+      description: events.description,
+      date: events.date,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      venueName: events.venueName,
+      venueAddress: events.venueAddress,
+      latitude: events.latitude,
+      longitude: events.longitude,
+      city: events.city,
+      department: events.department,
+      eventType: events.eventType,
+      musicGenre: events.musicGenre,
+      imageUrl: events.imageUrl,
+      ticketUrl: events.ticketUrl,
+      priceMin: events.priceMin,
+      priceMax: events.priceMax,
+      currency: events.currency,
+      isFree: events.isFree,
+      ageRestriction: events.ageRestriction,
+      confidenceScore: events.confidenceScore,
+      viewCount: events.viewCount,
+      isRecurring: events.isRecurring,
+      status: events.status,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+    })
     .from(events)
     .where(where)
     .orderBy(desc(events.updatedAt))

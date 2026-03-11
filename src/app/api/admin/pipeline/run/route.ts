@@ -5,7 +5,7 @@ import { GET as runPipelineRoute } from "@/app/api/scrape/process/route";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ADMIN_PIPELINE_BATCH_SIZE = 150;
+const ADMIN_PIPELINE_BATCH_SIZE = 50;
 
 export async function POST(request: NextRequest) {
   const isAuthenticated = await verifyCookie();

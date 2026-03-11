@@ -25,7 +25,7 @@ type RawEventItem = {
 export default async function PipelinePage() {
   const [stats, recentRawEvents] = await Promise.all([
     getPipelineStats(),
-    getRecentRawEvents(50),
+    getRecentRawEvents(25),
   ]);
 
   const sourceLabels: Record<string, string> = {
