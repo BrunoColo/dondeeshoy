@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCookie } from "@/lib/admin-auth";
 
+const ADMIN_PIPELINE_BATCH_SIZE = 150;
+
 export async function POST(request: NextRequest) {
   const isAuthenticated = await verifyCookie();
   
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = request.nextUrl.origin;
-    const response = await fetch(`${baseUrl}/api/scrape/process`, {
+    const response = await fetch(`${baseUrl}/api/scrape/process?batch=${ADMIN_PIPELINE_BATCH_SIZE}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${cronSecret}`,

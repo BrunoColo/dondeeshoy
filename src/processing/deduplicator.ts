@@ -6,6 +6,17 @@ import { detectRecurrence } from "./classifier";
 
 import type { NormalizedEventInput } from "./normalizer";
 
+type DuplicateCandidate = {
+  id: string;
+  name: string;
+  venueName: string;
+};
+
+export type DuplicateLookupCache = {
+  sameDayByKey: Map<string, DuplicateCandidate[]>;
+  recurringByDepartment: Map<string, DuplicateCandidate[]>;
+};
+
 const PLACEHOLDER_VENUE = "venue por confirmar";
 
 function isPlaceholderVenue(venue: string): boolean {
@@ -15,18 +26,87 @@ function isPlaceholderVenue(venue: string): boolean {
 
 export async function findDuplicateEventId(
   normalized: NormalizedEventInput,
-  options?: { isRecurring?: boolean },
+  options?: { isRecurring?: boolean; cache?: DuplicateLookupCache },
 ): Promise<string | null> {
   const isRecurring = options?.isRecurring ?? detectRecurrence(normalized);
+  const cache = options?.cache;
 
   if (isRecurring) {
     // Recurring events are not tied to a specific date — match by name + city only
     // so that re-scrapes of the same recurring event merge into the existing row
     // instead of creating a new duplicate for each scrape cycle.
-    return findRecurringDuplicate(normalized);
+    return findRecurringDuplicate(normalized, cache);
   }
 
-  const sameDayEvents = await db
+  const sameDayEvents = await loadSameDayCandidates(normalized, cache);
+
+  if (sameDayEvents.length === 0) {
+    return null;
+  }
+
+  return scoreBestMatch(normalized, sameDayEvents);
+}
+
+async function findRecurringDuplicate(
+  normalized: NormalizedEventInput,
+  cache?: DuplicateLookupCache,
+): Promise<string | null> {
+  // Search across all dates for the same city — recurring events can be stored
+  // under any date (the date of their first scrape) so we can't filter by date.
+  const sameCityEvents = await loadRecurringCandidates(normalized, cache);
+
+  if (sameCityEvents.length === 0) {
+    return null;
+  }
+
+  return scoreBestMatch(normalized, sameCityEvents);
+}
+
+export function createDuplicateLookupCache(): DuplicateLookupCache {
+  return {
+    sameDayByKey: new Map(),
+    recurringByDepartment: new Map(),
+  };
+}
+
+export function rememberDuplicateCandidate(
+  cache: DuplicateLookupCache,
+  normalized: Pick<NormalizedEventInput, "date" | "city" | "name" | "venueName">,
+  eventId: string,
+  isRecurring: boolean,
+): void {
+  const candidate: DuplicateCandidate = {
+    id: eventId,
+    name: normalized.name,
+    venueName: normalized.venueName,
+  };
+
+  rememberCandidateInCollection(
+    cache.sameDayByKey,
+    buildSameDayCacheKey(normalized.date, normalized.city),
+    candidate,
+  );
+
+  if (isRecurring) {
+    rememberCandidateInCollection(
+      cache.recurringByDepartment,
+      buildRecurringCacheKey(normalized.city),
+      candidate,
+    );
+  }
+}
+
+async function loadSameDayCandidates(
+  normalized: Pick<NormalizedEventInput, "date" | "city">,
+  cache?: DuplicateLookupCache,
+): Promise<DuplicateCandidate[]> {
+  const cacheKey = buildSameDayCacheKey(normalized.date, normalized.city);
+
+  if (cache?.sameDayByKey.has(cacheKey)) {
+    return cache.sameDayByKey.get(cacheKey) ?? [];
+  }
+
+  const rows = await db
     .select({
       id: events.id,
       name: events.name,
@@ -36,17 +116,21 @@ export async function findDuplicateEventId(
     .where(and(eq(events.date, normalized.date), eq(events.department, normalized.city)))
     .limit(300);
 
-  if (sameDayEvents.length === 0) {
-    return null;
-  }
-
-  return scoreBestMatch(normalized, sameDayEvents);
+  cache?.sameDayByKey.set(cacheKey, rows);
+  return rows;
 }
 
-async function findRecurringDuplicate(normalized: NormalizedEventInput): Promise<string | null> {
-  // Search across all dates for the same city — recurring events can be stored
-  // under any date (the date of their first scrape) so we can't filter by date.
-  const sameCityEvents = await db
+async function loadRecurringCandidates(
+  normalized: Pick<NormalizedEventInput, "city">,
+  cache?: DuplicateLookupCache,
+): Promise<DuplicateCandidate[]> {
+  const cacheKey = buildRecurringCacheKey(normalized.city);
+
+  if (cache?.recurringByDepartment.has(cacheKey)) {
+    return cache.recurringByDepartment.get(cacheKey) ?? [];
+  }
+
+  const rows = await db
     .select({
       id: events.id,
       name: events.name,
@@ -56,11 +140,33 @@ async function findRecurringDuplicate(normalized: NormalizedEventInput): Promise
     .where(and(eq(events.department, normalized.city), eq(events.isRecurring, true)))
     .limit(300);
 
-  if (sameCityEvents.length === 0) {
-    return null;
+  cache?.recurringByDepartment.set(cacheKey, rows);
+  return rows;
+}
+
+function buildSameDayCacheKey(date: string, city: string): string {
+  return `${date}::${city}`;
+}
+
+function buildRecurringCacheKey(city: string): string {
+  return city;
+}
+
+function rememberCandidateInCollection(
+  collection: Map<string, DuplicateCandidate[]>,
+  key: string,
+  candidate: DuplicateCandidate,
+): void {
+  const existing = collection.get(key);
+
+  if (!existing) {
+    collection.set(key, [candidate]);
+    return;
   }
 
-  return scoreBestMatch(normalized, sameCityEvents);
+  if (!existing.some((item) => item.id === candidate.id)) {
+    existing.push(candidate);
+  }
 }
 
 function scoreBestMatch(

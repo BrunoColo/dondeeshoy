@@ -1,16 +1,20 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
-import { isEventBanned } from "@/lib/admin-queries";
+import { bannedEvents, eventSources, events, rawEvents, type RawEvent } from "@/lib/db/schema";
 
 import { classifyEvent, shouldRejectEvent, shouldUseAiClassification } from "./classifier";
-import { findDuplicateEventId } from "./deduplicator";
-import { geocodeVenue } from "./geocoder";
+import {
+  createDuplicateLookupCache,
+  findDuplicateEventId,
+  rememberDuplicateCandidate,
+  type DuplicateLookupCache,
+} from "./deduplicator";
+import { geocodeVenue, type GeocodeCache } from "./geocoder";
 import { classifyEventWithAi } from "./ai-client";
 import { calculateConfidenceScore, normalizeRawEvent } from "./normalizer";
 import { detectDepartment } from "./department-detector";
-import { syncVenueRegistry } from "@/lib/venue-registry";
+import { buildVenueSlug, syncVenueRegistry } from "@/lib/venue-registry";
 
 export interface PipelineResult {
   pending: number;
@@ -38,6 +42,18 @@ type LinkedEventCandidate = {
   updatedAt: Date;
 };
 
+type BannedLookup = {
+  normalizedNames: Set<string>;
+  exactSourceKeys: Set<string>;
+};
+
+type PipelineBatchContext = {
+  bannedLookup: BannedLookup;
+  duplicateLookupCache: DuplicateLookupCache;
+  geocodeCache: GeocodeCache;
+  syncedVenueSlugs: Set<string>;
+};
+
 export async function runProcessingPipeline(batchSize = 50): Promise<PipelineResult> {
   const pendingRawEvents = await withTransientRetry("pending-raw-events", async () =>
     db
@@ -46,6 +62,8 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
       .where(eq(rawEvents.processed, false))
       .limit(batchSize),
   );
+
+  const context = await createPipelineBatchContext();
 
   const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "25", 10);
   let aiClassified = 0;
@@ -67,6 +85,7 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
     try {
       const output = await processRawEvent(rawEvent, {
         aiEnabled: aiClassified < aiBudget,
+        context,
       });
       result.processed += 1;
 
@@ -184,7 +203,10 @@ export async function reprocessRawEvent(rawEventId: string): Promise<{
   );
 
   try {
-    const outcome = await processRawEvent(rawEvent, { aiEnabled: true });
+    const outcome = await processRawEvent(rawEvent, {
+      aiEnabled: true,
+      context: await createPipelineBatchContext(),
+    });
     return { rawEventId, outcome };
   } catch (error) {
     await withTransientRetry("set-reprocess-error", async () =>
@@ -202,7 +224,7 @@ export async function reprocessRawEvent(rawEventId: string): Promise<{
 
 async function processRawEvent(
   rawEvent: RawEvent,
-  options: { aiEnabled: boolean },
+  options: { aiEnabled: boolean; context: PipelineBatchContext },
 ): Promise<"created" | "merged" | "skipped" | "ai" | "created+ai" | "merged+ai"> {
   const normalized = await normalizeRawEvent(rawEvent);
   const rawData = rawEvent.rawData as Record<string, unknown>;
@@ -234,7 +256,7 @@ async function processRawEvent(
   }
 
   // Check if this event has been banned by an admin (deleted + banned)
-  const banned = await isEventBanned(normalized.name, rawEvent.source, rawEvent.sourceId);
+  const banned = isEventBannedInLookup(options.context.bannedLookup, normalized.name, rawEvent.source, rawEvent.sourceId);
   if (banned) {
     const banReason = `[BANNED] Evento eliminado por administrador: "${normalized.name}"`;
     console.log(`[pipeline] skipping banned raw_event ${rawEvent.id}: ${banReason}`);
@@ -258,7 +280,7 @@ async function processRawEvent(
           longitude: normalized.longitude,
           source: "scraper" as const,
         }
-      : await geocodeVenue(normalized);
+      : await geocodeVenue(normalized, { cache: options.context.geocodeCache });
   const enriched = {
     ...normalized,
     latitude: geocode.latitude,
@@ -283,7 +305,7 @@ async function processRawEvent(
   }
 
   try {
-    await syncVenueRegistry(enriched);
+    await syncVenueRegistryOnce(enriched, options.context);
   } catch (error) {
     console.warn(`[pipeline] venue registry sync failed for raw_event ${rawEvent.id}`, error);
   }
@@ -336,6 +358,7 @@ async function processRawEvent(
       confidenceScore,
       isRecurring,
     });
+    rememberDuplicateCandidate(options.context.duplicateLookupCache, enriched, linkedEventId, isRecurring);
 
     await withTransientRetry("mark-processed", async () =>
       db
@@ -352,6 +375,7 @@ async function processRawEvent(
 
   const duplicateEventId = await findDuplicateEventId(enriched, {
     isRecurring,
+    cache: options.context.duplicateLookupCache,
   });
 
   const eventId = duplicateEventId ?? (await createEvent(rawEvent, enriched, classification, confidenceScore, isRecurring));
@@ -364,6 +388,8 @@ async function processRawEvent(
       isRecurring,
     });
   }
+
+  rememberDuplicateCandidate(options.context.duplicateLookupCache, enriched, eventId, isRecurring);
 
   const alreadyLinked = await withTransientRetry("already-linked", async () =>
     db
@@ -692,6 +718,88 @@ function isPlaceholderVenue(value: string | null): boolean {
   if (!value) return true;
   const v = value.toLowerCase().trim();
   return v === "venue por confirmar" || v === "por confirmar" || v === "tba" || v === "";
+}
+
+async function createPipelineBatchContext(): Promise<PipelineBatchContext> {
+  return {
+    bannedLookup: await loadBannedLookup(),
+    duplicateLookupCache: createDuplicateLookupCache(),
+    geocodeCache: new Map(),
+    syncedVenueSlugs: new Set(),
+  };
+}
+
+async function loadBannedLookup(): Promise<BannedLookup> {
+  const rows = await withTransientRetry("load-banned-events", async () =>
+    db
+      .select({
+        normalizedName: bannedEvents.normalizedName,
+        source: bannedEvents.source,
+        sourceId: bannedEvents.sourceId,
+      })
+      .from(bannedEvents),
+  );
+
+  const normalizedNames = new Set<string>();
+  const exactSourceKeys = new Set<string>();
+
+  for (const row of rows) {
+    if (row.normalizedName) {
+      normalizedNames.add(row.normalizedName);
+    }
+
+    if (row.source && row.sourceId) {
+      exactSourceKeys.add(buildSourceBanKey(row.source, row.sourceId));
+    }
+  }
+
+  return {
+    normalizedNames,
+    exactSourceKeys,
+  };
+}
+
+function isEventBannedInLookup(
+  lookup: BannedLookup,
+  name: string,
+  source?: string,
+  sourceId?: string,
+): boolean {
+  if (source && sourceId && lookup.exactSourceKeys.has(buildSourceBanKey(source, sourceId))) {
+    return true;
+  }
+
+  return lookup.normalizedNames.has(normalizeBanName(name));
+}
+
+function normalizeBanName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildSourceBanKey(source: string, sourceId: string): string {
+  return `${source}::${sourceId}`;
+}
+
+async function syncVenueRegistryOnce(
+  normalized: Awaited<ReturnType<typeof normalizeRawEvent>>,
+  context: PipelineBatchContext,
+): Promise<void> {
+  if (normalized.latitude == null || normalized.longitude == null) {
+    return;
+  }
+
+  const slug = buildVenueSlug(normalized.venueName, normalized.city);
+  if (!slug || context.syncedVenueSlugs.has(slug)) {
+    return;
+  }
+
+  await syncVenueRegistry(normalized);
+  context.syncedVenueSlugs.add(slug);
 }
 
 async function withTransientRetry<T>(

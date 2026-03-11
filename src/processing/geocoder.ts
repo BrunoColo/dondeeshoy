@@ -7,6 +7,8 @@ export interface GeocodeResult {
   source: "scraper" | "lookup" | "mapbox" | "none";
 }
 
+export type GeocodeCache = Map<string, GeocodeResult>;
+
 type KnownVenue = {
   keys: string[];
   latitude: number;
@@ -135,34 +137,52 @@ const KNOWN_VENUES: KnownVenue[] = [
   { keys: ["cabo polonio"], latitude: -34.3981, longitude: -53.7871 },
 ];
 
-export async function geocodeVenue(normalized: NormalizedEventInput): Promise<GeocodeResult> {
+export async function geocodeVenue(
+  normalized: NormalizedEventInput,
+  options?: { cache?: GeocodeCache },
+): Promise<GeocodeResult> {
+  const cacheKey = buildGeocodeCacheKey(normalized);
+  const cached = options?.cache?.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
   // 1. Try the DB-backed venue registry first (cross-source cache)
   const registryMatch = await findVenueCoordinates(normalized.venueName, normalized.city);
 
   if (registryMatch) {
-    return {
+    const result = {
       latitude: registryMatch.latitude,
       longitude: registryMatch.longitude,
       source: "lookup",
     };
+
+    options?.cache?.set(cacheKey, result);
+    return result;
   }
 
   // 2. Try known venue lookup next
   const lookup = lookupKnownVenue(normalized.venueName, normalized.venueAddress);
 
   if (lookup) {
-    return {
+    const result = {
       latitude: lookup.latitude,
       longitude: lookup.longitude,
       source: "lookup",
     };
+
+    options?.cache?.set(cacheKey, result);
+    return result;
   }
 
   // 3. Try Mapbox geocoding
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   if (!mapboxToken) {
-    return { latitude: null, longitude: null, source: "none" };
+    const result = { latitude: null, longitude: null, source: "none" as const };
+    options?.cache?.set(cacheKey, result);
+    return result;
   }
 
   // Build a good geocoding query — try address first, then venue name
@@ -183,7 +203,9 @@ export async function geocodeVenue(normalized: NormalizedEventInput): Promise<Ge
     });
 
     if (!response.ok) {
-      return { latitude: null, longitude: null, source: "none" };
+      const result = { latitude: null, longitude: null, source: "none" as const };
+      options?.cache?.set(cacheKey, result);
+      return result;
     }
 
     const body = (await response.json()) as {
@@ -194,23 +216,38 @@ export async function geocodeVenue(normalized: NormalizedEventInput): Promise<Ge
     const center = feature?.center;
 
     if (!center || center.length < 2) {
-      return { latitude: null, longitude: null, source: "none" };
+      const result = { latitude: null, longitude: null, source: "none" as const };
+      options?.cache?.set(cacheKey, result);
+      return result;
     }
 
     // Sanity check: must be within Uruguay bounding box (roughly)
     const [lng, lat] = center;
     if (lat < -36 || lat > -30 || lng < -59 || lng > -53) {
-      return { latitude: null, longitude: null, source: "none" };
+      const result = { latitude: null, longitude: null, source: "none" as const };
+      options?.cache?.set(cacheKey, result);
+      return result;
     }
 
-    return {
+    const result = {
       latitude: lat,
       longitude: lng,
       source: "mapbox",
     };
+
+    options?.cache?.set(cacheKey, result);
+    return result;
   } catch {
-    return { latitude: null, longitude: null, source: "none" };
+    const result = { latitude: null, longitude: null, source: "none" as const };
+    options?.cache?.set(cacheKey, result);
+    return result;
   }
+}
+
+function buildGeocodeCacheKey(normalized: Pick<NormalizedEventInput, "venueName" | "venueAddress" | "city">): string {
+  return [normalized.venueName, normalized.venueAddress ?? "", normalized.city]
+    .map(normalize)
+    .join("::");
 }
 
 function lookupKnownVenue(venueName: string, venueAddress: string | null): { latitude: number; longitude: number } | null {
