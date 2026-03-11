@@ -35,6 +35,30 @@ function slugifyForEvent(value: string): string {
 export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
 export type ScraperHealth = "healthy" | "warning" | "error" | "idle";
 
+type ScraperStatsRow = {
+  source: Source;
+  total: number | string;
+  today: number | string;
+  unprocessed: number | string;
+  with_error: number | string;
+  last_scrape: Date | string | null;
+};
+
+type PipelineDbSnapshot = {
+  totalRaw: number;
+  processed: number;
+  withError: number;
+  totalEvents: number;
+  recentErrors: Array<{
+    id: string;
+    source: Source;
+    sourceId: string;
+    title: string;
+    error: string | null;
+    scrapedAt: Date;
+  }>;
+};
+
 function deriveScraperHealth(stat: {
   total: number;
   today: number;
@@ -373,106 +397,153 @@ export async function getAdminDashboardStats() {
 
 // ============= Scraper Stats =============
 
-export async function getScraperStats() {
-  const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString();
+const getScraperStatsCached = unstable_cache(
+  async () => {
+    const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
 
-  const [aggRows, lastRows] = await Promise.all([
-    db.execute<{
-      source: Source;
-      total: number | string;
-      today: number | string;
-      unprocessed: number | string;
-      with_error: number | string;
-    }>(sql`
+    const rows = await db.execute<ScraperStatsRow>(sql`
       SELECT
         ${rawEvents.source} AS source,
-        COUNT(*) AS total,
-        COUNT(*) FILTER (WHERE ${rawEvents.scrapedAt} >= ${todayIso}) AS today,
-        COUNT(*) FILTER (WHERE ${rawEvents.processed} = false) AS unprocessed,
-        COUNT(*) FILTER (WHERE ${rawEvents.processingError} IS NOT NULL) AS with_error
-      FROM ${rawEvents}
-      GROUP BY ${rawEvents.source}
-    `),
-    db.execute<{
-      source: Source;
-      last_scrape: Date | string | null;
-    }>(sql`
-      SELECT
-        ${rawEvents.source} AS source,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE ${rawEvents.scrapedAt} >= ${todayIso})::int AS today,
+        COUNT(*) FILTER (WHERE ${rawEvents.processed} = false)::int AS unprocessed,
+        COUNT(*) FILTER (WHERE ${rawEvents.processingError} IS NOT NULL)::int AS with_error,
         MAX(${rawEvents.scrapedAt}) AS last_scrape
       FROM ${rawEvents}
       GROUP BY ${rawEvents.source}
-    `),
-  ]);
+    `);
 
-  const aggBySource = new Map(
-    aggRows.map((row) => [row.source, row]),
-  );
-  const lastBySource = new Map(
-    lastRows.map((row) => [row.source, row.last_scrape]),
-  );
+    const rowsBySource = new Map(rows.map((row) => [row.source, row]));
 
-  return sources.map((source) => {
-    const agg = aggBySource.get(source);
-    const last = lastBySource.get(source);
-    const stat = {
-      source,
-      total: Number(agg?.total ?? 0),
-      today: Number(agg?.today ?? 0),
-      unprocessed: Number(agg?.unprocessed ?? 0),
-      withError: Number(agg?.with_error ?? 0),
-      lastScrape: last ? new Date(last) : null,
-    };
-    const health = deriveScraperHealth(stat);
+    return sources.map((source) => {
+      const row = rowsBySource.get(source);
+      const stat = {
+        source,
+        total: Number(row?.total ?? 0),
+        today: Number(row?.today ?? 0),
+        unprocessed: Number(row?.unprocessed ?? 0),
+        withError: Number(row?.with_error ?? 0),
+        lastScrape: row?.last_scrape ? new Date(row.last_scrape) : null,
+      };
+      const health = deriveScraperHealth(stat);
 
-    return {
-      ...stat,
-      ...health,
-    };
-  });
+      return {
+        ...stat,
+        ...health,
+      };
+    });
+  },
+  ["admin-scraper-stats-v2"],
+  {
+    revalidate: 15,
+    tags: ["admin-scrapers"],
+  },
+);
+
+export async function getScraperStats() {
+  return getScraperStatsCached();
 }
 
 // ============= Pipeline Stats =============
 
+const getPipelineDbSnapshotCached = unstable_cache(
+  async (): Promise<PipelineDbSnapshot> => {
+    const [[rawSummary], [totalEvents], recentErrors] = await Promise.all([
+      db.execute<{
+        total_raw: number | string;
+        processed: number | string;
+        with_error: number | string;
+      }>(sql`
+        SELECT
+          COUNT(*)::int AS total_raw,
+          COUNT(*) FILTER (WHERE ${rawEvents.processed} = true)::int AS processed,
+          COUNT(*) FILTER (WHERE ${rawEvents.processingError} IS NOT NULL)::int AS with_error
+        FROM ${rawEvents}
+      `),
+      db.select({ count: count() }).from(events),
+      db
+        .select({
+          id: rawEvents.id,
+          source: rawEvents.source,
+          sourceId: rawEvents.sourceId,
+          title: sql<string>`${rawEvents.rawData}->>'title'`,
+          error: rawEvents.processingError,
+          scrapedAt: rawEvents.scrapedAt,
+        })
+        .from(rawEvents)
+        .where(sql`${rawEvents.processingError} IS NOT NULL`)
+        .orderBy(desc(rawEvents.scrapedAt))
+        .limit(20),
+    ]);
+
+    return {
+      totalRaw: Number(rawSummary?.total_raw ?? 0),
+      processed: Number(rawSummary?.processed ?? 0),
+      withError: Number(rawSummary?.with_error ?? 0),
+      totalEvents: totalEvents?.count ?? 0,
+      recentErrors: recentErrors.map((e) => ({
+        ...e,
+        title: e.title as string,
+      })),
+    };
+  },
+  ["admin-pipeline-db-snapshot-v2"],
+  {
+    revalidate: 5,
+    tags: ["admin-pipeline"],
+  },
+);
+
 export async function getPipelineStats() {
-  const [[totalRaw], [processed], [withError], [totalEvents], monitor] = await Promise.all([
-    db.select({ count: count() }).from(rawEvents),
-    db.select({ count: count() }).from(rawEvents).where(eq(rawEvents.processed, true)),
-    db.select({ count: count() }).from(rawEvents).where(sql`${rawEvents.processingError} IS NOT NULL`),
-    db.select({ count: count() }).from(events),
+  const [snapshot, monitor] = await Promise.all([
+    getPipelineDbSnapshotCached(),
     getPipelineMonitorState(),
   ]);
 
-  // Recent errors
-  const recentErrors = await db
-    .select({
-      id: rawEvents.id,
-      source: rawEvents.source,
-      sourceId: rawEvents.sourceId,
-      title: sql<string>`${rawEvents.rawData}->>'title'`,
-      error: rawEvents.processingError,
-      scrapedAt: rawEvents.scrapedAt,
-    })
-    .from(rawEvents)
-    .where(sql`${rawEvents.processingError} IS NOT NULL`)
-    .orderBy(desc(rawEvents.scrapedAt))
-    .limit(20);
-
   return {
-    totalRaw: totalRaw?.count ?? 0,
-    processed: processed?.count ?? 0,
-    withError: withError?.count ?? 0,
-    totalEvents: totalEvents?.count ?? 0,
-    conversionRate: totalRaw?.count ? ((totalEvents?.count ?? 0) / totalRaw.count) * 100 : 0,
+    totalRaw: snapshot.totalRaw,
+    processed: snapshot.processed,
+    withError: snapshot.withError,
+    totalEvents: snapshot.totalEvents,
+    conversionRate: snapshot.totalRaw ? (snapshot.totalEvents / snapshot.totalRaw) * 100 : 0,
     monitor,
-    recentErrors: recentErrors.map((e) => ({
-      ...e,
-      title: e.title as string,
-    })),
+    recentErrors: snapshot.recentErrors,
   };
+}
+
+const getRecentRawEventsCached = unstable_cache(
+  async (limit: number) => {
+    const items = await db
+      .select({
+        id: rawEvents.id,
+        source: rawEvents.source,
+        sourceId: rawEvents.sourceId,
+        title: sql<string>`${rawEvents.rawData}->>'title'`,
+        scrapedAt: rawEvents.scrapedAt,
+        processed: rawEvents.processed,
+        processingError: rawEvents.processingError,
+      })
+      .from(rawEvents)
+      .orderBy(desc(rawEvents.scrapedAt))
+      .limit(limit);
+
+    return items.map((item) => ({
+      ...item,
+      title: item.title as string,
+    }));
+  },
+  ["admin-recent-raw-events-v1"],
+  {
+    revalidate: 5,
+    tags: ["admin-pipeline"],
+  },
+);
+
+export async function getRecentRawEvents(limit: number = 50) {
+  return getRecentRawEventsCached(limit);
 }
 
 // ============= Raw Events =============

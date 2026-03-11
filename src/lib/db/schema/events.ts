@@ -46,7 +46,14 @@ export const rawEvents = pgTable(
     processed: boolean("processed").default(false).notNull(),
     processingError: text("processing_error"),
   },
-  (table) => [unique("raw_events_source_source_id_unique").on(table.source, table.sourceId)],
+  (table) => [
+    unique("raw_events_source_source_id_unique").on(table.source, table.sourceId),
+    index("raw_events_source_idx").on(table.source),
+    index("raw_events_scraped_at_idx").on(table.scrapedAt),
+    index("raw_events_source_scraped_at_idx").on(table.source, table.scrapedAt),
+    index("raw_events_processed_idx").on(table.processed),
+    index("raw_events_processing_error_idx").on(table.processingError),
+  ],
 );
 
 export const events = pgTable(

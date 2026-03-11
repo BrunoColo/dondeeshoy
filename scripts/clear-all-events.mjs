@@ -13,7 +13,6 @@ async function main() {
     console.log('  - event_sources');
     console.log('  - raw_events');
     console.log('  - events');
-    console.log('  - event_submissions (si existe)');
     console.log('');
 
     // Borrar en orden (por foreign keys)
@@ -25,14 +24,6 @@ async function main() {
 
     await client.query('DELETE FROM events');
     console.log('✓ events borrados');
-
-    try {
-      await client.query('DELETE FROM event_submissions');
-      console.log('✓ event_submissions borrados');
-    } catch (e) {
-      // Tabla puede no existir
-      console.log('○ event_submissions no existe (ignorado)');
-    }
 
     console.log('\n✅ Base de datos vaciada correctamente');
   } catch (error) {

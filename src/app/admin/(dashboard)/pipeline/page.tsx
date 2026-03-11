@@ -1,4 +1,4 @@
-import { getPipelineStats, getRawEvents } from "@/lib/admin-queries";
+import { getPipelineStats, getRecentRawEvents } from "@/lib/admin-queries";
 import { PipelineClient, PipelineRunClient } from "./pipeline-client";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +23,9 @@ type RawEventItem = {
 };
 
 export default async function PipelinePage() {
-  const [stats, rawEventsData] = await Promise.all([
+  const [stats, recentRawEvents] = await Promise.all([
     getPipelineStats(),
-    getRawEvents({}, 1, 50),
+    getRecentRawEvents(50),
   ]);
 
   const sourceLabels: Record<string, string> = {
@@ -115,7 +115,7 @@ export default async function PipelinePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {rawEventsData.items.map((item: RawEventItem) => (
+              {recentRawEvents.map((item: RawEventItem) => (
                 <tr key={item.id} className="hover:bg-zinc-900/30">
                   <td className="p-3 text-zinc-400">{sourceLabels[item.source] || item.source}</td>
                   <td className="p-3 text-zinc-300 max-w-xs truncate">{item.title}</td>
@@ -146,11 +146,9 @@ export default async function PipelinePage() {
             </tbody>
           </table>
         </div>
-        {rawEventsData.totalPages > 1 && (
-          <div className="p-3 border-t border-zinc-800 text-center text-zinc-500 text-sm">
-            Página {rawEventsData.page} de {rawEventsData.totalPages}
-          </div>
-        )}
+        <div className="p-3 border-t border-zinc-800 text-center text-zinc-500 text-sm">
+          Mostrando los {recentRawEvents.length} raws más recientes
+        </div>
       </div>
     </div>
   );
