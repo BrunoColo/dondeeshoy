@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getEventsByDate, getFilterOptions, getHourlyTrendingEvents, getWeekendHighlights, getWeekendEventCount } from "@/lib/queries";
 import { getTodayUY, formatDateES, getWeekendDatesUY, getDayOfWeekUY } from "@/lib/format";
+import { WEEKEND_HIGHLIGHT_LIMIT } from "@/config/weekend-highlights";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
@@ -57,7 +58,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     getEventsByDate(today, filters),
     getFilterOptions(today),
     hasFilters ? Promise.resolve([]) : getHourlyTrendingEvents(today, 3),
-    weekend ? getWeekendHighlights(weekend.start, weekend.end, 6) : Promise.resolve([]),
+    weekend ? getWeekendHighlights(weekend.start, weekend.end, WEEKEND_HIGHLIGHT_LIMIT) : Promise.resolve([]),
     weekend ? getWeekendEventCount(weekend.start, weekend.end) : Promise.resolve(0),
   ]);
 

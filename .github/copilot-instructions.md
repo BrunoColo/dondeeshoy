@@ -31,6 +31,8 @@ Leé `agent.md` antes de hacer cambios grandes. Este archivo es el resumen opera
 - `dateText` del scraper puede ser clave para detectar recurrencia; no asumir que todo está en `name` o `description`.
 - Para RedTickets, la fuente de descubrimiento debe ser la búsqueda paginada (`/busqueda?,*,0,0`), no la home.
 - Para precios, recordar que `priceMin` y `priceMax` son enteros en DB.
+- Los scrapers hacen UPSERT por `source + sourceId`: si el `rawData` no cambió solo se refresca `scrapedAt`; si cambió, se resetea `processed=false` para re-procesar solo novedades/cambios.
+- La sección "Lo mejor del finde" usa una capa editorial (`src/config/weekend-highlights.ts`) por encima del ranking para permitir picks manuales y garantizar mezcla por tipo.
 
 ## Antes de cerrar cambios
 

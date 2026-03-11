@@ -6,6 +6,12 @@ import { eq, and, gte, lte, asc, desc, sql, ilike, or, isNotNull, inArray } from
 import type { EventType, EventFilters } from "@/types/events";
 import { DEPARTMENT_BOUNDS, type UruguayDepartment } from "@/processing/department-detector";
 import { escapeLikePattern } from "@/lib/utils";
+import {
+  WEEKEND_HIGHLIGHT_LIMIT,
+  WEEKEND_HIGHLIGHT_MANUAL_SLUGS,
+  WEEKEND_HIGHLIGHT_TYPE_TARGETS,
+} from "@/config/weekend-highlights";
+import { getStoredWeekendHighlightManualSlugs } from "@/lib/weekend-highlights-store";
 
 /* ─── Columns used by list/card views (skip heavy/unused fields) ─── */
 const listColumns = {
@@ -510,7 +516,10 @@ export async function getEventsWithCoordinates(date?: string) {
  * Only useful Monday–Thursday; callers should check the day before invoking.
  */
 export async function getWeekendHighlights(weekendStart: string, weekendEnd: string, limit: number = 6) {
-  return db
+  const safeLimit = Math.max(1, Math.min(limit, WEEKEND_HIGHLIGHT_LIMIT));
+  const manualSlugs = await getStoredWeekendHighlightManualSlugs();
+
+  const candidates = await db
     .select(listColumns)
     .from(events)
     .where(
@@ -522,7 +531,56 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
       ),
     )
     .orderBy(desc(rankingScore), asc(events.date), asc(events.startTime))
-    .limit(limit);
+    .limit(Math.max(safeLimit * 4, 24));
+
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const selected: Array<(typeof candidates)[number]> = [];
+  const selectedIds = new Set<string>();
+  const selectedTypeCounts = new Map<EventType, number>();
+  const candidatesBySlug = new Map(candidates.map((candidate) => [candidate.slug, candidate]));
+
+  const addCandidate = (candidate: (typeof candidates)[number] | undefined) => {
+    if (!candidate || selectedIds.has(candidate.id) || selected.length >= safeLimit) {
+      return false;
+    }
+
+    selected.push(candidate);
+    selectedIds.add(candidate.id);
+    selectedTypeCounts.set(candidate.eventType, (selectedTypeCounts.get(candidate.eventType) ?? 0) + 1);
+    return true;
+  };
+
+  for (const slug of manualSlugs.length > 0 ? manualSlugs : WEEKEND_HIGHLIGHT_MANUAL_SLUGS) {
+    addCandidate(candidatesBySlug.get(slug));
+  }
+
+  for (const target of WEEKEND_HIGHLIGHT_TYPE_TARGETS) {
+    const alreadySelected = selectedTypeCounts.get(target.type) ?? 0;
+    const remainingSlotsForType = Math.max(0, target.count - alreadySelected);
+
+    if (remainingSlotsForType === 0) {
+      continue;
+    }
+
+    const matches = candidates.filter((candidate) => candidate.eventType === target.type && !selectedIds.has(candidate.id));
+
+    for (const candidate of matches.slice(0, remainingSlotsForType)) {
+      addCandidate(candidate);
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (selected.length >= safeLimit) {
+      break;
+    }
+
+    addCandidate(candidate);
+  }
+
+  return selected;
 }
 
 /**

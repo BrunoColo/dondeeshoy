@@ -33,12 +33,20 @@
       "schedule": "0 17 * * *"
     },
     {
+      "path": "/api/scrape/process",
+      "schedule": "45 17 * * *"
+    },
+    {
+      "path": "/api/scrape/process",
+      "schedule": "30 18 * * *"
+    },
+    {
       "path": "/api/scrape/mark-past",
       "schedule": "0 3 * * *"
     },
     {
       "path": "/api/scrape/reclassify-otros",
-      "schedule": "30 17 * * *"
+      "schedule": "0 19 * * *"
     },
     {
       "path": "/api/cron/newsletter",
