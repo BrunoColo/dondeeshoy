@@ -91,10 +91,11 @@ export async function getWeekendHighlightEditorState() {
   const manualSlugs = await getStoredWeekendHighlightManualSlugs();
   const manualEvents = await getWeekendHighlightEventsBySlugs(manualSlugs);
 
+  const raw = rows[0]?.updatedAt ?? null;
   return {
     manualSlugs,
     manualEvents,
-    updatedAt: rows[0]?.updatedAt ?? null,
+    updatedAt: raw ? raw.toISOString() : null,
     limit: WEEKEND_HIGHLIGHT_LIMIT,
     maxManualSlugs: MAX_MANUAL_SLUGS,
   };

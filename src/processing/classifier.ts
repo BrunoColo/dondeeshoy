@@ -131,7 +131,7 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "deportivo",
     regex:
-      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b|\bdesaf[ií]o\b|\breto\b|\btraves[ií]a\b|\btriatl[oó]n\b|\btrail\b|\bmtb\b|\bgravel\b|\bnado\b|\bnataci[oó]n\b|\bciclismo\b|\bxcm\b|\bestadio\b|\b\d+\s*k(?:m)?\b|\bscott\s*marathon\b|\bvikingo\b|\ba\s*nado\b|\bhip[oó]dromo\b|\bmaro[nñ]as\b|\btrekking\b|\bsenderismo\b|\bpesca\b|\bgrutas?\s+extremas?\b/i,
+      /\bpartido\b|\btorneo\b|\bcarrera\b|\bmarat[oó]n\b|(?<!vestimenta\s)(?<!ropa\s)\bdeport\w*\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bbox\w*\b|\bboxeo\b|\bvelada\s+de\s+box\w*\b|\bmma\b|\bufc\b|\bkick\s*boxing\b|\bcombate\b|\bpelea\b|\brugby\b|\bvoley\b|\bhandball\b|\bdesaf[ií]o\b|\breto\b|\btraves[ií]a\b|\btriatl[oó]n\b|\btrail\b|\bmtb\b|\bgravel\b|\bnado\b|\bnataci[oó]n\b|\bciclismo\b|\bxcm\b|\bestadio\b|\b\d+\s*k(?:m)?\b|\bscott\s*marathon\b|\bvikingo\b|\ba\s*nado\b|\bhip[oó]dromo\b|\bmaro[nñ]as\b|\btrekking\b|\bsenderismo\b|\bpesca\b|\bgrutas?\s+extremas?\b/i,
   },
   {
     type: "gastronomico",
@@ -670,10 +670,14 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
   if (sourceMapped && sourceMapped !== "otro") {
     // Check if text heuristics strongly indicate a different high-priority type
     const strongTextType = matchedTypes[0];
+    const venueConfirmsSource =
+      sourceMapped === "fiesta" &&
+      KNOWN_PARTY_VENUES.some((regex) => regex.test(normalized.venueName ?? ""));
     const textOverridesSource =
       strongTextType !== undefined &&
       SOURCE_CATEGORY_OVERRIDE_TYPES.has(strongTextType) &&
-      strongTextType !== sourceMapped;
+      strongTextType !== sourceMapped &&
+      !venueConfirmsSource;
 
     if (!textOverridesSource) {
       // Still apply late-night reclassification for edge cases
