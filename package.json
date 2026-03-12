@@ -10,6 +10,7 @@
     "rescrape:targeted": "node scripts/rescrape-targeted.mjs",
     "fix:recurring": "node scripts/fix-recurring-events.mjs",
     "fix:recurring-duplicates": "node scripts/fix-recurring-duplicates.mjs",
+    "fix:same-day-duplicates": "node scripts/fix-same-day-duplicates.mjs",
     "fix:familiar": "node scripts/fix-familiar-misclassified.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

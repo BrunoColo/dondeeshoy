@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getUpcomingEvents, getFilterOptions, getEventsBetweenDates } from "@/lib/queries";
+import { getUpcomingEvents, getUpcomingEventsFromDate, getFilterOptions, getEventsBetweenDates } from "@/lib/queries";
 import { getTodayUY, getTomorrowUY, getDateOffsetUY, getWeekendDatesUY } from "@/lib/format";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -87,9 +87,9 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
     filterRange = { start: weekend.start, end: weekend.end };
     subtitle = "Eventos de este fin de semana";
   } else if (hasSearch) {
-    // When searching, include today and look 30 days ahead for broad results
-    grouped = await getUpcomingEvents(today, 30, filters);
-    filterRange = { start: today, end: getDateOffsetUY(31) };
+    // Search must span all future events, not just the next few weeks.
+    grouped = await getUpcomingEventsFromDate(today, filters);
+    filterRange = { start: today, end: getDateOffsetUY(365) };
     subtitle = `Resultados para "${filters.q}"`;
   } else {
     // Default: load 7 days starting tomorrow, with lazy loading for more

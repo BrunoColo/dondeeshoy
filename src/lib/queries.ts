@@ -282,6 +282,30 @@ export async function getUpcomingEvents(startDate: string, daysAhead: number = 7
 }
 
 /**
+ * Get all active future events from a date onwards, grouped by date.
+ * Intended for text search flows where users expect matches regardless of
+ * whether the event is tomorrow, next month, or further ahead.
+ */
+export async function getUpcomingEventsFromDate(startDate: string, filters?: EventFilters) {
+  const filterConditions = buildFilterConditions(filters);
+
+  const results = await db
+    .select(listColumns)
+    .from(events)
+    .where(and(gte(events.date, startDate), activeStatus, ...filterConditions))
+    .orderBy(asc(events.date), desc(rankingScore), asc(events.startTime), asc(events.name));
+
+  const grouped = new Map<string, typeof results>();
+  for (const event of results) {
+    const d = event.date;
+    if (!grouped.has(d)) grouped.set(d, []);
+    grouped.get(d)!.push(event);
+  }
+
+  return grouped;
+}
+
+/**
  * Legacy wrappers for pages that still call individual filter queries
  */
 export async function getActiveGenres(date?: string) {

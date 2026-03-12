@@ -10,6 +10,7 @@ type DuplicateCandidate = {
   id: string;
   name: string;
   venueName: string;
+  startTime: string | null;
 };
 
 export type DuplicateLookupCache = {
@@ -79,6 +80,7 @@ export function rememberDuplicateCandidate(
     id: eventId,
     name: normalized.name,
     venueName: normalized.venueName,
+    startTime: normalized.startTime,
   };
 
   rememberCandidateInCollection(
@@ -111,6 +113,7 @@ async function loadSameDayCandidates(
       id: events.id,
       name: events.name,
       venueName: events.venueName,
+      startTime: events.startTime,
     })
     .from(events)
     .where(and(eq(events.date, normalized.date), eq(events.department, normalized.city)))
@@ -135,6 +138,7 @@ async function loadRecurringCandidates(
       id: events.id,
       name: events.name,
       venueName: events.venueName,
+      startTime: events.startTime,
     })
     .from(events)
     .where(and(eq(events.department, normalized.city), eq(events.isRecurring, true)))
@@ -171,7 +175,7 @@ function rememberCandidateInCollection(
 
 function scoreBestMatch(
   normalized: NormalizedEventInput,
-  candidates: Array<{ id: string; name: string; venueName: string }>,
+  candidates: Array<{ id: string; name: string; venueName: string; startTime: string | null }>,
 ): string | null {
   const normalizedName = normalize(normalized.name);
   const normalizedVenue = normalize(normalized.venueName);
@@ -180,6 +184,8 @@ function scoreBestMatch(
   let bestId: string | null = null;
   let bestScore = 0;
   let bestHasExactVenue = false;
+  let bestHasMatchingStartTime = false;
+  let bestHasExactName = false;
 
   for (const candidate of candidates) {
     const candidateName = normalize(candidate.name);
@@ -188,10 +194,18 @@ function scoreBestMatch(
     const bigramScore = similarity(normalizedName, candidateName);
     const tokenScore = tokenOverlap(normalizedName, candidateName);
     const isSubstring = containsSubstring(normalizedName, candidateName);
+    const exactName = normalizedName === candidateName && normalizedName.length > 0;
+    const sameStartTime =
+      normalized.startTime !== null &&
+      candidate.startTime !== null &&
+      normalized.startTime === candidate.startTime;
 
     let nameScore = Math.max(bigramScore, tokenScore);
     if (isSubstring) {
       nameScore = Math.max(nameScore, 0.90);
+    }
+    if (exactName) {
+      nameScore = 1;
     }
 
     // If either venue is a placeholder, venue comparison is irrelevant —
@@ -214,12 +228,27 @@ function scoreBestMatch(
       bestScore = totalScore;
       bestId = candidate.id;
       bestHasExactVenue = exactVenue;
+      bestHasMatchingStartTime = sameStartTime;
+      bestHasExactName = exactName;
     }
   }
 
   // Lower threshold when venues match exactly — if they're at the same place
   // on the same day with similar names, it's almost certainly a duplicate
-  const threshold = bestHasExactVenue ? 0.72 : 0.82;
+  let threshold = 0.82;
+
+  if (bestHasExactVenue) {
+    threshold = 0.72;
+  }
+
+  // Exact title + same start time on the same day is a very strong signal,
+  // even when venue aliases differ (e.g. "ACJ Montevideo" vs the full name).
+  if (bestHasExactName && bestHasMatchingStartTime) {
+    threshold = Math.min(threshold, 0.68);
+  } else if (bestHasMatchingStartTime) {
+    threshold = Math.min(threshold, 0.78);
+  }
+
   return bestScore >= threshold ? bestId : null;
 }
 
