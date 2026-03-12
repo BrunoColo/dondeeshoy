@@ -115,15 +115,18 @@ export function Header() {
     (value: string) => {
       setSuggestions([]);
       setHighlightedIndex(-1);
-      const params = new URLSearchParams(searchParams.toString());
-      if (value.trim()) {
-        params.set("q", value.trim());
+      const trimmed = value.trim();
+      if (trimmed) {
+        // Always search across all dates via /proximos
+        router.push(`/proximos?q=${encodeURIComponent(trimmed)}`, { scroll: false });
       } else {
+        // Clear search: stay on current page, remove q param
+        const params = new URLSearchParams(searchParams.toString());
         params.delete("q");
+        const qs = params.toString();
+        const target = pathname === "/" || pathname === "/proximos" ? pathname : "/";
+        router.push(qs ? `${target}?${qs}` : target, { scroll: false });
       }
-      const qs = params.toString();
-      const target = pathname === "/" || pathname === "/proximos" ? pathname : "/";
-      router.push(qs ? `${target}?${qs}` : target, { scroll: false });
     },
     [router, pathname, searchParams],
   );

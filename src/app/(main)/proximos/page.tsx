@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { getUpcomingEvents, getFilterOptions, getEventsBetweenDates } from "@/lib/queries";
-import { getTomorrowUY, getDateOffsetUY, getWeekendDatesUY } from "@/lib/format";
+import { getTodayUY, getTomorrowUY, getDateOffsetUY, getWeekendDatesUY } from "@/lib/format";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
 import { TimeFilter } from "@/components/events/time-filter";
 import { ProximosEventsClient } from "@/components/events/proximos-events-client";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Loader2 } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
@@ -36,6 +36,7 @@ export default function ProximosPage({ searchParams }: ProximosPageProps) {
 
 async function ProximosContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
+  const today = getTodayUY();
   const tomorrow = getTomorrowUY();
   const when = typeof params.when === "string" ? params.when : undefined;
   const fechaParam = typeof params.fecha === "string" ? params.fecha : undefined;
@@ -49,10 +50,14 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   if (params.free === "true") filters.free = true;
 
   const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
+  const hasSearch = !!filters.q;
 
   let grouped: Map<string, Awaited<ReturnType<typeof getEventsBetweenDates>>>;
   let filterRange: { start: string; end: string };
   let subtitle = "Eventos de los próximos días";
+  // Track whether pagination ("load more") should be available
+  let enableLoadMore = false;
+  let nextFrom: string | undefined;
 
   if (when === "fecha" && fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam)) {
     const dateEvents = await getEventsBetweenDates(fechaParam, fechaParam, filters);
@@ -81,9 +86,17 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 
     filterRange = { start: weekend.start, end: weekend.end };
     subtitle = "Eventos de este fin de semana";
+  } else if (hasSearch) {
+    // When searching, include today and look 30 days ahead for broad results
+    grouped = await getUpcomingEvents(today, 30, filters);
+    filterRange = { start: today, end: getDateOffsetUY(31) };
+    subtitle = `Resultados para "${filters.q}"`;
   } else {
-    grouped = await getUpcomingEvents(tomorrow, 14, filters);
-    filterRange = { start: tomorrow, end: getDateOffsetUY(15) };
+    // Default: load 7 days starting tomorrow, with lazy loading for more
+    grouped = await getUpcomingEvents(tomorrow, 7, filters);
+    filterRange = { start: tomorrow, end: getDateOffsetUY(8) };
+    enableLoadMore = true;
+    nextFrom = getDateOffsetUY(8);
   }
 
   // 2 queries instead of 4: events + combined filter options
@@ -135,6 +148,8 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
             events: allDateEvents.filter((e) => !e.isRecurring),
             recurringEvents: allDateEvents.filter((e) => e.isRecurring),
           }))}
+          nextFrom={enableLoadMore ? nextFrom : undefined}
+          hasMore={enableLoadMore}
         />
       ) : (
         <EmptyState variant={hasFilters ? "search" : "upcoming"} />
@@ -146,12 +161,20 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 function ProximosLoading() {
   return (
     <div className="pt-4">
+      {/* Header skeleton */}
       <div className="mb-5 flex items-center gap-3">
-        <div className="skeleton h-8 w-8 rounded-lg" />
+        <div className="skeleton h-9 w-9 rounded-xl" />
         <div className="space-y-1.5">
           <div className="skeleton h-2.5 w-16 rounded" />
           <div className="skeleton h-3.5 w-44 rounded" />
         </div>
+      </div>
+
+      {/* Time filter skeleton */}
+      <div className="mb-3 flex gap-2">
+        <div className="skeleton h-9 w-24 rounded-full" />
+        <div className="skeleton h-9 w-28 rounded-full" />
+        <div className="skeleton h-9 w-20 rounded-full" />
       </div>
 
       {/* Filter skeleton */}
@@ -161,15 +184,26 @@ function ProximosLoading() {
         ))}
       </div>
 
+      {/* Loading indicator */}
+      <div className="mb-6 flex items-center justify-center gap-2 py-4">
+        <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+        <span className="text-[13px] font-medium text-[#A8B8CC] animate-pulse">
+          Cargando próximos eventos…
+        </span>
+      </div>
+
+      {/* Date groups skeleton */}
       <div className="space-y-8">
-        <div>
-          <div className="skeleton mb-3 h-4 w-40 rounded" />
-          <EventSkeleton count={2} />
-        </div>
-        <div>
-          <div className="skeleton mb-3 h-4 w-48 rounded" />
-          <EventSkeleton count={2} />
-        </div>
+        {Array.from({ length: 3 }).map((_, groupIndex) => (
+          <div key={groupIndex}>
+            {/* Date header skeleton */}
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="skeleton h-5 w-36 rounded" />
+              <div className="skeleton h-4 w-20 rounded" />
+            </div>
+            <EventSkeleton count={groupIndex === 0 ? 3 : 2} />
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -179,30 +179,87 @@ function scoreBestMatch(
 
   let bestId: string | null = null;
   let bestScore = 0;
+  let bestHasExactVenue = false;
 
   for (const candidate of candidates) {
-    const nameScore = similarity(normalizedName, normalize(candidate.name));
+    const candidateName = normalize(candidate.name);
+
+    // Combine bigram similarity with token overlap and containment checks
+    const bigramScore = similarity(normalizedName, candidateName);
+    const tokenScore = tokenOverlap(normalizedName, candidateName);
+    const isSubstring = containsSubstring(normalizedName, candidateName);
+
+    let nameScore = Math.max(bigramScore, tokenScore);
+    if (isSubstring) {
+      nameScore = Math.max(nameScore, 0.90);
+    }
 
     // If either venue is a placeholder, venue comparison is irrelevant —
     // rely entirely on name similarity
     const candidateIsPlaceholder = isPlaceholderVenue(candidate.venueName);
+    const candidateVenue = normalize(candidate.venueName);
     let totalScore: number;
+    let exactVenue = false;
 
     if (incomingIsPlaceholder || candidateIsPlaceholder) {
       // Name-only: high name match is enough
       totalScore = nameScore;
     } else {
-      const venueScore = similarity(normalizedVenue, normalize(candidate.venueName));
+      const venueScore = similarity(normalizedVenue, candidateVenue);
+      exactVenue = normalizedVenue === candidateVenue && normalizedVenue.length > 0;
       totalScore = nameScore * 0.75 + venueScore * 0.25;
     }
 
     if (totalScore > bestScore) {
       bestScore = totalScore;
       bestId = candidate.id;
+      bestHasExactVenue = exactVenue;
     }
   }
 
-  return bestScore >= 0.82 ? bestId : null;
+  // Lower threshold when venues match exactly — if they're at the same place
+  // on the same day with similar names, it's almost certainly a duplicate
+  const threshold = bestHasExactVenue ? 0.72 : 0.82;
+  return bestScore >= threshold ? bestId : null;
+}
+
+/**
+ * Token overlap: how well the significant words of one name match the other.
+ * Uses a containment ratio — if all tokens of the shorter name appear in the
+ * longer one, it returns ~0.95 even if the longer has extra words.
+ */
+function tokenOverlap(a: string, b: string): number {
+  const tokensA = a.split(/\s+/).filter((t) => t.length > 2);
+  const tokensB = b.split(/\s+/).filter((t) => t.length > 2);
+
+  if (tokensA.length === 0 || tokensB.length === 0) return 0;
+
+  const setB = new Set(tokensB);
+  let shared = 0;
+  for (const token of tokensA) {
+    if (setB.has(token)) shared += 1;
+  }
+
+  const shorter = Math.min(tokensA.length, tokensB.length);
+  const containmentRatio = shared / shorter;
+
+  // If all significant words of the shorter name are in the longer, very likely same event
+  if (containmentRatio >= 0.8) return 0.95 * containmentRatio;
+
+  // Fallback to Jaccard-like ratio
+  const union = new Set([...tokensA, ...tokensB]).size;
+  return shared / union;
+}
+
+/**
+ * Check if one normalized string fully contains the other.
+ * Requires the shorter string to be at least 4 characters to avoid
+ * false positives on very short names.
+ */
+function containsSubstring(a: string, b: string): boolean {
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length > b.length ? a : b;
+  return shorter.length >= 4 && longer.includes(shorter);
 }
 
 function normalize(value: string): string {

@@ -327,6 +327,7 @@ export interface SearchSuggestion {
 /**
  * Lightweight suggestions for the header autocomplete.
  * Prioritises name matches first, then venue matches, then the composite ranking.
+ * Only shows events from today onwards (no past events).
  */
 export async function getSearchSuggestions(query: string, limit: number = 5): Promise<SearchSuggestion[]> {
   const normalized = query.trim();
@@ -335,6 +336,10 @@ export async function getSearchSuggestions(query: string, limit: number = 5): Pr
   const escaped = escapeLikePattern(normalized);
   const containsPattern = `%${escaped}%`;
   const prefixPattern = `${escaped}%`;
+
+  const today = new Date();
+  const uyDate = new Date(today.toLocaleString("en-US", { timeZone: "America/Montevideo" }));
+  const todayStr = `${uyDate.getFullYear()}-${String(uyDate.getMonth() + 1).padStart(2, "0")}-${String(uyDate.getDate()).padStart(2, "0")}`;
 
   return db
     .select({
@@ -349,6 +354,7 @@ export async function getSearchSuggestions(query: string, limit: number = 5): Pr
     .where(
       and(
         activeStatus,
+        gte(events.date, todayStr),
         or(
           ilike(events.name, containsPattern),
           ilike(events.venueName, containsPattern),
