@@ -18,7 +18,6 @@ import {
   CalendarCheck,
   Rocket,
   ExternalLink,
-  Tag,
   TrendingUp,
   ArrowRight,
   Mail,
@@ -329,16 +328,14 @@ export async function DesktopSidebar() {
             </p>
             <Link
               href="/suscribirse"
-              className="group flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 border"
+              className="flex items-center justify-center rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:brightness-110 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:-translate-y-px active:scale-[0.97]"
               style={{
-                background: "rgba(99,102,241,0.08)",
-                borderColor: "rgba(99,102,241,0.30)",
-                color: "#818CF8",
+                background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0D9488 100%)",
+                border: "1px solid rgba(99,102,241,0.40)",
+                boxShadow: "0 2px 12px rgba(99,102,241,0.20), inset 0 1px 0 rgba(255,255,255,0.12)",
               }}
             >
-              <Mail className="h-3.5 w-3.5" />
               Suscribirme gratis
-              <ArrowRight className="h-3.5 w-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
@@ -422,9 +419,13 @@ export async function DesktopSidebar() {
           <div className="px-3.5 py-2.5 border-t border-white/[0.06]">
             <Link
               href="/publicar#contacto"
-              className="flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-semibold text-[#A8B8CC] hover:text-[#E2E8F0] transition-colors border border-white/[0.15] hover:border-white/[0.28] hover:bg-white/[0.05]"
+              className="flex items-center justify-center rounded-xl py-2.5 px-4 text-[12px] font-bold text-white transition-all duration-200 hover:brightness-110 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:-translate-y-px active:scale-[0.97]"
+              style={{
+                background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0D9488 100%)",
+                border: "1px solid rgba(99,102,241,0.40)",
+                boxShadow: "0 2px 12px rgba(99,102,241,0.20), inset 0 1px 0 rgba(255,255,255,0.12)",
+              }}
             >
-              <Tag className="h-3 w-3" />
               Anunciá tu negocio aquí
             </Link>
           </div>
