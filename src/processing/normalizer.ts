@@ -58,7 +58,35 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
 
   // If the scraper already provides a valid ISO date (YYYY-MM-DD), use it directly
   // instead of feeding it through the Spanish date parser where DD/MM/YY regex can misinterpret it.
-  const isoDateDirect = /^\d{4}-\d{2}-\d{2}$/.test(rawDateIso) ? rawDateIso : null;
+  // NOTE: Check both rawDateIso AND rawDateText, since some scrapers (entraste, cobraticket)
+  // send ISO format strings in dateText fields instead of dedicated dateIso fields.
+  
+  // Validate and extract ISO dates - must be valid calendar dates and reasonable year (2026-2027)
+  const validateIsoDate = (isoStr: string | null): string | null => {
+    if (!isoStr) return null;
+    const match = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    const year = Number.parseInt(match[1], 10);
+    const month = Number.parseInt(match[2], 10);
+    const day = Number.parseInt(match[3], 10);
+    
+    // Only accept years 2026-2027; reject any other century (2001, 2011, 2024, 2025, 2028+, etc.)
+    if (year < 2026 || year > 2027) return null;
+    
+    // Basic calendar validation
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    
+    // Additional check: confirm the date is valid (e.g., Feb 30 is not valid)
+    const candidate = new Date(Date.UTC(year, month - 1, day));
+    if (candidate.getUTCFullYear() !== year || candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) {
+      return null;
+    }
+    
+    return `${year}-${match[2]}-${match[3]}`;
+  };
+  
+  const isoDateDirect = validateIsoDate(rawDateIso);
+  const isoDateTextDirect = validateIsoDate(rawDateText);
 
   // dateText is for the human-readable string parser — prefer rawDateText over rawDateIso
   const dateText = rawDateText || rawSearchDateText || (rawDatesArray?.[0] ? sanitizeText(rawDatesArray[0]) : "") || rawDateIso;
@@ -92,8 +120,10 @@ export async function normalizeRawEvent(rawEvent: RawEvent): Promise<NormalizedE
       ? await resolveDateWithAi(dateText)
       : null;
 
-  // Prefer the direct ISO date from the scraper, then AI/parsed date
-  const date = isoDateDirect ?? aiResolvedDate?.date ?? parsedDate.date;
+  // Prefer the direct ISO date from the scraper (from either dateIso or dateText field),
+  // then AI resolution, then parsed date from human-readable text.
+  // isoDateDirect prioritized first, then isoDateTextDirect (so scraper-provided dateIso field wins over scraped dateText field)
+  const date = isoDateDirect ?? isoDateTextDirect ?? aiResolvedDate?.date ?? parsedDate.date;
   // Use explicit startTime from raw data if the parser couldn't extract one
   const rawStartTime =
     sanitizeText((rawData.startTime as string) ?? "") ||
