@@ -72,7 +72,7 @@ export function createDuplicateLookupCache(): DuplicateLookupCache {
 
 export function rememberDuplicateCandidate(
   cache: DuplicateLookupCache,
-  normalized: Pick<NormalizedEventInput, "date" | "city" | "name" | "venueName">,
+  normalized: Pick<NormalizedEventInput, "date" | "city" | "name" | "venueName" | "startTime">,
   eventId: string,
   isRecurring: boolean,
 ): void {
