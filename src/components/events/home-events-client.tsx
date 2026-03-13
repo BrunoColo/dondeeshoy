@@ -1,35 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EventList } from "./event-list";
 import { NearbyButton } from "./nearby-button";
 import { SectionHeader } from "./section-header";
 import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { Flame, RotateCw, Sparkles } from "lucide-react";
+import { ChevronDown, Flame, Loader2, RotateCw, Sparkles } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
+import type { EventFilters } from "@/types/events";
 
 interface HomeEventsClientProps {
+  date: string;
   events: Event[];
+  totalUniqueCount: number;
   recurringEvents: Event[];
+  totalRecurringCount: number;
   trending: Event[];
   trendingIds: string[];
   hasFilters: boolean;
+  filters: EventFilters;
   weekendEvents?: Event[];
   weekendTotalCount?: number;
   weekendLabel?: string;
 }
 
 export function HomeEventsClient({
+  date,
   events,
+  totalUniqueCount,
   recurringEvents,
+  totalRecurringCount,
   trending,
   trendingIds,
   hasFilters,
+  filters,
   weekendEvents = [],
   weekendTotalCount = 0,
   weekendLabel = "",
 }: HomeEventsClientProps) {
+  const [uniqueEvents, setUniqueEvents] = useState(events);
+  const [loadingMoreUnique, setLoadingMoreUnique] = useState(false);
+  const [recurringEventList, setRecurringEventList] = useState(recurringEvents);
+  const [loadingMoreRecurring, setLoadingMoreRecurring] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
   const { position, loading, error, requestLocation } = useGeolocation();
 
@@ -41,6 +54,83 @@ export function HomeEventsClient({
     }
     setSortByDistance((prev) => !prev);
   };
+
+  const hasMoreUnique = uniqueEvents.length < totalUniqueCount;
+  const hasMoreRecurring = recurringEventList.length < totalRecurringCount;
+
+  useEffect(() => {
+    setUniqueEvents(events);
+    setLoadingMoreUnique(false);
+  }, [date, events, totalUniqueCount]);
+
+  useEffect(() => {
+    setRecurringEventList(recurringEvents);
+    setLoadingMoreRecurring(false);
+  }, [date, recurringEvents, totalRecurringCount]);
+
+  const loadMoreUnique = useCallback(async () => {
+    if (!hasMoreUnique || loadingMoreUnique) return;
+
+    setLoadingMoreUnique(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("date", date);
+      params.set("offset", String(uniqueEvents.length));
+      params.set("limit", "6");
+      params.set("recurring", "false");
+
+      if (filters.type) params.set("type", filters.type);
+      if (filters.genre) params.set("genre", filters.genre);
+      if (filters.department) params.set("department", filters.department);
+      if (filters.free) params.set("free", "true");
+      if (filters.night) params.set("night", "true");
+      if (filters.q) params.set("q", filters.q);
+
+      const res = await fetch(`/api/events/by-date?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch more daily events");
+
+      const data = (await res.json()) as { events: Event[] };
+      if (data.events.length > 0) {
+        setUniqueEvents((prev) => [...prev, ...data.events]);
+      }
+    } catch {
+      console.error("[home] Failed to load more events for today");
+    } finally {
+      setLoadingMoreUnique(false);
+    }
+  }, [date, filters, hasMoreUnique, loadingMoreUnique, uniqueEvents.length]);
+
+  const loadMoreRecurring = useCallback(async () => {
+    if (!hasMoreRecurring || loadingMoreRecurring) return;
+
+    setLoadingMoreRecurring(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("date", date);
+      params.set("offset", String(recurringEventList.length));
+      params.set("limit", "6");
+      params.set("recurring", "true");
+
+      if (filters.type) params.set("type", filters.type);
+      if (filters.genre) params.set("genre", filters.genre);
+      if (filters.department) params.set("department", filters.department);
+      if (filters.free) params.set("free", "true");
+      if (filters.night) params.set("night", "true");
+      if (filters.q) params.set("q", filters.q);
+
+      const res = await fetch(`/api/events/by-date?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch more recurring events");
+
+      const data = (await res.json()) as { events: Event[] };
+      if (data.events.length > 0) {
+        setRecurringEventList((prev) => [...prev, ...data.events]);
+      }
+    } catch {
+      console.error("[home] Failed to load more recurring events");
+    } finally {
+      setLoadingMoreRecurring(false);
+    }
+  }, [date, filters, hasMoreRecurring, loadingMoreRecurring, recurringEventList.length]);
 
   const geoState = { position, sortByDistance };
 
@@ -80,7 +170,7 @@ export function HomeEventsClient({
             icon={Sparkles}
             title="Eventos únicos de hoy"
             subtitle="Solo por hoy"
-            count={events.length}
+            count={totalUniqueCount}
             accent={{
               iconWrap: "border-emerald-400/20 bg-gradient-to-br from-emerald-500/18 to-teal-500/10",
               icon: "text-[#6EE7B7]",
@@ -90,8 +180,35 @@ export function HomeEventsClient({
             }}
           />
 
-          {events.length > 0 ? (
-            <EventList events={events} trendingIds={trendingIds} geoState={geoState} />
+          {totalUniqueCount > 0 ? (
+            <>
+              <EventList events={uniqueEvents} trendingIds={trendingIds} geoState={geoState} />
+              {hasMoreUnique && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={loadMoreUnique}
+                    disabled={loadingMoreUnique}
+                    className="group flex items-center gap-2 rounded-full px-5 py-2.5 text-[12px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] disabled:opacity-60 disabled:hover:translate-y-0"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(99,102,241,0.20) 0%, rgba(13,148,136,0.20) 100%)",
+                      border: "1px solid rgba(99,102,241,0.30)",
+                    }}
+                  >
+                    {loadingMoreUnique ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Cargando más…
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                        Ver más de hoy ({totalUniqueCount - uniqueEvents.length})
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[12px] text-muted-foreground">
               No hay eventos únicos para hoy con los filtros actuales.
@@ -110,12 +227,12 @@ export function HomeEventsClient({
       )}
 
       {/* Recurring / always-available section */}
-      {recurringEvents.length > 0 && (        <div className="mt-8 mb-6 fade-up">
+      {totalRecurringCount > 0 && (        <div className="mt-8 mb-6 fade-up">
           <SectionHeader
             icon={RotateCw}
             title="Eventos recurrentes"
             subtitle="Se repiten semanalmente o están disponibles durante gran parte del año"
-            count={recurringEvents.length}
+        count={totalRecurringCount}
             accent={{
               iconWrap: "border-amber-400/20 bg-gradient-to-br from-amber-500/18 to-orange-500/10",
               icon: "text-amber-300",
@@ -125,7 +242,33 @@ export function HomeEventsClient({
             }}
           />
           <div className="rounded-2xl border border-amber-400/15 bg-amber-500/[0.04] p-3 sm:p-4">
-            <EventList events={recurringEvents} geoState={geoState} />
+            <EventList events={recurringEventList} geoState={geoState} />
+
+            {hasMoreRecurring && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={loadMoreRecurring}
+                  disabled={loadingMoreRecurring}
+                  className="group flex items-center gap-2 rounded-full px-5 py-2.5 text-[12px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] disabled:opacity-60 disabled:hover:translate-y-0"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(99,102,241,0.20) 0%, rgba(13,148,136,0.20) 100%)",
+                    border: "1px solid rgba(99,102,241,0.30)",
+                  }}
+                >
+                  {loadingMoreRecurring ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando más…
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                      Ver más recurrentes ({totalRecurringCount - recurringEventList.length})
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -356,8 +356,8 @@ export function Header() {
             DESKTOP LAYOUT (≥ 640px)
             ══════════════════════════════════════════ */}
 
-        {/* Desktop: Logo — always visible */}
-        <div className="hidden sm:flex items-center shrink-0">
+        {/* Desktop: Logo + nav */}
+        <div className="hidden sm:flex items-center gap-4 shrink-0">
           <Link href="/" className="flex items-center gap-1 group">
             <span className="font-display text-[18px] font-extrabold tracking-tight text-[#E2E8F0] group-hover:text-white transition-colors">
               ¿Dónde es
@@ -366,10 +366,8 @@ export function Header() {
               &nbsp;hoy?
             </span>
           </Link>
-        </div>
 
-        {/* Desktop: Nav links — centered */}
-        <nav className="hidden sm:flex items-center gap-1 flex-1 justify-center">
+          <nav className="hidden lg:flex items-center gap-1.5">
           {HEADER_NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/#top"
@@ -403,14 +401,28 @@ export function Header() {
               </Link>
             );
           })}
-        </nav>
+          </nav>
+        </div>
 
-        {/* Desktop: Search — always visible inline bar */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <div className="relative w-[260px] lg:w-[340px] xl:w-[400px]">
+        {/* Desktop: Search — right aligned, closer to Publish */}
+        <div className="hidden sm:flex items-center gap-2 ml-auto shrink-0">
+          <div className="relative w-[360px] lg:w-[440px] xl:w-[520px]">
+            <div
+              className="rounded-full p-[1px]"
+              style={{
+                background:
+                  searchFocused || searchValue
+                    ? "linear-gradient(135deg, rgba(20,184,166,0.45) 0%, rgba(99,102,241,0.42) 100%)"
+                    : "linear-gradient(135deg, rgba(20,184,166,0.22) 0%, rgba(99,102,241,0.20) 100%)",
+                boxShadow: searchFocused || searchValue
+                  ? "0 0 22px rgba(13,148,136,0.18), 0 0 22px rgba(99,102,241,0.12)"
+                  : "0 3px 12px rgba(0,0,0,0.22)",
+              }}
+            >
+              <div className="relative rounded-full bg-[rgba(5,8,16,0.92)]">
             <Search
               className={cn(
-                "absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-200",
+                "absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 pointer-events-none transition-colors duration-200",
                 searchFocused || searchValue ? "text-accent-light" : "text-[#8A9BB0]",
               )}
               strokeWidth={2}
@@ -424,17 +436,15 @@ export function Header() {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
               placeholder="Buscar eventos, artistas…"
-              className="w-full rounded-full pl-10 pr-10 py-2 text-[13px] text-foreground placeholder:text-[#8A9BB0] focus:outline-none transition-all duration-200"
+              className="w-full rounded-full pl-11 pr-12 py-2.5 text-[13px] text-foreground placeholder:text-[#8A9BB0] focus:outline-none transition-all duration-200"
               style={{
                 background: searchFocused
-                  ? "rgba(6,6,18,0.95)"
-                  : "rgba(4,4,12,0.80)",
-                border: searchFocused
-                  ? "1px solid rgba(13,148,136,0.50)"
-                  : "1px solid rgba(255,255,255,0.15)",
+                  ? "linear-gradient(135deg, rgba(8,12,24,0.96) 0%, rgba(7,10,20,0.96) 100%)"
+                  : "linear-gradient(135deg, rgba(7,10,20,0.90) 0%, rgba(6,9,18,0.88) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
                 boxShadow: searchFocused
-                  ? "0 0 20px rgba(13,148,136,0.20), 0 0 20px rgba(99,102,241,0.10)"
-                  : "0 2px 8px rgba(0,0,0,0.25)",
+                  ? "inset 0 0 0 1px rgba(20,184,166,0.28)"
+                  : "inset 0 0 0 1px rgba(148,163,184,0.08)",
               }}
             />
             {searchValue.trim().length > 0 ? (
@@ -461,9 +471,41 @@ export function Header() {
                 ⌘K
               </span>
             ) : null}
+              </div>
+            </div>
             {renderSuggestions(false)}
           </div>
         </div>
+
+        {/* Desktop: secondary nav for md (where left nav is hidden) */}
+        <nav className="hidden sm:flex lg:hidden items-center gap-1.5 shrink-0">
+          {HEADER_NAV_ITEMS.map((item) => {
+            const isActive =
+              item.href === "/#top"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200",
+                  isActive
+                    ? "text-white font-bold"
+                    : "text-[#C4D0E0] hover:text-white border border-transparent hover:border-white/[0.10] hover:bg-white/[0.06]",
+                )}
+                style={isActive ? {
+                  background: "linear-gradient(135deg, rgba(13,148,136,0.25) 0%, rgba(99,102,241,0.20) 100%)",
+                  border: "1px solid rgba(13,148,136,0.35)",
+                } : undefined}
+              >
+                <Icon className={cn("h-3.5 w-3.5 shrink-0", isActive ? "text-accent-light" : "")} strokeWidth={isActive ? 2.2 : 1.8} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Desktop: Publicar button — gradient sólido */}
         <Link

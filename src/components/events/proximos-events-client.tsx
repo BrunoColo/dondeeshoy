@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { EventList } from "./event-list";
 import { NearbyButton } from "./nearby-button";
 import { EventSkeleton } from "./event-skeleton";
@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation";
 
 interface DateGroup {
   date: string;
+  totalCount: number;
   events: Event[];
   recurringEvents: Event[];
 }
@@ -27,11 +28,20 @@ interface ProximosEventsClientProps {
 export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore = false }: ProximosEventsClientProps) {
   const [groups, setGroups] = useState<DateGroup[]>(initialGroups);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingMoreByDate, setLoadingMoreByDate] = useState<Record<string, boolean>>({});
   const [cursor, setCursor] = useState(nextFrom);
   const [canLoadMore, setCanLoadMore] = useState(hasMore);
   const [sortByDistance, setSortByDistance] = useState(false);
   const { position, loading, error, requestLocation } = useGeolocation();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setGroups(initialGroups);
+    setCursor(nextFrom);
+    setCanLoadMore(hasMore);
+    setLoadingMore(false);
+    setLoadingMoreByDate({});
+  }, [initialGroups, nextFrom, hasMore]);
 
   const handleNearby = () => {
     if (!position) {
@@ -56,12 +66,14 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       const genre = searchParams.get("genre");
       const department = searchParams.get("department");
       const free = searchParams.get("free");
+      const night = searchParams.get("night");
       const q = searchParams.get("q");
 
       if (type) params.set("type", type);
       if (genre) params.set("genre", genre);
       if (department) params.set("department", department);
       if (free) params.set("free", free);
+      if (night) params.set("night", night);
       if (q) params.set("q", q);
 
       const res = await fetch(`/api/events/upcoming?${params.toString()}`);
@@ -83,11 +95,6 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
         next.setDate(next.getDate() + 1);
         const nextStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
         setCursor(nextStr);
-
-        // If we got fewer groups than expected, likely no more to load
-        if (newGroups.length < 3) {
-          setCanLoadMore(false);
-        }
       }
     } catch {
       console.error("[proximos] Failed to load more events");
@@ -96,21 +103,60 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
     }
   }, [cursor, loadingMore, searchParams]);
 
-  const geoState = { position, sortByDistance };
+  const loadMoreForDate = useCallback(async (date: string) => {
+    const target = groups.find((g) => g.date === date);
+    if (!target) return;
 
-  const getCountLabel = (eventsCount: number, recurringCount: number) => {
-    if (eventsCount > 0) {
-      const eventsLabel = `${eventsCount} ${eventsCount === 1 ? "evento" : "eventos"}`;
+    const loadedCount = target.events.length + target.recurringEvents.length;
+    if (loadedCount >= target.totalCount || loadingMoreByDate[date]) return;
 
-      if (recurringCount > 0) {
-        return `${eventsLabel} + ${recurringCount} ${recurringCount === 1 ? "recurrente" : "recurrentes"}`;
-      }
+    setLoadingMoreByDate((prev) => ({ ...prev, [date]: true }));
+    try {
+      const params = new URLSearchParams();
+      params.set("date", date);
+      params.set("offset", String(loadedCount));
+      params.set("limit", "6");
 
-      return eventsLabel;
+      const type = searchParams.get("type");
+      const genre = searchParams.get("genre");
+      const department = searchParams.get("department");
+      const free = searchParams.get("free");
+      const night = searchParams.get("night");
+      const q = searchParams.get("q");
+
+      if (type) params.set("type", type);
+      if (genre) params.set("genre", genre);
+      if (department) params.set("department", department);
+      if (free) params.set("free", free);
+      if (night) params.set("night", night);
+      if (q) params.set("q", q);
+
+      const res = await fetch(`/api/events/by-date?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch by date");
+
+      const data = (await res.json()) as { events: Event[]; totalCount: number };
+      const newUnique = data.events.filter((e) => !e.isRecurring);
+      const newRecurring = data.events.filter((e) => e.isRecurring);
+
+      setGroups((prev) =>
+        prev.map((group) => {
+          if (group.date !== date) return group;
+          return {
+            ...group,
+            totalCount: data.totalCount,
+            events: [...group.events, ...newUnique],
+            recurringEvents: [...group.recurringEvents, ...newRecurring],
+          };
+        }),
+      );
+    } catch {
+      console.error("[proximos] Failed to load more events for date", date);
+    } finally {
+      setLoadingMoreByDate((prev) => ({ ...prev, [date]: false }));
     }
+  }, [groups, loadingMoreByDate, searchParams]);
 
-    return `${recurringCount} ${recurringCount === 1 ? "recurrente" : "recurrentes"}`;
-  };
+  const geoState = { position, sortByDistance };
 
   return (
     <div>
@@ -129,10 +175,14 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       </div>
 
       <div className="space-y-8">
-        {groups.map(({ date, events: dateEvents, recurringEvents: recurringDateEvents }) => {
+        {groups.map(({ date, totalCount, events: dateEvents, recurringEvents: recurringDateEvents }) => {
           const { label, isTomorrow } = getDateLabel(date);
 
           if (dateEvents.length === 0 && recurringDateEvents.length === 0) return null;
+
+          const loadedCount = dateEvents.length + recurringDateEvents.length;
+          const remainingCount = Math.max(totalCount - loadedCount, 0);
+          const hasMoreInDate = remainingCount > 0;
 
           return (
             <section key={date} className="fade-up">
@@ -147,7 +197,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
                   {isTomorrow ? formatDateES(date) : label}
                 </h2>
                 <span className="text-[12px] text-text-muted sm:text-[13px]">
-                  ({getCountLabel(dateEvents.length, recurringDateEvents.length)})
+                  ({totalCount} {totalCount === 1 ? "evento" : "eventos"})
                 </span>
               </div>
 
@@ -164,6 +214,32 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
                     </span>
                   </div>
                   <EventList events={recurringDateEvents} />
+                </div>
+              )}
+
+              {hasMoreInDate && (
+                <div className="mt-5 flex justify-center">
+                  <button
+                    onClick={() => loadMoreForDate(date)}
+                    disabled={!!loadingMoreByDate[date]}
+                    className="group flex min-w-[240px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.25)] disabled:opacity-60 disabled:hover:translate-y-0"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(99,102,241,0.20) 0%, rgba(13,148,136,0.20) 100%)",
+                      border: "1px solid rgba(99,102,241,0.30)",
+                    }}
+                  >
+                    {!!loadingMoreByDate[date] ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Cargando más…
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                        Ver más de este día ({remainingCount})
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </section>

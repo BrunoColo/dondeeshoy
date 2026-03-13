@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUpcomingEvents } from "@/lib/queries";
+import { getUpcomingEventGroupsPreview } from "@/lib/queries";
 import { apiRateLimit, getClientIp } from "@/lib/rate-limit";
 import type { EventType, EventFilters } from "@/types/events";
 
@@ -34,18 +34,21 @@ export async function GET(request: Request) {
     const genre = searchParams.get("genre");
     const department = searchParams.get("department");
     const free = searchParams.get("free");
+    const night = searchParams.get("night");
     const q = searchParams.get("q");
 
     if (type) filters.type = type as EventType;
     if (genre) filters.genre = genre;
     if (department) filters.department = department;
     if (free === "true") filters.free = true;
+    if (night === "true") filters.night = true;
     if (q && q.trim().length >= 2) filters.q = q.trim();
 
-    const grouped = await getUpcomingEvents(from, days, filters);
+    const dayPreview = await getUpcomingEventGroupsPreview(from, days, 6, filters);
 
-    const groups = Array.from(grouped.entries()).map(([date, allDateEvents]) => ({
+    const groups = dayPreview.map(({ date, events: allDateEvents, totalCount }) => ({
       date,
+      totalCount,
       events: allDateEvents.filter((e) => !e.isRecurring),
       recurringEvents: allDateEvents.filter((e) => e.isRecurring),
     }));

@@ -223,14 +223,11 @@ export function formatPrice(
 
   const symbol = currency === "UYU" ? "$" : currency === "USD" ? "US$" : currency;
 
-  if (priceMin != null && priceMax != null && priceMin !== priceMax) {
+  if (priceMin != null) {
     return `Desde ${symbol}${priceMin}`;
   }
-  if (priceMin != null) {
-    return `${symbol}${priceMin}`;
-  }
   if (priceMax != null) {
-    return `${symbol}${priceMax}`;
+    return `Desde ${symbol}${priceMax}`;
   }
   return null;
 }

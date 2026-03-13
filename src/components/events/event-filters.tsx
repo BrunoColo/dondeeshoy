@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";
-import { Ticket, X, Check, Moon } from "lucide-react";
+import { Ticket, X, Check, Moon, Filter } from "lucide-react";
 import type { EventType } from "@/types/events";
 import { EVENT_TYPE_LABELS } from "@/types/events";
 
@@ -63,6 +63,20 @@ export function EventFilters({
   });
 
   const hasActiveFilters = !!(activeType || activeGenre || activeDepartment || activeFree || activeNight || activeSearch || hasActiveExtraFilters);
+
+  const activeFilterLabels: string[] = [];
+  if (activeFree) activeFilterLabels.push("Gratis");
+  if (activeNight) activeFilterLabels.push("Noche");
+  if (activeType) activeFilterLabels.push(EVENT_TYPE_LABELS[activeType]);
+  if (activeGenre) activeFilterLabels.push(`Género: ${activeGenre}`);
+  if (activeDepartment) activeFilterLabels.push(activeDepartment);
+  if (activeSearch) activeFilterLabels.push(`"${activeSearch}"`);
+
+  const activeWhen = searchParams.get("when");
+  const activeFecha = searchParams.get("fecha");
+  if (activeWhen === "manana") activeFilterLabels.push("Mañana");
+  if (activeWhen === "finde") activeFilterLabels.push("Finde");
+  if (activeWhen === "fecha" && activeFecha) activeFilterLabels.push(`Fecha: ${activeFecha}`);
 
   const updateFilter = useCallback(
     (key: string, value: string | null) => {
@@ -198,22 +212,35 @@ export function EventFilters({
 
       {/* Active filter indicator + clear */}
       {hasActiveFilters && (
-        <div className="flex items-center justify-between pt-1">
-          <p className="text-[12px] text-muted-foreground">
-            {resultCount !== undefined && (
-              <>
-                <span className="font-semibold text-foreground">{resultCount}</span>
-                {" "}{resultCount === 1 ? "resultado" : "resultados"}
-              </>
-            )}
-          </p>
-          <button
-            onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/[0.20] px-2.5 py-1 text-[11px] font-medium text-[#CBD5E1] hover:text-white hover:border-white/[0.35] hover:bg-white/[0.12] transition-all duration-200 cursor-pointer"
-          >
-            <X className="h-3 w-3" />
-            Limpiar
-          </button>
+        <div className="pt-1 space-y-2">
+          <div className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-3 py-2">
+            <p className="flex items-start gap-1.5 text-[11px] text-[#CBD5E1] leading-relaxed">
+              <Filter className="h-3.5 w-3.5 mt-0.5 text-[#A7B4FF] shrink-0" strokeWidth={2.2} />
+              <span>
+                {resultCount !== undefined ? (
+                  <>
+                    <span className="font-semibold text-white">{resultCount}</span>{" "}
+                    {resultCount === 1 ? "resultado" : "resultados"} filtrados por:{" "}
+                    <span className="text-[#A7F3D0]">{activeFilterLabels.join(" · ") || "filtros activos"}</span>
+                  </>
+                ) : (
+                  <>
+                    Filtrado por <span className="text-[#A7F3D0]">{activeFilterLabels.join(" · ") || "filtros activos"}</span>
+                  </>
+                )}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={clearAllFilters}
+              className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/[0.20] px-2.5 py-1 text-[11px] font-medium text-[#CBD5E1] hover:text-white hover:border-white/[0.35] hover:bg-white/[0.12] transition-all duration-200 cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+              Limpiar
+            </button>
+          </div>
         </div>
       )}
     </div>

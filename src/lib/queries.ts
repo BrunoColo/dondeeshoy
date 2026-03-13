@@ -220,6 +220,39 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
 }
 
 /**
+ * Get active events for a specific date with pagination.
+ */
+export async function getEventsByDatePaged(
+  date: string,
+  offset: number = 0,
+  limit: number = 6,
+  filters?: EventFilters,
+) {
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const filterConditions = buildFilterConditions(filters);
+
+  return db
+    .select(listColumns)
+    .from(events)
+    .where(
+      and(
+        activeStatus,
+        eq(events.date, date),
+        ...filterConditions,
+      ),
+    )
+    .orderBy(
+      sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+      desc(rankingScore),
+      asc(events.startTime),
+      asc(events.name),
+    )
+    .limit(safeLimit)
+    .offset(safeOffset);
+}
+
+/**
  * Get all active events between two dates (inclusive), with optional filters
  */
 export async function getEventsBetweenDates(startDate: string, endDate: string, filters?: EventFilters) {
@@ -249,10 +282,19 @@ export async function getEventBySlug(slug: string) {
  * Get total count of active events for a date (uses COUNT instead of fetching all rows)
  */
 export async function getEventCountForDate(date: string) {
+  return getEventCountByDate(date);
+}
+
+/**
+ * Get total count of active events for a date with optional filters.
+ */
+export async function getEventCountByDate(date: string, filters?: EventFilters) {
+  const filterConditions = buildFilterConditions(filters);
+
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(events)
-    .where(and(eq(events.date, date), activeStatus));
+    .where(and(eq(events.date, date), activeStatus, ...filterConditions));
 
   return Number(result[0]?.count ?? 0);
 }
@@ -279,6 +321,50 @@ export async function getUpcomingEvents(startDate: string, daysAhead: number = 7
   }
 
   return grouped;
+}
+
+export interface UpcomingDayPreview {
+  date: string;
+  events: Awaited<ReturnType<typeof getEventsByDatePaged>>;
+  totalCount: number;
+}
+
+/**
+ * Get upcoming events grouped by date with a per-day cap (preview mode).
+ * Useful for fast initial rendering in pages like /proximos.
+ */
+export async function getUpcomingEventGroupsPreview(
+  startDate: string,
+  daysAhead: number = 7,
+  perDayLimit: number = 6,
+  filters?: EventFilters,
+): Promise<UpcomingDayPreview[]> {
+  const endDate = getOffsetDate(startDate, daysAhead);
+  const safeLimit = Math.max(1, Math.min(perDayLimit, 50));
+
+  const dates: string[] = [];
+  let cursor = startDate;
+  while (cursor <= endDate) {
+    dates.push(cursor);
+    cursor = getOffsetDate(cursor, 1);
+  }
+
+  const dayResults = await Promise.all(
+    dates.map(async (date) => {
+      const [dayEvents, totalCount] = await Promise.all([
+        getEventsByDatePaged(date, 0, safeLimit, filters),
+        getEventCountByDate(date, filters),
+      ]);
+
+      return {
+        date,
+        events: dayEvents,
+        totalCount,
+      };
+    }),
+  );
+
+  return dayResults.filter((day) => day.totalCount > 0);
 }
 
 /**

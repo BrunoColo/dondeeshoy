@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getEventsByDate, getFilterOptions, getHourlyTrendingEvents, getWeekendHighlights, getWeekendEventCount } from "@/lib/queries";
+import { getEventCountByDate, getEventsByDate, getEventsByDatePaged, getFilterOptions, getHourlyTrendingEvents, getWeekendHighlights, getWeekendEventCount } from "@/lib/queries";
 import { getTodayUY, formatDateES, getWeekendDatesUY, getDayOfWeekUY } from "@/lib/format";
 import { WEEKEND_HIGHLIGHT_LIMIT } from "@/config/weekend-highlights";
 import { EventSkeleton } from "@/components/events/event-skeleton";
@@ -53,18 +53,31 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
   const showWeekendPreview = dayOfWeek >= 1 && dayOfWeek <= 4; // Mon-Thu
   const weekend = showWeekendPreview ? getWeekendDatesUY() : null;
 
+  const uniqueFilters: Filters = { ...filters, recurring: false };
+  const recurringFilters: Filters = { ...filters, recurring: true };
+
   // Fetch events + filter options + trending + weekend in parallel
-  const [allEvents, filterOptions, trending, weekendEvents, weekendCount] = await Promise.all([
-    getEventsByDate(today, filters),
+  const [
+    initialUniqueEvents,
+    uniqueTotalCount,
+    initialRecurringEvents,
+    recurringTotalCount,
+    filterOptions,
+    trending,
+    weekendEvents,
+    weekendCount,
+  ] = await Promise.all([
+    getEventsByDatePaged(today, 0, 6, uniqueFilters),
+    getEventCountByDate(today, uniqueFilters),
+    getEventsByDatePaged(today, 0, 6, recurringFilters),
+    getEventCountByDate(today, recurringFilters),
     getFilterOptions(today),
     hasFilters ? Promise.resolve([]) : getHourlyTrendingEvents(today, 3),
     weekend ? getWeekendHighlights(weekend.start, weekend.end, WEEKEND_HIGHLIGHT_LIMIT) : Promise.resolve([]),
     weekend ? getWeekendEventCount(weekend.start, weekend.end) : Promise.resolve(0),
   ]);
 
-  // Separate recurring (daily/weekly) from unique (one-time) events
-  const events = allEvents.filter((e) => !e.isRecurring);
-  const recurringEvents = allEvents.filter((e) => e.isRecurring);
+  const totalVisibleCount = uniqueTotalCount + recurringTotalCount;
 
   const { genres, types, departments } = filterOptions;
 
@@ -110,19 +123,19 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
             </div>
           </div>
 
-{allEvents.length > 0 && (
+{totalVisibleCount > 0 && (
             <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 whitespace-nowrap">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
               <span className="text-[11px] font-bold text-emerald-400">
-                {events.length > 0 ? (
+                {uniqueTotalCount > 0 ? (
                   <>
-                    {events.length} {events.length === 1 ? "evento" : "eventos"}
-                    {recurringEvents.length > 0 && (
-                      <span className="text-text-muted font-normal"> + {recurringEvents.length} recurrentes</span>
+                    {uniqueTotalCount} {uniqueTotalCount === 1 ? "evento" : "eventos"}
+                    {recurringTotalCount > 0 && (
+                      <span className="text-text-muted font-normal"> + {recurringTotalCount} recurrentes</span>
                     )}
                   </>
                 ) : (
-                  <>{recurringEvents.length} recurrentes</>
+                  <>{recurringTotalCount} recurrentes</>
                 )}
               </span>
             </div>
@@ -136,24 +149,28 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
           availableTypes={types}
           availableGenres={genres}
           availableDepartments={departments}
-          resultCount={hasFilters ? allEvents.length : undefined}
+          resultCount={hasFilters ? totalVisibleCount : undefined}
         />
       </div>
 
       {/* Client wrapper: Nearby button + Trending + Events + Weekend Preview + Recurring */}
       <HomeEventsClient
-        events={events}
-        recurringEvents={recurringEvents}
+        date={today}
+        events={initialUniqueEvents}
+        totalUniqueCount={uniqueTotalCount}
+        recurringEvents={initialRecurringEvents}
+        totalRecurringCount={recurringTotalCount}
         trending={trending}
         trendingIds={trendingIds}
         hasFilters={hasFilters}
+        filters={filters}
         weekendEvents={weekendEvents}
         weekendTotalCount={weekendCount}
         weekendLabel={weekendLabel}
       />
 
       {/* Global empty state only when there are truly no events at all */}
-      {events.length === 0 && recurringEvents.length === 0 && (
+      {uniqueTotalCount === 0 && recurringTotalCount === 0 && (
         <div className="mt-6">
           <EmptyState variant={hasFilters ? "search" : "today"} />
         </div>

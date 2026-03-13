@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getUpcomingEvents, getUpcomingEventsFromDate, getFilterOptions, getEventsBetweenDates } from "@/lib/queries";
+import { getUpcomingEventGroupsPreview, getUpcomingEventsFromDate, getFilterOptions } from "@/lib/queries";
 import { getTodayUY, getTomorrowUY, getDateOffsetUY, getWeekendDatesUY } from "@/lib/format";
 import { EventSkeleton } from "@/components/events/event-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -9,6 +9,7 @@ import { ProximosEventsClient } from "@/components/events/proximos-events-client
 import { CalendarDays, Loader2 } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
+import type { Event } from "@/lib/db/schema/events";
 
 export const revalidate = 300; // ISR: revalidate every 5 minutes
 
@@ -48,11 +49,12 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   if (typeof params.genre === "string") filters.genre = params.genre;
   if (typeof params.department === "string") filters.department = params.department;
   if (params.free === "true") filters.free = true;
+  if (params.night === "true") filters.night = true;
 
-  const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free);
+  const hasFilters = !!(filters.q || filters.type || filters.genre || filters.department || filters.free || filters.night);
   const hasSearch = !!filters.q;
 
-  let grouped: Map<string, Awaited<ReturnType<typeof getEventsBetweenDates>>>;
+  let grouped: Array<{ date: string; events: Event[]; totalCount: number }>;
   let filterRange: { start: string; end: string };
   let subtitle = "Eventos de los próximos días";
   // Track whether pagination ("load more") should be available
@@ -60,8 +62,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   let nextFrom: string | undefined;
 
   if (when === "fecha" && fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam)) {
-    const dateEvents = await getEventsBetweenDates(fechaParam, fechaParam, filters);
-    grouped = new Map(dateEvents.length > 0 ? [[fechaParam, dateEvents]] : []);
+    grouped = await getUpcomingEventGroupsPreview(fechaParam, 0, 6, filters);
     filterRange = { start: fechaParam, end: fechaParam };
     // Format date for subtitle
     const [y, m, d] = fechaParam.split("-").map(Number);
@@ -70,30 +71,28 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
     const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     subtitle = `Eventos del ${dayNames[dateObj.getDay()]} ${d} de ${monthNames[dateObj.getMonth()]}`;
   } else if (when === "manana") {
-    const tomorrowEvents = await getEventsBetweenDates(tomorrow, tomorrow, filters);
-    grouped = new Map(tomorrowEvents.length > 0 ? [[tomorrow, tomorrowEvents]] : []);
+    grouped = await getUpcomingEventGroupsPreview(tomorrow, 0, 6, filters);
     filterRange = { start: tomorrow, end: tomorrow };
     subtitle = "Eventos de mañana";
   } else if (when === "finde") {
     const weekend = getWeekendDatesUY();
-    const weekendEvents = await getEventsBetweenDates(weekend.start, weekend.end, filters);
-
-    grouped = new Map<string, typeof weekendEvents>();
-    for (const event of weekendEvents) {
-      if (!grouped.has(event.date)) grouped.set(event.date, []);
-      grouped.get(event.date)!.push(event);
-    }
+    grouped = await getUpcomingEventGroupsPreview(weekend.start, 2, 6, filters);
 
     filterRange = { start: weekend.start, end: weekend.end };
     subtitle = "Eventos de este fin de semana";
   } else if (hasSearch) {
     // Search must span all future events, not just the next few weeks.
-    grouped = await getUpcomingEventsFromDate(today, filters);
+    const searchGrouped = await getUpcomingEventsFromDate(today, filters);
+    grouped = Array.from(searchGrouped.entries()).map(([date, allDateEvents]) => ({
+      date,
+      events: allDateEvents.slice(0, 6),
+      totalCount: allDateEvents.length,
+    }));
     filterRange = { start: today, end: getDateOffsetUY(365) };
     subtitle = `Resultados para "${filters.q}"`;
   } else {
     // Default: load 7 days starting tomorrow, with lazy loading for more
-    grouped = await getUpcomingEvents(tomorrow, 7, filters);
+    grouped = await getUpcomingEventGroupsPreview(tomorrow, 7, 6, filters);
     filterRange = { start: tomorrow, end: getDateOffsetUY(8) };
     enableLoadMore = true;
     nextFrom = getDateOffsetUY(8);
@@ -103,8 +102,8 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   const filterOptions = await getFilterOptions(undefined, filterRange);
 
   const { genres, types, departments } = filterOptions;
-  const hasEvents = grouped.size > 0;
-  const totalCount = hasFilters ? Array.from(grouped.values()).reduce((sum, evts) => sum + evts.length, 0) : undefined;
+  const hasEvents = grouped.length > 0;
+  const totalCount = hasFilters ? grouped.reduce((sum, day) => sum + day.totalCount, 0) : undefined;
 
   return (
     <>
@@ -143,8 +142,9 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
 
       {hasEvents ? (
         <ProximosEventsClient
-          groups={Array.from(grouped.entries()).map(([date, allDateEvents]) => ({
+          groups={grouped.map(({ date, events: allDateEvents, totalCount }) => ({
             date,
+            totalCount,
             events: allDateEvents.filter((e) => !e.isRecurring),
             recurringEvents: allDateEvents.filter((e) => e.isRecurring),
           }))}

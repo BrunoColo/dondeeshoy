@@ -25,7 +25,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-4 py-1.5 transition-colors duration-200 min-w-[80px]",
+                "relative flex flex-col items-center justify-center gap-1 px-3 py-1.5 transition-colors duration-200 min-w-[64px]",
                 isActive
                   ? "text-accent-light"
                   : "text-[#A8B8CC] hover:text-[#CBD5E1]",
