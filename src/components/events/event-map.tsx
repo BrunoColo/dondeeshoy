@@ -411,11 +411,11 @@ export function EventMap({
 
       {/* ─── Top bar: date pills + style/fit ─── */}
       <div
-        className="absolute top-3 left-3 right-3 z-[1000] flex items-start justify-between gap-2 lg:top-4 lg:left-4 lg:right-4"
+        className="absolute z-[1000] flex items-start justify-between gap-2.5"
         style={{
-          paddingTop: "env(safe-area-inset-top, 0px)",
-          paddingLeft: "env(safe-area-inset-left, 0px)",
-          paddingRight: "env(safe-area-inset-right, 0px)",
+          top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+          left: "calc(env(safe-area-inset-left, 0px) + 14px)",
+          right: "calc(env(safe-area-inset-right, 0px) + 14px)",
         }}
       >
         {/* Date filter pills */}
@@ -465,10 +465,10 @@ export function EventMap({
 
       {/* ─── Bottom-left: event count + recurring toggle ─── */}
       <div
-        className="absolute bottom-[84px] left-3 z-[1000] flex flex-col gap-1.5 sm:bottom-4 sm:left-4"
+        className="absolute z-[1000] flex max-w-[calc(100%-20px)] flex-col gap-1.5"
         style={{
-          paddingLeft: "env(safe-area-inset-left, 0px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          left: "calc(env(safe-area-inset-left, 0px) + 10px)",
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 74px)",
         }}
       >
         {/* Event count badge */}
@@ -502,10 +502,10 @@ export function EventMap({
 
       {/* ─── Bottom-right: legend (desktop only) ─── */}
       <div
-        className="absolute bottom-4 right-4 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]"
+        className="absolute z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]"
         style={{
-          paddingRight: "env(safe-area-inset-right, 0px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          right: "calc(env(safe-area-inset-right, 0px) + 14px)",
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
         }}
       >
         {Object.entries(TYPE_COLORS)
