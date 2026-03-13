@@ -55,11 +55,10 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "48x48" },
       { url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" },
       { url: siteConfig.icon512Path, sizes: "512x512", type: "image/png" },
     ],
-    shortcut: [{ url: "/favicon.ico" }],
+    shortcut: [{ url: siteConfig.icon192Path, type: "image/png" }],
     apple: [{ url: siteConfig.icon192Path, sizes: "192x192", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
@@ -76,18 +75,18 @@ export const metadata: Metadata = {
     url: siteConfig.url,
     images: [
       {
-        url: "/og-default.png",
-        width: 1200,
-        height: 630,
-        alt: "¿Dónde es Hoy? — Eventos en Uruguay",
+        url: siteConfig.icon512Path,
+        width: 512,
+        height: 512,
+        alt: `${siteConfig.name} — logo`,
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: siteConfig.name,
     description: siteConfig.description,
-    images: ["/og-default.png"],
+    images: [siteConfig.icon512Path],
   },
   other: {
     "geo.region": "UY",
