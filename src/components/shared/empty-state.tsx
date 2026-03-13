@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CalendarOff, Music, Sparkles } from "lucide-react";
+import { CalendarOff, Compass, Music } from "lucide-react";
 
 interface EmptyStateProps {
   variant?: "today" | "upcoming" | "search";
@@ -20,7 +20,7 @@ const VARIANTS = {
     accentColor: "text-accent2",
   },
   search: {
-    icon: Sparkles,
+    icon: Compass,
     title: "Sin resultados",
     description: "No encontramos eventos que coincidan. Probá con otro filtro.",
     accentColor: "text-accent3",

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { FavoritesFab } from "@/components/layout/favorites-fab";
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 import { SidebarWrapper, LayoutGrid, MainWrapper } from "@/components/layout/sidebar-wrapper";
 
@@ -55,6 +56,7 @@ export default async function MainLayout({
       </div>
 
       <div className="sm:hidden">
+        <FavoritesFab />
         <BottomNav />
       </div>
     </div>

@@ -8,12 +8,11 @@ import {
   ArrowLeft,
   Bell,
   MapPin,
-  Sparkles,
+  Compass,
   Calendar,
   Loader2,
   XCircle,
   PartyPopper,
-  Clock,
   Heart,
   Send,
 } from "lucide-react";
@@ -45,9 +44,9 @@ const EVENT_TYPES = [
 ] as const;
 
 const FEATURES = [
-  { icon: Calendar, text: "Eventos del finde cada jueves" },
+  { icon: Calendar, text: "Cada jueves: resumen del finde" },
   { icon: MapPin, text: "Filtrado por tu departamento" },
-  { icon: Heart, text: "Solo lo que te interesa" },
+  { icon: Heart, text: "Según tus tipos de evento favoritos" },
   { icon: Bell, text: "Sin spam, cancelá cuando quieras" },
 ];
 
@@ -63,7 +62,7 @@ export function SubscribeForm() {
   const [honeypot, setHoneypot] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [frequency, setFrequency] = useState<"weekly" | "daily">("weekly");
+  const frequency = "weekly" as const;
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -280,9 +279,9 @@ export function SubscribeForm() {
             border: "1px solid rgba(99,102,241,0.20)",
           }}
         >
-          <Sparkles className="h-3.5 w-3.5 text-[#818CF8]" />
+          <Compass className="h-3.5 w-3.5 text-[#818CF8]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#818CF8]">
-            Newsletter gratuito
+            Boletín gratuito
           </span>
         </div>
 
@@ -300,8 +299,8 @@ export function SubscribeForm() {
           </span>
         </h1>
         <p className="text-[15px] text-[#94A3B8] leading-relaxed max-w-lg mx-auto">
-          Elegí qué te interesa y te mandamos un resumen con los eventos que vienen.
-          Sin spam, cancelás cuando quieras.
+          Elegí qué te interesa y cada jueves te llega una selección del finde.
+          Ejemplo: conciertos en Montevideo + planes familiares en Canelones.
         </p>
       </div>
 
@@ -391,7 +390,7 @@ export function SubscribeForm() {
                   className={cn(
                     "w-full rounded-xl px-4 py-3.5 text-[14px] text-[#F8FAFC]",
                     "bg-[#111120] border transition-all duration-200",
-                    "placeholder:text-[#3E4A5A]",
+                    "placeholder:text-[#E2E8F0]/85",
                     "focus:outline-none focus:bg-[#16162A]",
                     "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
                     error
@@ -416,7 +415,7 @@ export function SubscribeForm() {
                   className={cn(
                     "w-full rounded-xl px-4 py-3.5 text-[14px] text-[#F8FAFC]",
                     "bg-[#111120] border border-[rgba(255,255,255,0.12)] transition-all duration-200",
-                    "placeholder:text-[#3E4A5A]",
+                    "placeholder:text-[#E2E8F0]/85",
                     "focus:outline-none focus:bg-[#16162A]",
                     "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
                   )}
@@ -436,44 +435,25 @@ export function SubscribeForm() {
                 />
               </div>
 
-              {/* Frequency toggle */}
+              {/* Weekly cadence info */}
               <div>
                 <label className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2">
                   Frecuencia
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFrequency("weekly")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold transition-all duration-200 border",
-                      frequency === "weekly"
-                        ? "bg-[rgba(13,148,136,0.12)] border-[rgba(13,148,136,0.35)] text-[#14B8A6] shadow-[0_0_16px_rgba(13,148,136,0.10)]"
-                        : "bg-transparent border-[rgba(255,255,255,0.10)] text-[#64748B] hover:border-[rgba(255,255,255,0.20)] hover:text-[#94A3B8]",
-                    )}
-                  >
-                    <Calendar className="h-4 w-4" />
-                    Semanal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFrequency("daily")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold transition-all duration-200 border",
-                      frequency === "daily"
-                        ? "bg-[rgba(99,102,241,0.12)] border-[rgba(99,102,241,0.35)] text-[#818CF8] shadow-[0_0_16px_rgba(99,102,241,0.10)]"
-                        : "bg-transparent border-[rgba(255,255,255,0.10)] text-[#64748B] hover:border-[rgba(255,255,255,0.20)] hover:text-[#94A3B8]",
-                    )}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Diario
-                  </button>
+                <div
+                  className="rounded-xl px-4 py-3"
+                  style={{
+                    background: "rgba(13,148,136,0.10)",
+                    border: "1px solid rgba(13,148,136,0.28)",
+                  }}
+                >
+                  <p className="text-[13px] font-semibold text-[#99F6E4]">
+                    📅 Semanal (cada jueves)
+                  </p>
+                  <p className="text-[11px] text-[#94A3B8] mt-1 leading-relaxed">
+                    Te recomendamos lo mejor del viernes, sábado y domingo según tu departamento y los tipos de eventos que elijas.
+                  </p>
                 </div>
-                <p className="text-[11px] text-[#475569] mt-1.5">
-                  {frequency === "weekly"
-                    ? "Recibís los jueves con eventos del fin de semana"
-                    : "Recibís cada mañana con eventos del día"}
-                </p>
               </div>
             </div>
 
@@ -662,7 +642,7 @@ export function SubscribeForm() {
               {name && <SummaryRow label="Nombre" value={name} />}
               <SummaryRow
                 label="Frecuencia"
-                value={frequency === "weekly" ? "📅 Semanal (jueves)" : "☀️ Diaria (cada mañana)"}
+                value="📅 Semanal (cada jueves)"
               />
               <SummaryRow
                 label="Tipos"

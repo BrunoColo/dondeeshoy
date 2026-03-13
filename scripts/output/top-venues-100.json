@@ -1,0 +1,1307 @@
+[
+  {
+    "rank": 1,
+    "venueName": "Teatro Solís",
+    "totalEvents": 38,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Sala Delmira Agustini",
+    "lastSeenAt": "2026-03-11T22:45:53.373Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9077,
+      "longitude": -56.2006
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Sol%C3%ADs%2C%20Sala%20Delmira%20Agustini%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 2,
+    "venueName": "Sala Verdi",
+    "totalEvents": 35,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-12T17:25:01.033Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9091,
+      "longitude": -56.1907
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20Verdi%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 3,
+    "venueName": "Teatro El Galpón",
+    "totalEvents": 29,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Av. 18 de Julio 1618",
+    "lastSeenAt": "2026-03-13T16:02:38.156Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9044,
+      "longitude": -56.1844
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20El%20Galp%C3%B3n%2C%20Av.%2018%20de%20Julio%201618%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 4,
+    "venueName": "Teatro de la Candela",
+    "totalEvents": 27,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:45:51.968Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20de%20la%20Candela%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 5,
+    "venueName": "Sala Zavala Muniz",
+    "totalEvents": 26,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Teatro Solís",
+    "lastSeenAt": "2026-03-11T22:43:50.060Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9077,
+      "longitude": -56.2006
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20Zavala%20Muniz%2C%20Teatro%20Sol%C3%ADs%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 6,
+    "venueName": "Live Era",
+    "totalEvents": 24,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Uruguay 960, 11200 Montevideo, Departame",
+    "lastSeenAt": "2026-03-11T19:31:10.482Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Live%20Era%2C%20Uruguay%20960%2C%2011200%20Montevideo%2C%20Departame%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 7,
+    "venueName": "Espacio Palermo",
+    "totalEvents": 22,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Isla de Flores 1631",
+    "lastSeenAt": "2026-03-11T22:45:46.279Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20Palermo%2C%20Isla%20de%20Flores%201631%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 8,
+    "venueName": "Alejandria Café de las Artes",
+    "totalEvents": 20,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Gaboto 1384",
+    "lastSeenAt": "2026-03-11T19:31:11.481Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Alejandria%20Caf%C3%A9%20de%20las%20Artes%2C%20Gaboto%201384%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 9,
+    "venueName": "Montevideo Music Box",
+    "totalEvents": 19,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Av. Dámaso A. Larrañaga 3195",
+    "lastSeenAt": "2026-03-12T18:54:10.430Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Montevideo%20Music%20Box%2C%20Av.%20D%C3%A1maso%20A.%20Larra%C3%B1aga%203195%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 10,
+    "venueName": "Sala del Museo del Carnaval",
+    "totalEvents": 18,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Maciel 218, 11000 Montevideo, Departamen",
+    "lastSeenAt": "2026-03-11T19:29:58.452Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9054,
+      "longitude": -56.2081
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20del%20Museo%20del%20Carnaval%2C%20Maciel%20218%2C%2011000%20Montevideo%2C%20Departamen%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 11,
+    "venueName": "Reserva Natural Salus",
+    "totalEvents": 17,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Ruta 8 km 109, 30000 Minas",
+    "lastSeenAt": "2026-03-12T19:53:30.790Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Reserva%20Natural%20Salus%2C%20Ruta%208%20km%20109%2C%2030000%20Minas%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 12,
+    "venueName": "Teatro del Notariado",
+    "totalEvents": 16,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Guayabo 1729, 11200 Montevideo, Departam",
+    "lastSeenAt": "2026-03-11T22:42:48.054Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.908,
+      "longitude": -56.196
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20del%20Notariado%2C%20Guayabo%201729%2C%2011200%20Montevideo%2C%20Departam%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 13,
+    "venueName": "Punta Shopping",
+    "totalEvents": 15,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "P.7 - Playa Mansa, Av. Franklin Delano R",
+    "lastSeenAt": "2026-03-13T16:51:28.025Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9418,
+      "longitude": -54.9418
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Punta%20Shopping%2C%20P.7%20-%20Playa%20Mansa%2C%20Av.%20Franklin%20Delano%20R%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 14,
+    "venueName": "Sociedad Urbana Villa Dolores",
+    "totalEvents": 15,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Alejo Rosell y Rius 1483, Montevideo",
+    "lastSeenAt": "2026-03-11T19:31:26.202Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sociedad%20Urbana%20Villa%20Dolores%2C%20Alejo%20Rosell%20y%20Rius%201483%2C%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 15,
+    "venueName": "Complejo Crece Flor de Maroñas",
+    "totalEvents": 14,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-13T16:50:32.990Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Complejo%20Crece%20Flor%20de%20Maro%C3%B1as%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 16,
+    "venueName": "Espacio Teatro",
+    "totalEvents": 12,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Mercedes 865",
+    "lastSeenAt": "2026-03-13T16:48:44.861Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9072,
+      "longitude": -56.188
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20Teatro%2C%20Mercedes%20865%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 17,
+    "venueName": "La Gringa Teatro",
+    "totalEvents": 11,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:43:38.692Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9102,
+      "longitude": -56.1886
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Gringa%20Teatro%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 18,
+    "venueName": "TV Ciudad",
+    "totalEvents": 11,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Carolina Campo LupoGénero: DocumentalCalificación: ATPDuración: 78 minutosPaís: UruguayAño: 2025 Trailer",
+    "lastSeenAt": "2026-03-11T22:42:23.243Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=TV%20Ciudad%2C%20Carolina%20Campo%20LupoG%C3%A9nero%3A%20DocumentalCalificaci%C3%B3n%3A%20ATPDuraci%C3%B3n%3A%2078%20minutosPa%C3%ADs%3A%20UruguayA%C3%B1o%3A%202025%20Trailer%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 19,
+    "venueName": "Teatro Alianza",
+    "totalEvents": 10,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Paraguay 1217, 11100 Montevideo, Departa",
+    "lastSeenAt": "2026-03-11T22:44:21.259Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9144,
+      "longitude": -56.1603
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Alianza%2C%20Paraguay%201217%2C%2011100%20Montevideo%2C%20Departa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 20,
+    "venueName": "Teatro Stella D'Italia. La Gaviota.",
+    "totalEvents": 10,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Mercedes 1805, 11200 Montevideo, Departa",
+    "lastSeenAt": "2026-03-11T19:30:50.210Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9071,
+      "longitude": -56.1926
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Stella%20D'Italia.%20La%20Gaviota.%2C%20Mercedes%201805%2C%2011200%20Montevideo%2C%20Departa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 21,
+    "venueName": "Teatro Victoria",
+    "totalEvents": 10,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Río Negro 1477",
+    "lastSeenAt": "2026-03-11T19:30:26.654Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.8846,
+      "longitude": -56.1677
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Victoria%2C%20R%C3%ADo%20Negro%201477%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 22,
+    "venueName": "Castillo Pittamiglio",
+    "totalEvents": 9,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Rbla. Gandhi 633, 11300 Montevideo, Depa",
+    "lastSeenAt": "2026-03-11T22:41:57.640Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9198,
+      "longitude": -56.1543
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Castillo%20Pittamiglio%2C%20Rbla.%20Gandhi%20633%2C%2011300%20Montevideo%2C%20Depa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 23,
+    "venueName": "Teatro del Anglo",
+    "totalEvents": 9,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "S. José 1426, 11100 Montevideo, Departam",
+    "lastSeenAt": "2026-03-11T22:45:41.169Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.907,
+      "longitude": -56.192
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20del%20Anglo%2C%20S.%20Jos%C3%A9%201426%2C%2011100%20Montevideo%2C%20Departam%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 24,
+    "venueName": "Vieja Farmacia Solís",
+    "totalEvents": 9,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Av. Agraciada 2623, 11800 Montevideo, De",
+    "lastSeenAt": "2026-03-11T19:21:16.092Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Vieja%20Farmacia%20Sol%C3%ADs%2C%20Av.%20Agraciada%202623%2C%2011800%20Montevideo%2C%20De%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 25,
+    "venueName": "Ciudad Vieja y Kibón",
+    "totalEvents": 8,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Marcos Ramirez HarriagueAsistencia de dirección: Nicolasa ManzoIntérpretes-creadores: Camila Florines, Emiliano D’Agostino, Florencia Alvarez, Pilar Roselló, Marcos Ramirez, Nicolasa ManzoEquipo técnico: Lucía Rubbo, Francesca Crossa, Verónica Mosquillo, Leandro GalettaReservas de entradas al 091 224 997",
+    "lastSeenAt": "2026-03-13T16:51:09.132Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Ciudad%20Vieja%20y%20Kib%C3%B3n%2C%20Marcos%20Ramirez%20HarriagueAsistencia%20de%20direcci%C3%B3n%3A%20Nicolasa%20ManzoInt%C3%A9rpretes-creadores%3A%20Camila%20Florines%2C%20Emiliano%20D%E2%80%99Agostino%2C%20Florencia%20Alvarez%2C%20Pilar%20Rosell%C3%B3%2C%20Marcos%20Ramirez%2C%20Nicolasa%20ManzoEquipo%20t%C3%A9cnico%3A%20Luc%C3%ADa%20Rubbo%2C%20Francesca%20Crossa%2C%20Ver%C3%B3nica%20Mosquillo%2C%20Leandro%20GalettaReservas%20de%20entradas%20al%20091%20224%20997%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 26,
+    "venueName": "Magnolio Sala",
+    "totalEvents": 8,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Doctor Pablo de María 1015",
+    "lastSeenAt": "2026-03-12T19:53:45.547Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Magnolio%20Sala%2C%20Doctor%20Pablo%20de%20Mar%C3%ADa%201015%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 27,
+    "venueName": "Teatro ACJ",
+    "totalEvents": 8,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Colonia 1870",
+    "lastSeenAt": "2026-03-11T19:29:45.015Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20ACJ%2C%20Colonia%201870%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 28,
+    "venueName": "Bluzz Bar",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Montevideo",
+    "lastSeenAt": "2026-03-11T20:11:06.757Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Bluzz%20Bar%2C%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 29,
+    "venueName": "Complejo Sala Show",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Río Branco 1627",
+    "lastSeenAt": "2026-03-11T19:20:43.045Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Complejo%20Sala%20Show%2C%20R%C3%ADo%20Branco%201627%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 30,
+    "venueName": "El Galpón",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Sala Atahualpa",
+    "lastSeenAt": "2026-03-11T22:45:49.393Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9044,
+      "longitude": -56.1844
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=El%20Galp%C3%B3n%2C%20Sala%20Atahualpa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 31,
+    "venueName": "Playas",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Rocha",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:42:26.275Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Playas%2C%20Rocha%2C%20Uruguay"
+  },
+  {
+    "rank": 32,
+    "venueName": "Radisson Montevideo Victoria Plaza Hotel",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Pl. Independencia 759",
+    "lastSeenAt": "2026-03-13T17:31:47.154Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9065,
+      "longitude": -56.1935
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Radisson%20Montevideo%20Victoria%20Plaza%20Hotel%2C%20Pl.%20Independencia%20759%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 33,
+    "venueName": "Venue por confirmar",
+    "totalEvents": 7,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-13T16:50:23.984Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Venue%20por%20confirmar%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 34,
+    "venueName": "Centro Cultural Bastión del Carmen",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Colonia",
+    "sampleAddress": "Centro Cultural Bastión del Carmen",
+    "lastSeenAt": "2026-03-13T16:51:14.093Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.4712,
+      "longitude": -57.844
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%20Basti%C3%B3n%20del%20Carmen%2C%20Centro%20Cultural%20Basti%C3%B3n%20del%20Carmen%2C%20Colonia%2C%20Uruguay"
+  },
+  {
+    "rank": 35,
+    "venueName": "Centro de Eventos LATU",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Carrasco, Montevideo",
+    "lastSeenAt": "2026-03-11T19:29:56.454Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Centro%20de%20Eventos%20LATU%2C%20Carrasco%2C%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 36,
+    "venueName": "Hipódromo Nacional de Maroñas",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Montevideo, Uruguay",
+    "lastSeenAt": "2026-03-11T19:19:41.505Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Hip%C3%B3dromo%20Nacional%20de%20Maro%C3%B1as%2C%20Montevideo%2C%20Uruguay%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 37,
+    "venueName": "Inmigrantes MVD",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Juan Paullier 1252, 11200 Montevideo, De",
+    "lastSeenAt": "2026-03-11T19:31:29.856Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Inmigrantes%20MVD%2C%20Juan%20Paullier%201252%2C%2011200%20Montevideo%2C%20De%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 38,
+    "venueName": "La Escena",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Lavalleja",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:45:38.989Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Escena%2C%20Lavalleja%2C%20Uruguay"
+  },
+  {
+    "rank": 39,
+    "venueName": "La Morada de Saturno",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Acevedo Díaz 1445, 11200 Montevideo, Dep",
+    "lastSeenAt": "2026-03-11T22:43:13.474Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Morada%20de%20Saturno%2C%20Acevedo%20D%C3%ADaz%201445%2C%2011200%20Montevideo%2C%20Dep%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 40,
+    "venueName": "MAPI / Museo de Arte Precolombino e Indígena",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "25 de Mayo 279",
+    "lastSeenAt": "2026-03-13T16:01:12.012Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9067,
+      "longitude": -56.1993
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=MAPI%20%2F%20Museo%20de%20Arte%20Precolombino%20e%20Ind%C3%ADgena%2C%2025%20de%20Mayo%20279%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 41,
+    "venueName": "Paraguay 1217",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Paraguay 1217, 11100 Montevideo, Departa",
+    "lastSeenAt": "2026-03-11T19:30:42.911Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Paraguay%201217%2C%20Paraguay%201217%2C%2011100%20Montevideo%2C%20Departa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 42,
+    "venueName": "Plaza de Toros Real de San Carlos",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Colonia",
+    "sampleAddress": "Plaza de Toros Real de San Carlos",
+    "lastSeenAt": "2026-03-13T16:53:01.286Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.4696,
+      "longitude": -57.8576
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Plaza%20de%20Toros%20Real%20de%20San%20Carlos%2C%20Plaza%20de%20Toros%20Real%20de%20San%20Carlos%2C%20Colonia%2C%20Uruguay"
+  },
+  {
+    "rank": 43,
+    "venueName": "Puerto Deportivo de Colonia del Sacramento",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Colonia",
+    "sampleAddress": "Ituzaingó 86",
+    "lastSeenAt": "2026-03-11T19:30:41.840Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Puerto%20Deportivo%20de%20Colonia%20del%20Sacramento%2C%20Ituzaing%C3%B3%2086%2C%20Colonia%2C%20Uruguay"
+  },
+  {
+    "rank": 44,
+    "venueName": "Sala Camacuá",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Camacuá 575, 11000 Montevideo, Departame",
+    "lastSeenAt": "2026-03-11T19:31:27.132Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20Camacu%C3%A1%2C%20Camacu%C3%A1%20575%2C%2011000%20Montevideo%2C%20Departame%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 45,
+    "venueName": "Teatro Circular",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Av Gral Rondeau 1388",
+    "lastSeenAt": "2026-03-11T19:21:11.949Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9076,
+      "longitude": -56.1923
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Circular%2C%20Av%20Gral%20Rondeau%201388%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 46,
+    "venueName": "Teatro El Tinglado",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Colonia 2035",
+    "lastSeenAt": "2026-03-11T19:19:38.238Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9018,
+      "longitude": -56.1808
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20El%20Tinglado%2C%20Colonia%202035%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 47,
+    "venueName": "Teatro Metro",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "S. José 1211",
+    "lastSeenAt": "2026-03-11T19:30:12.127Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9065,
+      "longitude": -56.194
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Metro%2C%20S.%20Jos%C3%A9%201211%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 48,
+    "venueName": "UnderMovie",
+    "totalEvents": 6,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:45:49.940Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=UnderMovie%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 49,
+    "venueName": "Estadio Centenario",
+    "totalEvents": 5,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-12T19:45:35.648Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.8946,
+      "longitude": -56.1527
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Estadio%20Centenario%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 50,
+    "venueName": "La Cretina",
+    "totalEvents": 5,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Soriano 1236, 11100 Montevideo, Departam",
+    "lastSeenAt": "2026-03-11T19:31:15.035Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Cretina%2C%20Soriano%201236%2C%2011100%20Montevideo%2C%20Departam%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 51,
+    "venueName": "Plaza Mateo",
+    "totalEvents": 5,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Av. Sarmiento, 11200 Montevideo, Departamento de Montevideo",
+    "lastSeenAt": "2026-03-12T19:46:08.292Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.8823,
+      "longitude": -56.1677
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Plaza%20Mateo%2C%20Av.%20Sarmiento%2C%2011200%20Montevideo%2C%20Departamento%20de%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 52,
+    "venueName": "Pueblo Narakan",
+    "totalEvents": 5,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Juan Diaz de Solis 678",
+    "lastSeenAt": "2026-03-11T19:30:57.200Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Pueblo%20Narakan%2C%20Juan%20Diaz%20de%20Solis%20678%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 53,
+    "venueName": "Teatro Stella D'Italia. La Gaviota",
+    "totalEvents": 5,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Mercedes 1805",
+    "lastSeenAt": "2026-03-11T19:20:07.786Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9071,
+      "longitude": -56.1926
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Stella%20D'Italia.%20La%20Gaviota%2C%20Mercedes%201805%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 54,
+    "venueName": "Aero Club del Uruguay",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Cno. Melilla 6735, Cel: 094, 12500 Monte",
+    "lastSeenAt": "2026-03-13T16:51:53.056Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.8442,
+      "longitude": -56.0311
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Aero%20Club%20del%20Uruguay%2C%20Cno.%20Melilla%206735%2C%20Cel%3A%20094%2C%2012500%20Monte%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 55,
+    "venueName": "Arteatro",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Canelones 1136, 11100 Montevideo, Depart",
+    "lastSeenAt": "2026-03-11T19:19:40.192Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Arteatro%2C%20Canelones%201136%2C%2011100%20Montevideo%2C%20Depart%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 56,
+    "venueName": "Auditorio Nelly Goitiño",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "SODRE",
+    "lastSeenAt": "2026-03-11T22:45:43.866Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9059,
+      "longitude": -56.1893
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Auditorio%20Nelly%20Goiti%C3%B1o%2C%20SODRE%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 57,
+    "venueName": "Brickell Irish Pub",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Juan Manuel Blanes 1175",
+    "lastSeenAt": "2026-03-12T19:31:19.440Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Brickell%20Irish%20Pub%2C%20Juan%20Manuel%20Blanes%201175%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 58,
+    "venueName": "Espacio Finisterre 916",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Treinta y Tres",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:44:01.024Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20Finisterre%20916%2C%20Treinta%20y%20Tres%2C%20Uruguay"
+  },
+  {
+    "rank": 59,
+    "venueName": "Gelos Bar",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Soriano 757",
+    "lastSeenAt": "2026-03-11T19:19:21.107Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Gelos%20Bar%2C%20Soriano%20757%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 60,
+    "venueName": "Hotel Cottage",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Miraflores 1360",
+    "lastSeenAt": "2026-03-11T19:20:01.296Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Hotel%20Cottage%2C%20Miraflores%201360%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 61,
+    "venueName": "José Enrique Rodó 1712",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Escuela Nacional de Declamación",
+    "lastSeenAt": "2026-03-11T19:29:46.544Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Jos%C3%A9%20Enrique%20Rod%C3%B3%201712%2C%20Escuela%20Nacional%20de%20Declamaci%C3%B3n%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 62,
+    "venueName": "L'Aria",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Espacio cultural - C. Martín García 1589",
+    "lastSeenAt": "2026-03-11T19:31:30.969Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=L'Aria%2C%20Espacio%20cultural%20-%20C.%20Mart%C3%ADn%20Garc%C3%ADa%201589%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 63,
+    "venueName": "La Barra",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Maldonado",
+    "lastSeenAt": "2026-03-11T19:20:18.114Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Barra%2C%20Maldonado%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 64,
+    "venueName": "Punta Ballena",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Punta Ballena",
+    "lastSeenAt": "2026-03-11T19:20:23.537Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Punta%20Ballena%2C%20Punta%20Ballena%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 65,
+    "venueName": "Restaurante La Soleada",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Canelones",
+    "sampleAddress": "El Pinar",
+    "lastSeenAt": "2026-03-11T19:31:08.481Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Restaurante%20La%20Soleada%2C%20El%20Pinar%2C%20Canelones%2C%20Uruguay"
+  },
+  {
+    "rank": 66,
+    "venueName": "Sala “Waldemar Bonilla”",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "José Dodera 868, 20000 Maldonado, Depart",
+    "lastSeenAt": "2026-03-11T19:29:50.685Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20%E2%80%9CWaldemar%20Bonilla%E2%80%9D%2C%20Jos%C3%A9%20Dodera%20868%2C%2020000%20Maldonado%2C%20Depart%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 67,
+    "venueName": "Sala Jorge Lazaroff",
+    "totalEvents": 4,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:44:07.993Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20Jorge%20Lazaroff%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 68,
+    "venueName": "ACJ Montevideo",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Centro - Colonia 1870, 11200 Montevideo, Departam",
+    "lastSeenAt": "2026-03-11T19:31:29.393Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=ACJ%20Montevideo%2C%20Centro%20-%20Colonia%201870%2C%2011200%20Montevideo%2C%20Departam%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 69,
+    "venueName": "Auditorio Nacional del SODRE",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Sala Eduardo Fabini",
+    "lastSeenAt": "2026-03-11T22:42:48.520Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9059,
+      "longitude": -56.1893
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Auditorio%20Nacional%20del%20SODRE%2C%20Sala%20Eduardo%20Fabini%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 70,
+    "venueName": "Botánica Sala",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Botánica Sala",
+    "lastSeenAt": "2026-03-11T19:19:34.924Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Bot%C3%A1nica%20Sala%2C%20Bot%C3%A1nica%20Sala%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 71,
+    "venueName": "Casa Babilonia",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Canelones",
+    "sampleAddress": "Costa Rica & Republica Dominicana",
+    "lastSeenAt": "2026-03-11T19:18:58.946Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Casa%20Babilonia%2C%20Costa%20Rica%20%26%20Republica%20Dominicana%2C%20Canelones%2C%20Uruguay"
+  },
+  {
+    "rank": 72,
+    "venueName": "Casa de la Cultura",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Ciudad de Maldonado",
+    "lastSeenAt": "2026-03-11T20:11:23.971Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Casa%20de%20la%20Cultura%2C%20Ciudad%20de%20Maldonado%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 73,
+    "venueName": "Centro Cultural Teatro Español",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Flores",
+    "sampleAddress": "Durazno",
+    "lastSeenAt": "2026-03-11T19:20:41.244Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%20Teatro%20Espa%C3%B1ol%2C%20Durazno%2C%20Flores%2C%20Uruguay"
+  },
+  {
+    "rank": 74,
+    "venueName": "Cerrito 475",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Cerrito 475, 11000 Montevideo, Departame",
+    "lastSeenAt": "2026-03-11T19:21:08.312Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Cerrito%20475%2C%20Cerrito%20475%2C%2011000%20Montevideo%2C%20Departame%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 75,
+    "venueName": "Cloud 7",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Constituyente 1885, 11200 Montevideo, Departamento de Montevideo",
+    "lastSeenAt": "2026-03-12T19:31:19.772Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9016,
+      "longitude": -56.1788
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Cloud%207%2C%20Constituyente%201885%2C%2011200%20Montevideo%2C%20Departamento%20de%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 76,
+    "venueName": "Club de Teatro Fernandino",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Maldonado",
+    "lastSeenAt": "2026-03-11T19:19:44.554Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Club%20de%20Teatro%20Fernandino%2C%20Maldonado%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 77,
+    "venueName": "Espacio La Huella",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Lavalleja",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:44:19.436Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20La%20Huella%2C%20Lavalleja%2C%20Uruguay"
+  },
+  {
+    "rank": 78,
+    "venueName": "Espacio Modelo",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-13T16:50:02.921Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20Modelo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 79,
+    "venueName": "Espacio Verde Club House · El Pony Pisador",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Rbla. Gral. Artigas 652",
+    "lastSeenAt": "2026-03-11T19:30:52.711Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Espacio%20Verde%20Club%20House%20%C2%B7%20El%20Pony%20Pisador%2C%20Rbla.%20Gral.%20Artigas%20652%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 80,
+    "venueName": "La Colmena | Espacio de Arte",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Maldonado 2182",
+    "lastSeenAt": "2026-03-11T19:20:50.667Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Colmena%20%7C%20Espacio%20de%20Arte%2C%20Maldonado%202182%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 81,
+    "venueName": "La Incorrecta",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:43:10.800Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.908,
+      "longitude": -56.1969
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=La%20Incorrecta%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 82,
+    "venueName": "Lotus WTC",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Contador Luis E. Lecueder",
+    "lastSeenAt": "2026-03-12T19:31:19.646Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9042,
+      "longitude": -56.1358
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Lotus%20WTC%2C%20Contador%20Luis%20E.%20Lecueder%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 83,
+    "venueName": "Mercedes 1820",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Mercedes 1820, 11200 Montevideo, Departa",
+    "lastSeenAt": "2026-03-12T17:24:16.118Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Mercedes%201820%2C%20Mercedes%201820%2C%2011200%20Montevideo%2C%20Departa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 84,
+    "venueName": "Montevideo Departamento de Montevideo",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Convencion 1101",
+    "lastSeenAt": "2026-03-11T19:19:25.855Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Montevideo%20Departamento%20de%20Montevideo%2C%20Convencion%201101%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 85,
+    "venueName": "Museo Oceanográfico",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Rbla. República de Chile 4215, 11300 Mon",
+    "lastSeenAt": "2026-03-11T19:30:41.304Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9272,
+      "longitude": -56.1586
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Museo%20Oceanogr%C3%A1fico%2C%20Rbla.%20Rep%C3%BAblica%20de%20Chile%204215%2C%2011300%20Mon%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 86,
+    "venueName": "Parque Rodó",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "JQPH+M7J, 30000 Minas",
+    "lastSeenAt": "2026-03-11T19:20:03.646Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Parque%20Rod%C3%B3%2C%20JQPH%2BM7J%2C%2030000%20Minas%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 87,
+    "venueName": "Punta del Este Departamento de Maldonado",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Puerto Punta D Este Escollera principal",
+    "lastSeenAt": "2026-03-11T19:31:23.065Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Punta%20del%20Este%20Departamento%20de%20Maldonado%2C%20Puerto%20Punta%20D%20Este%20Escollera%20principal%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 88,
+    "venueName": "Sala La incorrecta",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "3RQ9+3QM, Av. Gonzalo Ramírez, 11200 Mon",
+    "lastSeenAt": "2026-03-11T19:29:57.533Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.908,
+      "longitude": -56.1969
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20La%20incorrecta%2C%203RQ9%2B3QM%2C%20Av.%20Gonzalo%20Ram%C3%ADrez%2C%2011200%20Mon%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 89,
+    "venueName": "Sala Rincon",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Rincón 732, 11000 Montevideo, Departamen",
+    "lastSeenAt": "2026-03-11T19:19:35.406Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sala%20Rincon%2C%20Rinc%C3%B3n%20732%2C%2011000%20Montevideo%2C%20Departamen%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 90,
+    "venueName": "Salas y centros culturales",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Ana Guevara, Leticia JorgeGénero: DramaDuración: 75 minutosCalificación: + 9 añosPaís: UruguayAño: 2024",
+    "lastSeenAt": "2026-03-13T16:51:01.406Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Salas%20y%20centros%20culturales%2C%20Ana%20Guevara%2C%20Leticia%20JorgeG%C3%A9nero%3A%20DramaDuraci%C3%B3n%3A%2075%20minutosCalificaci%C3%B3n%3A%20%2B%209%20a%C3%B1osPa%C3%ADs%3A%20UruguayA%C3%B1o%3A%202024%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 91,
+    "venueName": "Sede Asociación Odontológica Uruguaya",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Durazno 937",
+    "lastSeenAt": "2026-03-11T18:56:37.975Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Sede%20Asociaci%C3%B3n%20Odontol%C3%B3gica%20Uruguaya%2C%20Durazno%20937%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 92,
+    "venueName": "Tazu Bar Cultural",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Canelones 782, 11100 Montevideo, Departa",
+    "lastSeenAt": "2026-03-11T19:30:40.845Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Tazu%20Bar%20Cultural%2C%20Canelones%20782%2C%2011100%20Montevideo%2C%20Departa%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 93,
+    "venueName": "Teatro Florencio Sánchez",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Paysandú",
+    "sampleAddress": "MWJ8+WCF, 19 De Abril, 60000 Paysandú, D",
+    "lastSeenAt": "2026-03-11T19:29:56.990Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.9072,
+      "longitude": -56.193
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Teatro%20Florencio%20S%C3%A1nchez%2C%20MWJ8%2BWCF%2C%2019%20De%20Abril%2C%2060000%20Paysand%C3%BA%2C%20D%2C%20Paysand%C3%BA%2C%20Uruguay"
+  },
+  {
+    "rank": 94,
+    "venueName": "Yacht Club Paysandú",
+    "totalEvents": 3,
+    "missingCoords": 0,
+    "sampleCity": "Paysandú",
+    "sampleAddress": "Av. Salto y, 60000 Paysandú, Departament",
+    "lastSeenAt": "2026-03-11T19:19:44.968Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Yacht%20Club%20Paysand%C3%BA%2C%20Av.%20Salto%20y%2C%2060000%20Paysand%C3%BA%2C%20Departament%2C%20Paysand%C3%BA%2C%20Uruguay"
+  },
+  {
+    "rank": 95,
+    "venueName": "Balcón del Cerro",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-13T16:50:08.512Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Balc%C3%B3n%20del%20Cerro%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 96,
+    "venueName": "Bulevar General Artigas 3946",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Bv. Gral. Artigas 3946, 11700 Montevideo",
+    "lastSeenAt": "2026-03-12T17:25:47.649Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Bulevar%20General%20Artigas%203946%2C%20Bv.%20Gral.%20Artigas%203946%2C%2011700%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 97,
+    "venueName": "Camino Mainumby 1500",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "Montevideo",
+    "lastSeenAt": "2026-03-13T16:02:23.376Z",
+    "status": "known",
+    "knownCoords": {
+      "latitude": -34.842,
+      "longitude": -55.988
+    },
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Camino%20Mainumby%201500%2C%20Montevideo%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 98,
+    "venueName": "Carrasco Lawn Tennis Club",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": "4W8Q+5WG, Dr Eduardo Couture, 11500 Mont",
+    "lastSeenAt": "2026-03-11T19:31:36.730Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Carrasco%20Lawn%20Tennis%20Club%2C%204W8Q%2B5WG%2C%20Dr%20Eduardo%20Couture%2C%2011500%20Mont%2C%20Montevideo%2C%20Uruguay"
+  },
+  {
+    "rank": 99,
+    "venueName": "Castillo De Piria",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Maldonado",
+    "sampleAddress": "Ruta 37 Km. 7, 20200 Piriápolis, Departa",
+    "lastSeenAt": "2026-03-11T19:31:17.571Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Castillo%20De%20Piria%2C%20Ruta%2037%20Km.%207%2C%2020200%20Piri%C3%A1polis%2C%20Departa%2C%20Maldonado%2C%20Uruguay"
+  },
+  {
+    "rank": 100,
+    "venueName": "Centro Cultural Florencio Sánchez",
+    "totalEvents": 2,
+    "missingCoords": 0,
+    "sampleCity": "Montevideo",
+    "sampleAddress": null,
+    "lastSeenAt": "2026-03-11T22:44:20.868Z",
+    "status": "needs-review",
+    "knownCoords": null,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%20Florencio%20S%C3%A1nchez%2C%20Montevideo%2C%20Uruguay"
+  }
+]

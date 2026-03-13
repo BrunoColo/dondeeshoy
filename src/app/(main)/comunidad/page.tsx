@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Instagram, Mail, Megaphone, Rocket, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Compass, Instagram, Mail, Megaphone, Rocket, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Comunidad",
@@ -23,8 +23,6 @@ export default function ComunidadPage() {
           boxShadow: "0 12px 34px rgba(0,0,0,0.26)",
         }}
       >
-        <div className="pointer-events-none absolute inset-y-0 left-[30px] hidden w-px bg-gradient-to-b from-transparent via-[#14B8A6]/30 to-transparent sm:block" />
-
         <div className="relative z-10 flex flex-col gap-5">
           <header className="fade-up">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1">
@@ -45,11 +43,17 @@ export default function ComunidadPage() {
               Acá podés activar novedades por mail, publicar tu evento y hablar con nosotros.
               Todo conectado, sin vueltas.
             </p>
+
+            <div className="mt-3 inline-flex items-center rounded-full border border-[#818CF8]/35 bg-[#818CF8]/12 px-4 py-2">
+              <span className="text-[12px] font-semibold text-[#E2E8F0]">
+                +500 personas visitaron este sitio esta semana
+              </span>
+            </div>
           </header>
 
           <div className="fade-up rounded-xl border border-white/10 bg-white/[0.03] p-3.5 sm:p-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#818CF8]" strokeWidth={2.3} />
+              <Compass className="h-4 w-4 text-[#818CF8]" strokeWidth={2.3} />
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#A7B4FF]">
                 Elegí tu próximo paso
               </p>
@@ -86,6 +90,30 @@ export default function ComunidadPage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-white/10 bg-[linear-gradient(140deg,rgba(10,10,22,0.92)_0%,rgba(12,10,24,0.94)_55%,rgba(9,15,24,0.92)_100%)] p-4 sm:p-5">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#818CF8]/28 bg-[#818CF8]/10 px-3 py-1">
+          <Compass className="h-3.5 w-3.5 text-[#A7B4FF]" strokeWidth={2.2} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C7D2FE]">¿Por qué sumarte?</span>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {[
+            "Tu evento puede aparecer en búsquedas, mapa y listados destacados.",
+            "Boletín semanal con recomendaciones según gustos y departamento.",
+            "Proceso claro: revisamos propuestas y respondemos en menos de 48 horas.",
+            "Canales directos para colaboraciones, difusión y campañas.",
+          ].map((item) => (
+            <div
+              key={item}
+              className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+            >
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#34D399]" strokeWidth={2.3} />
+              <p className="text-[12px] text-[#CBD5E1] leading-relaxed">{item}</p>
+            </div>
+          ))}
         </div>
       </section>
 

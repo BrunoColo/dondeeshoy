@@ -7,6 +7,7 @@ import { formatPrice, formatTime } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { TimeBadge } from "@/components/shared/time-badge";
 import { ShareButton } from "@/components/shared/share-button";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 import { MapPin, Clock, Ticket, Music, Flame } from "lucide-react";
 import type { EventType } from "@/types/events";
 import { useState } from "react";
@@ -102,6 +103,7 @@ export function EventCard({
               <EventTypeBadge type={eventType} />
               <div className="flex items-center gap-1.5">
                 <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+                <FavoriteButton slug={slug} stopPropagation />
                 <ShareButton title={name} path={eventPath} variant="icon" stopPropagation />
               </div>
             </div>
@@ -150,6 +152,7 @@ export function EventCard({
                 <EventTypeBadge type={eventType} />
                 <div className="flex items-center gap-1.5">
                   <TimeBadge startTime={startTime} endTime={endTime} eventDate={date} />
+                  <FavoriteButton slug={slug} stopPropagation />
                   <ShareButton title={name} path={eventPath} variant="icon" stopPropagation />
                 </div>
               </div>

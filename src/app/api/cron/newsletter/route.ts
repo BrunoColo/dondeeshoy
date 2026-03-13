@@ -6,7 +6,7 @@ import {
   releaseCronLock,
 } from "@/lib/security";
 import { getVerifiedSubscribers, getEventsForDateRange, filterEventsForSubscriber } from "@/lib/subscription-queries";
-import { sendNewsletterDigest, type NewsletterEvent } from "@/lib/subscription-emails";
+import { sendDigestEmail, type DigestEvent } from "@/lib/subscription-emails";
 import { getWeekendDatesUY, getTodayUY, getTomorrowUY } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /**
- * Newsletter cron endpoint.
+ * Boletín cron endpoint.
  * - Weekly: runs on Thursday, sends events for upcoming Fri-Sat-Sun
  * - Daily: runs every day, sends events for tomorrow
  *
@@ -28,11 +28,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const lock = await acquireCronLock("newsletter", 300);
+  const lock = await acquireCronLock("boletin", 300);
 
   if (!lock) {
     return NextResponse.json(
-      { ok: false, error: "Newsletter ya en ejecución." },
+      { ok: false, error: "Boletín ya en ejecución." },
       { status: 409, headers: getNoStoreHeaders() },
     );
   }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       daily: { sent: 0, skipped: 0, errors: 0 },
     };
 
-    // ── Weekly newsletter (Thursday) ──
+    // ── Weekly boletín (Thursday) ──
     const shouldSendWeekly = forceFrequency === "weekly" || (!forceFrequency && dayOfWeek === 4);
 
     if (shouldSendWeekly) {
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
           // Group events by date
           const eventsByDay = groupEventsByDate(filtered);
 
-          await sendNewsletterDigest(
+          await sendDigestEmail(
             subscriber.email,
             subscriber.unsubscribeToken,
             subscriber.name,
@@ -82,13 +82,13 @@ export async function GET(request: Request) {
           // Small delay to avoid rate limiting from Resend
           await sleep(200);
         } catch (err) {
-          console.error(`[newsletter] Error sending weekly to ${subscriber.email}:`, err);
+          console.error(`[boletin] Error sending weekly to ${subscriber.email}:`, err);
           results.weekly.errors++;
         }
       }
     }
 
-    // ── Daily newsletter ──
+    // ── Daily boletín ──
     const shouldSendDaily = forceFrequency === "daily" || (!forceFrequency && true);
 
     if (shouldSendDaily) {
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
 
           const eventsByDay = groupEventsByDate(filtered);
 
-          await sendNewsletterDigest(
+          await sendDigestEmail(
             subscriber.email,
             subscriber.unsubscribeToken,
             subscriber.name,
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
 
           await sleep(200);
         } catch (err) {
-          console.error(`[newsletter] Error sending daily to ${subscriber.email}:`, err);
+          console.error(`[boletin] Error sending daily to ${subscriber.email}:`, err);
           results.daily.errors++;
         }
       }
@@ -142,7 +142,7 @@ export async function GET(request: Request) {
 
 type QueryEvent = Awaited<ReturnType<typeof getEventsForDateRange>>[number];
 
-function toNewsletterEvent(e: QueryEvent): NewsletterEvent {
+function toDigestEvent(e: QueryEvent): DigestEvent {
   return {
     name: e.name,
     slug: e.slug,
@@ -160,15 +160,15 @@ function toNewsletterEvent(e: QueryEvent): NewsletterEvent {
 
 function groupEventsByDate(
   events: QueryEvent[],
-): Map<string, NewsletterEvent[]> {
-  const grouped = new Map<string, NewsletterEvent[]>();
+): Map<string, DigestEvent[]> {
+  const grouped = new Map<string, DigestEvent[]>();
 
   for (const event of events) {
     const date = event.date;
     if (!grouped.has(date)) {
       grouped.set(date, []);
     }
-    grouped.get(date)!.push(toNewsletterEvent(event));
+    grouped.get(date)!.push(toDigestEvent(event));
   }
 
   return grouped;

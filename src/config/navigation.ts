@@ -1,4 +1,4 @@
-import { Music, CalendarDays, MapPin, Users } from "lucide-react";
+import { Music, CalendarDays, MapPin, Users, Heart } from "lucide-react";
 
 export const NAV_ITEMS = [
   { label: "Hoy", href: "/", icon: Music },
@@ -12,5 +12,6 @@ export const HEADER_NAV_ITEMS = [
   { label: "Hoy", href: "/#top", icon: Music },
   { label: "Próximos", href: "/proximos", icon: CalendarDays },
   { label: "Mapa", href: "/mapa", icon: MapPin },
+  { label: "Favoritos", href: "/favoritos", icon: Heart },
   { label: "Comunidad", href: "/comunidad", icon: Users },
 ] as const;

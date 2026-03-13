@@ -5,14 +5,14 @@ import { SubscribeForm } from "./subscribe-form";
 export const metadata: Metadata = {
   title: `Suscribite — ${siteConfig.name}`,
   description:
-    "Recibí los mejores eventos de Uruguay en tu email. Newsletter semanal o diario con eventos filtrados por tus intereses.",
+    "Recibí cada jueves los mejores eventos del finde según tu departamento y gustos. Boletín semanal gratis.",
   alternates: {
     canonical: "/suscribirse",
   },
   openGraph: {
     title: `Suscribite — ${siteConfig.name}`,
     description:
-      "Recibí los mejores eventos de Uruguay en tu email cada semana.",
+      "Recibí cada jueves una selección del finde según tu ciudad y tus gustos.",
     url: `${siteConfig.url}/suscribirse`,
   },
 };

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatPrice, formatTime, formatDateES, getTimeStatus } from "@/lib/format";
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { ShareButton } from "@/components/shared/share-button";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 import { VenueMiniMap } from "@/components/events/venue-mini-map";
 import { HeroImage } from "@/components/events/hero-image";
 import {
@@ -78,7 +79,7 @@ export function EventDetail({ event }: EventDetailProps) {
         {/* Content */}
         <div className={cn("relative z-10 -mt-8 rounded-t-3xl lg:rounded-t-none bg-background px-5 pt-6", event.ticketUrl ? "pb-32 lg:pb-8" : "pb-8")}>
         {/* Type badge + genre */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="mb-4 flex items-center gap-3">
           <EventTypeBadge type={event.eventType} size="md" />
           {event.musicGenre && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -86,6 +87,7 @@ export function EventDetail({ event }: EventDetailProps) {
               {event.musicGenre}
             </span>
           )}
+          <FavoriteButton slug={event.slug} className="ml-auto" />
         </div>
 
         {/* Event name */}

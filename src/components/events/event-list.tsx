@@ -7,13 +7,35 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { haversineKm } from "@/lib/utils";
 import type { Event } from "@/lib/db/schema/events";
 
+export type EventListItem = Pick<
+  Event,
+  | "id"
+  | "slug"
+  | "name"
+  | "date"
+  | "startTime"
+  | "endTime"
+  | "venueName"
+  | "city"
+  | "eventType"
+  | "imageUrl"
+  | "priceMin"
+  | "priceMax"
+  | "isFree"
+  | "currency"
+  | "musicGenre"
+  | "ticketUrl"
+  | "latitude"
+  | "longitude"
+>;
+
 interface GeolocationState {
   position: { lat: number; lng: number } | null;
   sortByDistance: boolean;
 }
 
 interface EventListProps {
-  events: Event[];
+  events: EventListItem[];
   trendingIds?: string[];
   /** Show the nearby button inside this list (self-managed geolocation) */
   enableNearby?: boolean;

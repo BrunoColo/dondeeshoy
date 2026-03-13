@@ -144,8 +144,8 @@ export async function sendSubscriptionConfirmedEmail(
   const greeting = subscriberName ? `¡Hola ${subscriberName}!` : "¡Hola!";
   const cadenceText =
     frequency === "weekly"
-      ? "Te vamos a escribir cada jueves con el resumen del finde (viernes a domingo)."
-      : "Te vamos a escribir todos los días con recomendaciones frescas.";
+      ? "Cada jueves te vamos a enviar una selección del finde (viernes a domingo), filtrada por tus intereses y departamentos elegidos."
+      : "Te vamos a escribir con recomendaciones frescas según tus preferencias.";
 
   const html = `
 <!DOCTYPE html>
@@ -191,9 +191,9 @@ export async function sendSubscriptionConfirmedEmail(
   });
 }
 
-/* ─── Newsletter Digest Email ─── */
+/* ─── Boletín digest email ─── */
 
-export type NewsletterEvent = {
+export type DigestEvent = {
   name: string;
   slug: string;
   date: string;
@@ -232,7 +232,7 @@ function formatTimeShort(time: string | null): string {
   return `${h}:${m}`;
 }
 
-function formatPrice(event: NewsletterEvent): string {
+function formatPrice(event: DigestEvent): string {
   if (event.isFree) return "Gratis";
   if (event.priceMin && event.priceMax && event.priceMin !== event.priceMax) {
     return `$${event.priceMin}–$${event.priceMax} ${event.currency}`;
@@ -242,11 +242,11 @@ function formatPrice(event: NewsletterEvent): string {
   return "Pago";
 }
 
-export async function sendNewsletterDigest(
+export async function sendDigestEmail(
   email: string,
   unsubscribeToken: string,
   subscriberName: string | null,
-  eventsByDay: Map<string, NewsletterEvent[]>,
+  eventsByDay: Map<string, DigestEvent[]>,
   isWeekly: boolean,
 ): Promise<void> {
   const unsubscribeUrl = `${BASE_URL}/api/subscriptions/unsubscribe?token=${unsubscribeToken}`;
@@ -299,7 +299,7 @@ export async function sendNewsletterDigest(
               </div>
               <!-- Price -->
               <div style="margin-top: 6px; font-size: 12px; color: ${event.isFree ? "#34D399" : "#CBD5E1"}; font-weight: 600;">
-                ${event.isFree ? "✨ " : ""}${price}
+                ${price}
               </div>
             </div>
             <!-- Arrow -->

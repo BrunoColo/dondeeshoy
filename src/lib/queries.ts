@@ -279,6 +279,25 @@ export async function getEventBySlug(slug: string) {
 }
 
 /**
+ * Resolve a list of event slugs into active events preserving input order.
+ */
+export async function getEventsBySlugs(slugs: string[]) {
+  const cleaned = [...new Set(slugs.map((slug) => slug.trim().toLowerCase()).filter(Boolean))].slice(0, 100);
+
+  if (cleaned.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .select(listColumns)
+    .from(events)
+    .where(and(activeStatus, inArray(events.slug, cleaned)));
+
+  const bySlug = new Map(rows.map((event) => [event.slug, event]));
+  return cleaned.map((slug) => bySlug.get(slug)).filter((event): event is (typeof rows)[number] => Boolean(event));
+}
+
+/**
  * Get total count of active events for a date (uses COUNT instead of fetching all rows)
  */
 export async function getEventCountForDate(date: string) {

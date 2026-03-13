@@ -73,7 +73,7 @@ export async function getVerifiedSubscribers(
     );
 }
 
-/* ─── Get events for newsletter ─── */
+/* ─── Get events for boletín ─── */
 
 export async function getEventsForDateRange(
   startDate: string,

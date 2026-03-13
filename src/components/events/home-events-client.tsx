@@ -6,7 +6,7 @@ import { NearbyButton } from "./nearby-button";
 import { SectionHeader } from "./section-header";
 import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { ChevronDown, Flame, Loader2, RotateCw, Sparkles } from "lucide-react";
+import { ChevronDown, Compass, Flame, Loader2, RotateCw } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 import type { EventFilters } from "@/types/events";
 
@@ -167,7 +167,7 @@ export function HomeEventsClient({
       {(events.length > 0 || hasFilters) && (
         <div className="fade-up">
           <SectionHeader
-            icon={Sparkles}
+            icon={Compass}
             title="Eventos únicos de hoy"
             subtitle="Solo por hoy"
             count={totalUniqueCount}

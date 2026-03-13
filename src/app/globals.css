@@ -123,6 +123,12 @@ body {
   overflow-x: hidden;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #E2E8F0;
+  opacity: 0.82;
+}
+
 /* Noise overlay for depth */
 body::before {
   content: "";

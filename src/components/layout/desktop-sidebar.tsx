@@ -298,7 +298,7 @@ export async function DesktopSidebar() {
           </div>
         </div>
 
-        {/* ── NEWSLETTER CTA ── */}
+        {/* ── BOLETÍN CTA ── */}
         <div
           className="rounded-xl overflow-hidden"
           style={{
@@ -318,13 +318,13 @@ export async function DesktopSidebar() {
                 <Mail className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
               </div>
               <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#818CF8]">
-                Newsletter
+                Boletín de eventos
               </h2>
             </div>
           </div>
           <div className="p-4 flex flex-col gap-3">
             <p className="text-[12px] text-[#CBD5E1] leading-relaxed">
-              Recibí los mejores eventos de la semana directo en tu email. Sin spam.
+              Recibí los mejores eventos de la semana directo en tu correo. Sin spam.
             </p>
             <Link
               href="/suscribirse"

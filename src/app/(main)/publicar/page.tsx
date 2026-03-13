@@ -85,7 +85,7 @@ const inputBase = (hasError?: boolean) =>
   cn(
     "w-full rounded-lg px-4 py-3 text-[14px] text-foreground",
     "bg-[#0E0E1E] border transition-all duration-150",
-    "placeholder:text-[#5A6778]",
+    "placeholder:text-[#E2E8F0]/85",
     "focus:outline-none focus:bg-[#111124]",
     "focus:border-[rgba(99,102,241,0.50)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]",
     hasError
@@ -283,14 +283,40 @@ export default function PublicarPage() {
         </h1>
         <p className="text-[14px] text-[#94A3B8] leading-relaxed max-w-lg mb-5">
           Completá el formulario y lo revisamos en menos de 48 horas.
-          Publicar tu evento es gratis cuando el evento es gratis.
+          Si tu evento es gratuito, publicarlo también es gratuito.
+          Si es pago, igual podés enviarlo para evaluación editorial.
         </p>
 
         <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.12)] px-3.5 py-2">
           <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
           <span className="text-[12px] text-[#B8C5D6]">
-            Gratis para publicar eventos con entrada gratuita
+            Publicá gratis los eventos con entrada gratuita
           </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {[
+            {
+              title: "Más alcance",
+              text: "Tu evento puede aparecer en listados, búsquedas y mapa.",
+            },
+            {
+              title: "Proceso claro",
+              text: "Revisión editorial con respuesta por email en menos de 48 h.",
+            },
+            {
+              title: "Sin vueltas",
+              text: "Formulario simple para publicar con datos clave y links.",
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-lg border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
+            >
+              <p className="text-[12px] font-semibold text-[#E2E8F0]">{item.title}</p>
+              <p className="mt-1 text-[11px] text-[#94A3B8] leading-relaxed">{item.text}</p>
+            </div>
+          ))}
         </div>
       </div>
 
