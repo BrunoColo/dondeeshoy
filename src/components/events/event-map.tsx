@@ -171,13 +171,6 @@ interface EventMapProps {
 
 export type DateFilter = "hoy" | "manana" | "finde";
 
-const MAP_STYLES = {
-  calles: "mapbox://styles/mapbox/streets-v12",
-  oscuro: "mapbox://styles/mapbox/dark-v11",
-} as const;
-
-type MapStyleKey = keyof typeof MAP_STYLES;
-
 export function EventMap({
   todayEvents,
   tomorrowEvents,
@@ -191,9 +184,7 @@ export function EventMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const initialStyleRef = useRef(true);
 
-  const [styleKey, setStyleKey] = useState<MapStyleKey>("calles");
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
   const [mapReady, setMapReady] = useState(false);
@@ -237,7 +228,7 @@ export function EventMap({
     mapboxgl.accessToken = token;
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: MAP_STYLES.calles,
+      style: "mapbox://styles/mapbox/streets-v12",
       center: [-56.1645, -34.9011],
       zoom: 12,
       attributionControl: true,
@@ -262,32 +253,6 @@ export function EventMap({
     };
   }, []);
 
-  // Handle style switching — setMapReady(false) here so we don't call it inside the effect
-  const handleStyleChange = useCallback((key: MapStyleKey) => {
-    setMapReady(false);
-    setStyleKey(key);
-  }, []);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // Skip on mount — map was already created with the initial style in the init effect
-    if (initialStyleRef.current) {
-      initialStyleRef.current = false;
-      return;
-    }
-
-    // Clear markers before switching
-    for (const [, marker] of markersRef.current) marker.remove();
-    markersRef.current.clear();
-    map.setStyle(MAP_STYLES[styleKey]);
-
-    const onStyleLoad = () => setMapReady(true);
-    map.once("style.load", onStyleLoad);
-    return () => { map.off("style.load", onStyleLoad); };
-  }, [styleKey]);
-
 
   // Show popup for a given event
   const showPopup = useCallback((map: mapboxgl.Map, event: MapEvent) => {
@@ -299,6 +264,12 @@ export function EventMap({
         ? formatPrice(event.priceMin, null, false, event.currency)
         : "Consultar";
     const timeLabel = formatTime(event.startTime ?? null);
+    const shortDateLabel = (() => {
+      const [year, month, day] = event.date.split("-").map(Number);
+      if (!year || !month || !day) return event.date;
+      return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
+    })();
+    const dateTimeLabel = timeLabel ? `${shortDateLabel} · ${timeLabel}` : shortDateLabel;
 
     const typeColor = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
     const container = document.createElement("div");
@@ -314,7 +285,7 @@ export function EventMap({
             <span>📍</span>
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
           </div>
-          ${timeLabel ? `<div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${timeLabel}</span></div>` : ""}
+          <div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${dateTimeLabel}</span></div>
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>🎫</span>
             <span style="font-weight: 600; color: ${event.isFree ? "#34D399" : "#CBD5E1"};">${price}</span>
@@ -439,7 +410,14 @@ export function EventMap({
       <div ref={mapContainerRef} className="h-full w-full" />
 
       {/* ─── Top bar: date pills + style/fit ─── */}
-      <div className="absolute top-2 lg:top-3 left-2 right-2 z-[1000] flex items-start justify-between gap-2">
+      <div
+        className="absolute top-3 left-3 right-3 z-[1000] flex items-start justify-between gap-2 lg:top-4 lg:left-4 lg:right-4"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+          paddingRight: "env(safe-area-inset-right, 0px)",
+        }}
+      >
         {/* Date filter pills */}
         <div className="flex items-center gap-1.5 rounded-2xl p-0.5">
           {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
@@ -472,32 +450,8 @@ export function EventMap({
           })}
         </div>
 
-        {/* Right side: style toggle + fit */}
+        {/* Right side: fit */}
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-1">
-            <button
-              type="button"
-              onClick={() => handleStyleChange("calles")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 ${
-                styleKey === "calles"
-                  ? "bg-white/15 text-white border border-white/20 shadow-sm"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.06] border border-transparent"
-              }`}
-            >
-              Calles
-            </button>
-            <button
-              type="button"
-              onClick={() => handleStyleChange("oscuro")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 ${
-                styleKey === "oscuro"
-                  ? "bg-white/15 text-white border border-white/20 shadow-sm"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.06] border border-transparent"
-              }`}
-            >
-              Noche
-            </button>
-          </div>
           <button
             type="button"
             onClick={fitBounds}
@@ -510,7 +464,13 @@ export function EventMap({
       </div>
 
       {/* ─── Bottom-left: event count + recurring toggle ─── */}
-      <div className="absolute bottom-[72px] sm:bottom-3 left-2 sm:left-3 z-[1000] flex flex-col gap-1.5">
+      <div
+        className="absolute bottom-[84px] left-3 z-[1000] flex flex-col gap-1.5 sm:bottom-4 sm:left-4"
+        style={{
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
         {/* Event count badge */}
         <div className="rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2 text-[11px] font-medium text-white/90">
           <span className="font-bold text-white">{visibleEvents.length}</span>{" "}
@@ -541,7 +501,13 @@ export function EventMap({
       </div>
 
       {/* ─── Bottom-right: legend (desktop only) ─── */}
-      <div className="absolute bottom-3 right-14 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]">
+      <div
+        className="absolute bottom-4 right-4 z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]"
+        style={{
+          paddingRight: "env(safe-area-inset-right, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
         {Object.entries(TYPE_COLORS)
           .filter(([key]) => key !== "otro")
           .map(([type, color]) => (

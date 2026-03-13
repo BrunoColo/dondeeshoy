@@ -10,7 +10,9 @@ export function FavoritesFab() {
   const pathname = usePathname();
   const { count, hydrated } = useFavorites();
 
-  if (pathname.startsWith("/favoritos")) {
+  const shouldShow = pathname === "/" || pathname.startsWith("/proximos");
+
+  if (!shouldShow || pathname.startsWith("/favoritos")) {
     return null;
   }
 
@@ -20,7 +22,7 @@ export function FavoritesFab() {
       aria-label={hydrated && count > 0 ? `Ver favoritos (${count})` : "Ver favoritos"}
       title="Favoritos"
       className={cn(
-        "fixed bottom-[84px] right-4 z-[55] inline-flex h-14 w-14 items-center justify-center rounded-full border border-teal-300/45",
+        "fixed bottom-[84px] right-4 z-[55] inline-flex h-[58px] w-[58px] items-center justify-center rounded-full border border-teal-300/45",
         "bg-[linear-gradient(135deg,rgba(20,184,166,0.95)_0%,rgba(99,102,241,0.95)_100%)] text-white",
         "shadow-[0_12px_28px_rgba(0,0,0,0.35),0_0_22px_rgba(20,184,166,0.34)] transition-transform duration-200 hover:scale-[1.03] active:scale-95",
       )}

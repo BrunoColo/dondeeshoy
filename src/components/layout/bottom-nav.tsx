@@ -10,7 +10,7 @@ export function BottomNav() {
 
   return (
     <nav className="glass-nav fixed bottom-0 left-0 right-0 z-50">
-      <div className="mx-auto flex max-w-5xl items-center justify-around px-6 py-2"
+      <div className="mx-auto grid max-w-5xl grid-cols-4 items-center px-2 py-2"
         style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))" }}
       >
         {NAV_ITEMS.map((item) => {
@@ -25,7 +25,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-3 py-1.5 transition-colors duration-200 min-w-[64px]",
+                "relative flex w-full flex-col items-center justify-center gap-1 px-1 py-1.5 transition-colors duration-200",
                 isActive
                   ? "text-accent-light"
                   : "text-[#A8B8CC] hover:text-[#CBD5E1]",
