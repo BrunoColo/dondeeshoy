@@ -52,7 +52,7 @@ export function EventFilters({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [mobileSheet, setMobileSheet] = useState<"type" | "department" | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const isClient = typeof window !== "undefined";
 
   const activeType = searchParams.get("type") as EventType | null;
   const activeGenre = searchParams.get("genre");
@@ -130,7 +130,15 @@ export function EventFilters({
   };
 
   const sortedDepartments = useMemo(
-    () => [...availableDepartments].sort((a, b) => a.localeCompare(b, "es")),
+    () => {
+      const sorted = [...new Set(availableDepartments)].sort((a, b) => a.localeCompare(b, "es"));
+      const montevideoIndex = sorted.indexOf("Montevideo");
+      if (montevideoIndex > 0) {
+        sorted.splice(montevideoIndex, 1);
+        sorted.unshift("Montevideo");
+      }
+      return sorted;
+    },
     [availableDepartments],
   );
 
@@ -142,10 +150,6 @@ export function EventFilters({
       return 0;
     });
   }, [availableTypes]);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     if (!mobileSheet || !isClient) return;
@@ -226,11 +230,9 @@ export function EventFilters({
             aria-expanded={mobileSheet === "department"}
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
-              activeDepartment === "Montevideo"
-                ? "bg-sky-500/26 border-sky-300/70 text-sky-100 shadow-[0_0_14px_rgba(56,189,248,0.35)] ring-1 ring-sky-300/45"
-                : activeDepartment
-                  ? "bg-sky-500/24 border-sky-300/62 text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.28)] ring-1 ring-sky-300/38"
-                  : "bg-sky-500/14 border-sky-400/45 text-sky-200 hover:bg-sky-500/24 hover:border-sky-300/65 hover:text-sky-100",
+              activeDepartment
+                ? "bg-sky-500/24 border-sky-300/62 text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.28)] ring-1 ring-sky-300/38"
+                : "bg-sky-500/14 border-sky-400/45 text-sky-200 hover:bg-sky-500/24 hover:border-sky-300/65 hover:text-sky-100",
             )}
           >
             <MapPin className="h-3 w-3" strokeWidth={2.5} />
@@ -330,13 +332,9 @@ export function EventFilters({
                 aria-pressed={isActive}
                 className={cn(
                   "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
-                  department === "Montevideo"
-                    ? isActive
-                      ? "bg-sky-500/26 border-sky-300/70 text-sky-100 shadow-[0_0_14px_rgba(56,189,248,0.35)] ring-1 ring-sky-300/45"
-                      : "bg-sky-500/14 border-sky-400/45 text-sky-200 hover:bg-sky-500/24 hover:border-sky-300/65 hover:text-sky-100"
-                    : isActive
-                      ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.22)] ring-1 ring-accent/30"
-                      : "bg-white/[0.07] border-white/[0.18] text-[#CBD5E1] hover:border-accent/35 hover:text-white hover:bg-white/[0.10]",
+                  isActive
+                    ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.22)] ring-1 ring-accent/30"
+                    : "bg-white/[0.07] border-white/[0.18] text-[#CBD5E1] hover:border-accent/35 hover:text-white hover:bg-white/[0.10]",
                 )}
               >
                 {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
@@ -489,13 +487,9 @@ export function EventFilters({
                       }}
                       className={cn(
                         "w-full flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-[13px] font-medium transition-all",
-                        department === "Montevideo"
-                          ? isActive
-                            ? "bg-sky-500/20 border-sky-300/60 text-sky-100"
-                            : "bg-sky-500/10 border-sky-400/35 text-sky-200 hover:border-sky-300/50 hover:bg-sky-500/16"
-                          : isActive
-                            ? "bg-accent/20 border-accent/60 text-[#A7F3D0]"
-                            : "bg-white/[0.04] border-white/[0.12] text-[#CBD5E1] hover:border-white/[0.24] hover:bg-white/[0.08]",
+                        isActive
+                          ? "bg-accent/20 border-accent/60 text-[#A7F3D0]"
+                          : "bg-white/[0.04] border-white/[0.12] text-[#CBD5E1] hover:border-white/[0.24] hover:bg-white/[0.08]",
                       )}
                     >
                       <span>{department}</span>

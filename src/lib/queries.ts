@@ -140,6 +140,34 @@ export interface FilterOptions {
 
 export type EventOrderStrategy = "default" | "diverse";
 
+function buildOrderByExpressions(orderStrategy: EventOrderStrategy = "default") {
+  if (orderStrategy === "diverse") {
+    return [
+      sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+      sql`CASE WHEN ${events.eventType} = 'otro' THEN 1 ELSE 0 END`,
+      sql`row_number() OVER (
+        PARTITION BY ${events.date}, ${events.eventType}
+        ORDER BY
+          COALESCE(${events.confidenceScore}, 0) DESC,
+          ${rankingScore} DESC,
+          ${events.startTime} ASC NULLS LAST,
+          ${events.name} ASC
+      )`,
+      desc(sql`COALESCE(${events.confidenceScore}, 0)`),
+      desc(rankingScore),
+      asc(events.startTime),
+      asc(events.name),
+    ] as const;
+  }
+
+  return [
+    sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+    desc(rankingScore),
+    asc(events.startTime),
+    asc(events.name),
+  ] as const;
+}
+
 export async function getFilterOptions(date?: string, dateRange?: { start: string; end: string }): Promise<FilterOptions> {
   let dateCondition = sql`TRUE`;
   if (dateRange) {
@@ -246,30 +274,8 @@ export async function getEventsByDatePaged(
       ),
     );
 
-  const orderedQuery =
-    orderStrategy === "diverse"
-      ? baseQuery.orderBy(
-          sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
-          sql`CASE WHEN ${events.eventType} = 'otro' THEN 1 ELSE 0 END`,
-          sql`row_number() OVER (
-            PARTITION BY ${events.eventType}
-            ORDER BY
-              COALESCE(${events.confidenceScore}, 0) DESC,
-              ${rankingScore} DESC,
-              ${events.startTime} ASC NULLS LAST,
-              ${events.name} ASC
-          )`,
-          desc(sql`COALESCE(${events.confidenceScore}, 0)`),
-          desc(rankingScore),
-          asc(events.startTime),
-          asc(events.name),
-        )
-      : baseQuery.orderBy(
-          sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
-          desc(rankingScore),
-          asc(events.startTime),
-          asc(events.name),
-        );
+  const orderByExpressions = buildOrderByExpressions(orderStrategy);
+  const orderedQuery = baseQuery.orderBy(...orderByExpressions);
 
   return orderedQuery.limit(safeLimit).offset(safeOffset);
 }
@@ -379,6 +385,7 @@ export async function getUpcomingEventGroupsPreview(
   daysAhead: number = 7,
   perDayLimit: number = 6,
   filters?: EventFilters,
+  orderStrategy: EventOrderStrategy = "default",
 ): Promise<UpcomingDayPreview[]> {
   const endDate = getOffsetDate(startDate, daysAhead);
   const safeLimit = Math.max(1, Math.min(perDayLimit, 50));
@@ -393,7 +400,7 @@ export async function getUpcomingEventGroupsPreview(
   const dayResults = await Promise.all(
     dates.map(async (date) => {
       const [dayEvents, totalCount] = await Promise.all([
-        getEventsByDatePaged(date, 0, safeLimit, filters),
+        getEventsByDatePaged(date, 0, safeLimit, filters, orderStrategy),
         getEventCountByDate(date, filters),
       ]);
 
@@ -415,12 +422,13 @@ export async function getUpcomingEventGroupsPreview(
  */
 export async function getUpcomingEventsFromDate(startDate: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
+  const orderByExpressions = buildOrderByExpressions("diverse");
 
   const results = await db
     .select(listColumns)
     .from(events)
     .where(and(gte(events.date, startDate), activeStatus, ...filterConditions))
-    .orderBy(asc(events.date), desc(rankingScore), asc(events.startTime), asc(events.name));
+    .orderBy(asc(events.date), ...orderByExpressions);
 
   const grouped = new Map<string, typeof results>();
   for (const event of results) {

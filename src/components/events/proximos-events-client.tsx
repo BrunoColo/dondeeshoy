@@ -121,6 +121,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       params.set("date", date);
       params.set("offset", String(loadedCount));
       params.set("limit", "6");
+      params.set("strategy", "diverse");
 
       const type = searchParams.get("type");
       const genre = searchParams.get("genre");

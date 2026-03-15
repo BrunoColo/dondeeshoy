@@ -500,7 +500,7 @@ async function createEvent(
  * Dates from these sources are considered more reliable than dates parsed from
  * free text (e.g. MVD Eventos, Entraste, Cartelera).
  */
-const TRUSTED_DATE_SOURCES = new Set(["cobraticket", "redtickets", "ticketfacil", "mientrada", "hayplan"]);
+const TRUSTED_DATE_SOURCES = new Set(["cobraticket", "redtickets", "ticketfacil", "mientrada", "hayplan", "passline"]);
 
 async function mergeEventData(
   eventId: string,

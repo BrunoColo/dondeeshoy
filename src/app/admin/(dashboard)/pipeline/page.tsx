@@ -36,6 +36,8 @@ export default async function PipelinePage() {
     cobraticket: "Cobra",
     ticketfacil: "TicketFacil",
     mientrada: "MiEntrada",
+    hayplan: "HayPlan",
+    passline: "Passline",
   };
 
   return (

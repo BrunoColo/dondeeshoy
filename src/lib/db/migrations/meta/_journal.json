@@ -50,6 +50,13 @@
       "when": 1772668800000,
       "tag": "0006_add_department_column",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773599000000,
+      "tag": "0008_add_passline_source",
+      "breakpoints": true
     }
   ]
 }

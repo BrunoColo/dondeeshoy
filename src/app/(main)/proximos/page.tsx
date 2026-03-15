@@ -62,7 +62,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
   let nextFrom: string | undefined;
 
   if (when === "fecha" && fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam)) {
-    grouped = await getUpcomingEventGroupsPreview(fechaParam, 0, 6, filters);
+    grouped = await getUpcomingEventGroupsPreview(fechaParam, 0, 6, filters, "diverse");
     filterRange = { start: fechaParam, end: fechaParam };
     // Format date for subtitle
     const [y, m, d] = fechaParam.split("-").map(Number);
@@ -71,12 +71,12 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
     const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     subtitle = `Eventos del ${dayNames[dateObj.getDay()]} ${d} de ${monthNames[dateObj.getMonth()]}`;
   } else if (when === "manana") {
-    grouped = await getUpcomingEventGroupsPreview(tomorrow, 0, 6, filters);
+    grouped = await getUpcomingEventGroupsPreview(tomorrow, 0, 6, filters, "diverse");
     filterRange = { start: tomorrow, end: tomorrow };
     subtitle = "Eventos de mañana";
   } else if (when === "finde") {
     const weekend = getWeekendDatesUY();
-    grouped = await getUpcomingEventGroupsPreview(weekend.start, 2, 6, filters);
+    grouped = await getUpcomingEventGroupsPreview(weekend.start, 2, 6, filters, "diverse");
 
     filterRange = { start: weekend.start, end: weekend.end };
     subtitle = "Eventos de este fin de semana";
@@ -92,7 +92,7 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
     subtitle = `Resultados para "${filters.q}"`;
   } else {
     // Default: load 7 days starting tomorrow, with lazy loading for more
-    grouped = await getUpcomingEventGroupsPreview(tomorrow, 7, 6, filters);
+    grouped = await getUpcomingEventGroupsPreview(tomorrow, 7, 6, filters, "diverse");
     filterRange = { start: tomorrow, end: getDateOffsetUY(8) };
     enableLoadMore = true;
     nextFrom = getDateOffsetUY(8);

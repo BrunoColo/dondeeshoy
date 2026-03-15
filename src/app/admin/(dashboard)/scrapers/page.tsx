@@ -33,6 +33,7 @@ export default async function ScrapersPage() {
     ticketfacil: "TicketFacil",
     mientrada: "MiEntrada",
     hayplan: "HayPlan",
+    passline: "Passline",
   };
 
   return (
