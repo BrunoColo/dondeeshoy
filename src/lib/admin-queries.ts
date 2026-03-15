@@ -32,7 +32,7 @@ function slugifyForEvent(value: string): string {
     .slice(0, 80);
 }
 
-export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada";
+export type Source = "redtickets" | "entraste" | "cartelera" | "mvd_eventos" | "cobraticket" | "ticketfacil" | "mientrada" | "hayplan";
 export type ScraperHealth = "healthy" | "warning" | "error" | "idle";
 
 type ScraperStatsRow = {
@@ -554,7 +554,7 @@ export async function getAdminDashboardStats() {
 
 const getScraperStatsCached = unstable_cache(
   async () => {
-    const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada"];
+    const sources: Source[] = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada", "hayplan"];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString();

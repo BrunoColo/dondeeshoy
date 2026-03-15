@@ -32,6 +32,7 @@ export default async function ScrapersPage() {
     cobraticket: "CobraTicket",
     ticketfacil: "TicketFacil",
     mientrada: "MiEntrada",
+    hayplan: "HayPlan",
   };
 
   return (

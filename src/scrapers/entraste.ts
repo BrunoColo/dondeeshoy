@@ -28,6 +28,14 @@ interface EntrasteTicket {
   promo?: string;
 }
 
+interface UruguayDateParts {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+}
+
 /**
  * Scraper for entraste.com — Uruguayan event ticketing platform.
  *
@@ -130,7 +138,7 @@ export class EntrasteScraper extends BaseScraper {
     // ── Date and time from Unix timestamp ──────────────────────────────────
     // <div class="col-sm-6 event-dates" data-eventstart="1772161140">
     // This is the most reliable date source — no text parsing needed.
-    const { dateText, startTime, dateIso } = this.extractDateFromTimestamp($);
+    const { dateText, startTime, dateIso } = this.extractDateFromTimestamp($, title);
 
     // ── Venue and address ──────────────────────────────────────────────────
     // <p>Venue: Cloud 7<br>Ubicación: Constituyente 1885, ...</p>
@@ -183,7 +191,10 @@ export class EntrasteScraper extends BaseScraper {
    * Returns both a human-readable `dateText` and a clean ISO `dateIso` (YYYY-MM-DD)
    * plus `startTime` (HH:MM:SS) so the normalizer doesn't need to parse anything.
    */
-  private extractDateFromTimestamp($: cheerio.CheerioAPI): {
+  private extractDateFromTimestamp(
+    $: cheerio.CheerioAPI,
+    title: string,
+  ): {
     dateText: string | null;
     dateIso: string | null;
     startTime: string | null;
@@ -202,22 +213,64 @@ export class EntrasteScraper extends BaseScraper {
       return { dateText: null, dateIso: null, startTime: null };
     }
 
-    // Convert Unix timestamp (seconds) to Date in Uruguay time (UTC-3).
-    // We store the ISO date and time derived from the UTC timestamp;
-    // the normalizer converts YYYY-MM-DD directly without timezone ambiguity.
-    const date = new Date(ts * 1000);
+    // Convert Unix timestamp to local Uruguay components.
+    // Entraste often stores night events in a way that can otherwise look shifted
+    // to the next UTC day/hours when interpreted as UTC directly.
+    const uruguay = this.toUruguayDateParts(new Date(ts * 1000));
 
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const hour = String(date.getUTCHours()).padStart(2, "0");
-    const min = String(date.getUTCMinutes()).padStart(2, "0");
+    let dateIso = this.toDateIso(uruguay.year, uruguay.month, uruguay.day);
+    let startTime = `${String(uruguay.hour).padStart(2, "0")}:${String(uruguay.minute).padStart(2, "0")}:00`;
 
-    const dateIso = `${year}-${month}-${day}`;
-    const startTime = `${hour}:${min}:00`;
+    // Circumstantial fix requested by product: nightlife events shown in madrugada
+    // (00:00-05:59) should be treated as the prior night and pinned to 23:59.
+    // This avoids appearing as "today" when they are effectively "anoche".
+    if (this.isNightlifeEvent(title) && uruguay.hour >= 0 && uruguay.hour <= 5) {
+      dateIso = this.shiftDateIso(dateIso, -1);
+      startTime = "23:59:00";
+    }
+
     const dateText = dateIso; // normalizer can parse YYYY-MM-DD directly
 
     return { dateText, dateIso, startTime };
+  }
+
+  private toUruguayDateParts(date: Date): UruguayDateParts {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Montevideo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+
+    const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+      Number.parseInt(parts.find((part) => part.type === type)?.value ?? "0", 10);
+
+    return {
+      year: getPart("year"),
+      month: getPart("month"),
+      day: getPart("day"),
+      hour: getPart("hour"),
+      minute: getPart("minute"),
+    };
+  }
+
+  private toDateIso(year: number, month: number, day: number): string {
+    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  private shiftDateIso(dateIso: string, days: number): string {
+    const [y, m, d] = dateIso.split("-").map((part) => Number.parseInt(part, 10));
+    const date = new Date(Date.UTC(y, m - 1, d));
+    date.setUTCDate(date.getUTCDate() + days);
+    return this.toDateIso(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+  }
+
+  private isNightlifeEvent(title: string): boolean {
+    const normalized = normalizeWhitespace(title).toLowerCase();
+    return /(fiesta|party|boliche|club|dance|after|sunset|bailable|electr[oó]nica|dj|techno|house|cocoon|experience|regga?e?t[oó]n|cumbia|guaracha|pariseo|vicio|inauguraci[oó]n|welcome)/i.test(normalized);
   }
 
   /**
@@ -314,6 +367,16 @@ export class EntrasteScraper extends BaseScraper {
       try {
         ticket = JSON.parse(raw) as EntrasteTicket;
       } catch {
+        return;
+      }
+
+      const ticketText = normalizeWhitespace(
+        `${ticket.name ?? ""} ${ticket.description ?? ""} ${ticket.promo ?? ""}`,
+      ).toLowerCase();
+
+      // Ignore parking/sold-out rows when computing event price points.
+      // Example: "Parking", "Estacionamiento", "Agotado".
+      if (/(parking|estacionamiento|agotad[oa]|sold\s*out)/i.test(ticketText)) {
         return;
       }
 

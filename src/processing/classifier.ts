@@ -77,6 +77,24 @@ const SOURCE_CATEGORY_MAP: Record<string, EventType> = {
   // ── Cartelera (implicit section type) ──
   // genre is extracted separately; category rarely present
 
+  // ── HayPlan (landing backend categories) ──
+  theater: "teatro",
+  charity: "cultural",
+  cinema: "cultural",
+  music: "concierto",
+  party: "fiesta",
+  art: "cultural",
+  food: "gastronomico",
+  nightlife: "fiesta",
+  wellness: "taller",
+  pets: "familiar",
+  outdoor: "cultural",
+  networking: "taller",
+  sports: "deportivo",
+  fair: "feria",
+  gaming: "cultural",
+  other: "otro",
+
   // ── voy.com.uy categories (for future scraper) ──
   cine: "cultural",
   "otros eventos": "otro",
