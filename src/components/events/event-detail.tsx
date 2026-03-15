@@ -224,7 +224,7 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Inline CTA for desktop */}
           {event.ticketUrl && (
             <div className="hidden lg:block mt-6">
-              <TicketButton ticketUrl={event.ticketUrl} />
+              <TicketButton eventId={event.id} ticketUrl={event.ticketUrl} />
             </div>
           )}
         </div>
@@ -237,7 +237,7 @@ export function EventDetail({ event }: EventDetailProps) {
           style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(to top, rgba(8,12,14,0.95) 60%, transparent)" }}
         >
           <div className="mx-auto max-w-2xl">
-            <TicketButton ticketUrl={event.ticketUrl} />
+            <TicketButton eventId={event.id} ticketUrl={event.ticketUrl} />
           </div>
         </div>
       )}

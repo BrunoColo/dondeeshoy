@@ -290,7 +290,7 @@ export default function PublicarPage() {
         <div className="inline-flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.12)] px-3.5 py-2">
           <BadgeCheck className="h-3.5 w-3.5 text-[#34D399] shrink-0" />
           <span className="text-[12px] text-[#B8C5D6]">
-            Publicá gratis los eventos con entrada gratuita
+            Publica gratis tu evento
           </span>
         </div>
 

@@ -6,7 +6,7 @@ type DailyCount = { date: string; scraped: number; processed: number };
 type EventTypeCount = { type: string; count: number };
 
 export default async function AdminDashboardPage() {
-  const { stats, dailyCounts, enhanced } = await getAdminDashboardSnapshot();
+  const { stats, dailyCounts, enhanced, traffic } = await getAdminDashboardSnapshot();
 
   const maxDaily = Math.max(
     ...dailyCounts.map((d: DailyCount) => Math.max(d.scraped, d.processed)),
@@ -93,6 +93,68 @@ export default async function AdminDashboardPage() {
             current={stats.withLocation}
             total={stats.totalEvents}
           />
+        </div>
+      </div>
+
+      {/* Traffic Stats */}
+      <div className="border border-zinc-800 rounded p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-zinc-100">Tráfico y Engagement</h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              Señales en tiempo real de vistas de eventos y clicks en botones de entradas.
+            </p>
+          </div>
+          <span className="text-[11px] text-zinc-500 uppercase tracking-wide">Hoy (UY)</span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard
+            label="Vistas totales"
+            value={traffic.totalEventViews.toLocaleString("es-UY")}
+            sublabel="acumuladas en eventos activos"
+          />
+          <KpiCard
+            label="Vistas hoy"
+            value={traffic.viewsToday.toLocaleString("es-UY")}
+            sublabel="detalle de eventos"
+          />
+          <KpiCard
+            label="Clicks entradas hoy"
+            value={traffic.ticketClicksToday.toLocaleString("es-UY")}
+            sublabel="botón de compra/inscripción"
+          />
+          <KpiCard
+            label="Promedio por evento"
+            value={traffic.avgViewsPerActiveEvent.toLocaleString("es-UY", { maximumFractionDigits: 1 })}
+            sublabel="vistas por evento activo"
+          />
+        </div>
+
+        <div className="border border-zinc-800/60 rounded p-3">
+          <h3 className="text-sm font-semibold text-zinc-200 mb-2">Top clicks de entradas (hoy)</h3>
+          {traffic.topClickedToday.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              Aún no hay clicks registrados hoy en botones de entradas.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {traffic.topClickedToday.map((event, i) => (
+                <div key={event.id} className="flex items-start gap-3 text-sm">
+                  <span className="text-zinc-500 w-5 text-right">{i + 1}.</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-zinc-200 truncate">{event.name}</p>
+                    <p className="text-zinc-400 text-xs truncate">
+                      {event.venueName} · {new Date(event.date).toLocaleDateString("es-UY")}
+                    </p>
+                  </div>
+                  <span className="text-zinc-300 text-xs whitespace-nowrap">
+                    {event.ticketClicks} clicks
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

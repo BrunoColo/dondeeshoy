@@ -4,7 +4,7 @@ import { db } from "./db";
 import { getPipelineMonitorState } from "./pipeline-monitor";
 import { events, rawEvents, eventSources, bannedEvents } from "./db/schema";
 import { eventSubmissions } from "./db/schema/submissions";
-import { eq, desc, and, gte, sql, count, ilike } from "drizzle-orm";
+import { eq, desc, and, gte, sql, count, ilike, inArray } from "drizzle-orm";
 
 /**
  * Normalize an event name for ban matching:
@@ -140,10 +140,29 @@ type EnhancedDashboardStats = {
 
 type DailyScrapeCount = { date: string; scraped: number; processed: number };
 
-type DashboardSnapshot = {
+type TrafficStats = {
+  totalEventViews: number;
+  avgViewsPerActiveEvent: number;
+  viewsToday: number;
+  ticketClicksToday: number;
+  topClickedToday: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    venueName: string;
+    date: string;
+    ticketClicks: number;
+  }>;
+};
+
+type DashboardSnapshotCore = {
   stats: DashboardStats;
   enhanced: EnhancedDashboardStats;
   dailyCounts: DailyScrapeCount[];
+};
+
+type DashboardSnapshot = DashboardSnapshotCore & {
+  traffic: TrafficStats;
 };
 
 type DashboardSnapshotRow = {
@@ -187,7 +206,7 @@ function parseJsonArray<T>(value: unknown): T[] {
 }
 
 const getAdminDashboardSnapshotCached = unstable_cache(
-  async (): Promise<DashboardSnapshot> => {
+  async (): Promise<DashboardSnapshotCore> => {
     const rows = await db.execute<DashboardSnapshotRow>(sql`
       WITH event_metrics AS (
         SELECT
@@ -384,8 +403,144 @@ const getAdminDashboardSnapshotCached = unstable_cache(
   },
 );
 
+function getUruguayDateKey(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Montevideo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return now.toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+const getTrafficStatsCached = unstable_cache(
+  async (): Promise<TrafficStats> => {
+    const [{ totalViewResult }, { totalActiveResult }] = await Promise.all([
+      db.execute<{ total_views: number | string | null }>(sql`
+        SELECT COALESCE(SUM(${events.viewCount}), 0)::int AS total_views
+        FROM ${events}
+        WHERE ${events.status} = 'active'
+      `).then((rows) => ({ totalViewResult: rows[0] })),
+      db.execute<{ total_active: number | string | null }>(sql`
+        SELECT COUNT(*)::int AS total_active
+        FROM ${events}
+        WHERE ${events.status} = 'active'
+      `).then((rows) => ({ totalActiveResult: rows[0] })),
+    ]);
+
+    const totalEventViews = parseCount(totalViewResult?.total_views);
+    const totalActiveEvents = parseCount(totalActiveResult?.total_active);
+    const avgViewsPerActiveEvent = totalActiveEvents > 0
+      ? Math.round((totalEventViews / totalActiveEvents) * 10) / 10
+      : 0;
+
+    try {
+      const { redis } = await import("@/lib/redis");
+      const todayKey = getUruguayDateKey();
+      const viewsDailyKey = `trending:daily:${todayKey}`;
+      const clicksDailyKey = `traffic:ticket-clicks:daily:${todayKey}`;
+
+      const [todayViewsRaw, todayClicksRaw] = await Promise.all([
+        redis.zrange(viewsDailyKey, 0, -1, { withScores: true }),
+        redis.zrange(clicksDailyKey, 0, 9, { rev: true, withScores: true }),
+      ]);
+
+      let viewsToday = 0;
+      for (let i = 1; i < todayViewsRaw.length; i += 2) {
+        viewsToday += Number(todayViewsRaw[i] ?? 0);
+      }
+
+      let ticketClicksToday = 0;
+      const clickPairs: Array<{ eventId: string; ticketClicks: number }> = [];
+      for (let i = 0; i < todayClicksRaw.length; i += 2) {
+        const eventId = String(todayClicksRaw[i] ?? "");
+        const score = Number(todayClicksRaw[i + 1] ?? 0);
+        ticketClicksToday += score;
+        if (eventId) {
+          clickPairs.push({ eventId, ticketClicks: score });
+        }
+      }
+
+      if (clickPairs.length === 0) {
+        return {
+          totalEventViews,
+          avgViewsPerActiveEvent,
+          viewsToday,
+          ticketClicksToday,
+          topClickedToday: [],
+        };
+      }
+
+      const eventRows = await db
+        .select({
+          id: events.id,
+          name: events.name,
+          slug: events.slug,
+          venueName: events.venueName,
+          date: events.date,
+        })
+        .from(events)
+        .where(inArray(events.id, clickPairs.map((item) => item.eventId)));
+
+      const rowsById = new Map(eventRows.map((row) => [row.id, row]));
+      const topClickedToday = clickPairs
+        .map((item) => {
+          const event = rowsById.get(item.eventId);
+          if (!event) return null;
+          return {
+            id: event.id,
+            name: event.name,
+            slug: event.slug,
+            venueName: event.venueName,
+            date: event.date,
+            ticketClicks: item.ticketClicks,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+
+      return {
+        totalEventViews,
+        avgViewsPerActiveEvent,
+        viewsToday,
+        ticketClicksToday,
+        topClickedToday,
+      };
+    } catch {
+      return {
+        totalEventViews,
+        avgViewsPerActiveEvent,
+        viewsToday: 0,
+        ticketClicksToday: 0,
+        topClickedToday: [],
+      };
+    }
+  },
+  ["admin-traffic-stats-v1"],
+  {
+    revalidate: 30,
+    tags: ["admin-dashboard", "admin-traffic"],
+  },
+);
+
 export async function getAdminDashboardSnapshot(): Promise<DashboardSnapshot> {
-  return getAdminDashboardSnapshotCached();
+  const [snapshot, traffic] = await Promise.all([
+    getAdminDashboardSnapshotCached(),
+    getTrafficStatsCached(),
+  ]);
+
+  return {
+    ...snapshot,
+    traffic,
+  };
 }
 
 // ============= Dashboard Stats =============

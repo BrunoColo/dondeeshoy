@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Ticket, ExternalLink, Loader2 } from "lucide-react";
 
 interface TicketButtonProps {
+  eventId?: string;
   ticketUrl: string;
 }
 
@@ -11,12 +12,23 @@ interface TicketButtonProps {
  * "Comprar entradas" CTA button with loading state to prevent double-clicks.
  * Shows a spinner for 1.5s after click while the external page opens.
  */
-export function TicketButton({ ticketUrl }: TicketButtonProps) {
+export function TicketButton({ eventId, ticketUrl }: TicketButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = () => {
     if (loading) return;
     setLoading(true);
+
+    if (eventId) {
+      fetch("/api/events/ticket-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      }).catch(() => {
+        // Silently ignore analytics errors
+      });
+    }
+
     window.open(ticketUrl, "_blank", "noopener,noreferrer");
     // Reset after 1.5s — enough time for the external tab to open
     setTimeout(() => setLoading(false), 1500);
