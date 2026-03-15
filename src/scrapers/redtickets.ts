@@ -479,9 +479,20 @@ export class RedTicketsScraper extends BaseScraper {
       return expanded;
     }
 
+    // Keep sourceId stable for multi-date events even when only one future date
+    // remains (e.g. after a date passes). Without this, the same RedTickets event
+    // can flip from "{baseId}-{date}" to "{baseId}" across re-scrapes and create
+    // a duplicate row in raw_events/events instead of updating the existing one.
+    const finalSourceId =
+      !scheduleMeta.isRecurringHint &&
+      scheduleMeta.scheduleCount > 1 &&
+      scheduleMeta.dateIso
+        ? `${sourceId}-${scheduleMeta.dateIso}`
+        : sourceId;
+
     return {
       source: "redtickets",
-      sourceId,
+      sourceId: finalSourceId,
       sourceUrl: url,
       rawData: baseRawData,
     };

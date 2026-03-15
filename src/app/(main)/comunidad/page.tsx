@@ -27,7 +27,7 @@ export default function ComunidadPage() {
           <header className="fade-up">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1">
               <Users className="h-3.5 w-3.5 text-[#6EE7B7]" strokeWidth={2.2} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FE7C8]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9FE7C8]">
                 Comunidad
               </span>
             </div>
@@ -39,13 +39,13 @@ export default function ComunidadPage() {
               </span>
             </h1>
 
-            <p className="mt-2 max-w-[62ch] text-[13px] text-[#CBD5E1] sm:text-sm">
+            <p className="mt-2 max-w-[62ch] text-[14px] text-[#CBD5E1] sm:text-[15px]">
               Acá podés activar novedades por mail, publicar tu evento y hablar con nosotros.
               Todo conectado, sin vueltas.
             </p>
 
             <div className="mt-3 inline-flex items-center rounded-full border border-[#818CF8]/35 bg-[#818CF8]/12 px-4 py-2">
-              <span className="text-[12px] font-semibold text-[#E2E8F0]">
+              <span className="text-[13px] font-semibold text-[#E2E8F0]">
                 +500 personas visitaron este sitio esta semana
               </span>
             </div>
@@ -54,7 +54,7 @@ export default function ComunidadPage() {
           <div className="fade-up rounded-xl border border-white/10 bg-white/[0.03] p-3.5 sm:p-4">
             <div className="flex items-center gap-2">
               <Compass className="h-4 w-4 text-[#818CF8]" strokeWidth={2.3} />
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#A7B4FF]">
+              <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[#A7B4FF]">
                 Elegí tu próximo paso
               </p>
             </div>
@@ -68,8 +68,8 @@ export default function ComunidadPage() {
                   <Mail className="h-4.5 w-4.5 text-[#C7D2FE]" strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-bold text-white">Suscribirme gratis</span>
-                  <span className="block text-[11px] text-[#CBD5E1]">Recibí eventos seleccionados por email</span>
+                  <span className="block text-[14px] font-bold text-white">Suscribirme gratis</span>
+                  <span className="block text-[12px] text-[#CBD5E1]">Recibí eventos seleccionados por email</span>
                 </span>
                 <ArrowRight className="h-4 w-4 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
               </Link>
@@ -82,8 +82,8 @@ export default function ComunidadPage() {
                   <Rocket className="h-4.5 w-4.5 text-[#99F6E4]" strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-bold text-white">Publicar mi evento</span>
-                  <span className="block text-[11px] text-[#CBD5E1]">Aparecé en búsquedas y en el mapa</span>
+                  <span className="block text-[14px] font-bold text-white">Publicar mi evento</span>
+                  <span className="block text-[12px] text-[#CBD5E1]">Aparecé en búsquedas y en el mapa</span>
                 </span>
                 <ArrowRight className="h-4 w-4 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
               </Link>
@@ -96,7 +96,7 @@ export default function ComunidadPage() {
       <section className="mt-5 rounded-2xl border border-white/10 bg-[linear-gradient(140deg,rgba(10,10,22,0.92)_0%,rgba(12,10,24,0.94)_55%,rgba(9,15,24,0.92)_100%)] p-4 sm:p-5">
         <div className="inline-flex items-center gap-2 rounded-full border border-[#818CF8]/28 bg-[#818CF8]/10 px-3 py-1">
           <Compass className="h-3.5 w-3.5 text-[#A7B4FF]" strokeWidth={2.2} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C7D2FE]">¿Por qué sumarte?</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#C7D2FE]">¿Por qué sumarte?</span>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -111,7 +111,7 @@ export default function ComunidadPage() {
               className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
             >
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#34D399]" strokeWidth={2.3} />
-              <p className="text-[12px] text-[#CBD5E1] leading-relaxed">{item}</p>
+              <p className="text-[13px] text-[#CBD5E1] leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
@@ -122,20 +122,20 @@ export default function ComunidadPage() {
       >
         <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/28 bg-[#14B8A6]/10 px-3 py-1">
           <Megaphone className="h-3.5 w-3.5 text-[#6EE7B7]" strokeWidth={2.2} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FE7C8]">Contacto</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9FE7C8]">Contacto</span>
         </div>
 
-        <h2 className="mt-3 text-[14px] font-semibold text-white sm:text-[15px]">
+        <h2 className="mt-3 text-[15px] font-semibold text-white sm:text-[16px]">
           Contacto directo de ¿Dónde es Hoy?
         </h2>
-        <p className="mt-1 text-[12px] text-[#CBD5E1]">
+        <p className="mt-1 text-[13px] text-[#CBD5E1]">
           Para colaboraciones, consultas o publicidad escribinos por los canales oficiales.
         </p>
 
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <a
             href="mailto:dondeeshoyuy@gmail.com"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-[#C7D2FE] transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-[12px] font-semibold text-[#C7D2FE] transition-colors hover:text-white"
           >
             <Mail className="h-3.5 w-3.5" strokeWidth={2.2} />
             dondeeshoyuy@gmail.com
@@ -144,7 +144,7 @@ export default function ComunidadPage() {
             href="https://instagram.com/dondeeshoy.uy"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-[#C7D2FE] transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-[12px] font-semibold text-[#C7D2FE] transition-colors hover:text-white"
           >
             <Instagram className="h-3.5 w-3.5" strokeWidth={2.2} />
             @dondeeshoy.uy

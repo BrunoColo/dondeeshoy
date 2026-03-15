@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EventList } from "./event-list";
-import { NearbyButton } from "./nearby-button";
 import { SectionHeader } from "./section-header";
 import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { ChevronDown, Compass, Flame, Loader2, RotateCw } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import type { Event } from "@/lib/db/schema/events";
 import type { EventFilters } from "@/types/events";
 
@@ -43,17 +43,10 @@ export function HomeEventsClient({
   const [loadingMoreUnique, setLoadingMoreUnique] = useState(false);
   const [recurringEventList, setRecurringEventList] = useState(recurringEvents);
   const [loadingMoreRecurring, setLoadingMoreRecurring] = useState(false);
-  const [sortByDistance, setSortByDistance] = useState(false);
   const { position, loading, error, requestLocation } = useGeolocation();
-
-  const handleNearby = () => {
-    if (!position) {
-      setSortByDistance(true);
-      requestLocation();
-      return;
-    }
-    setSortByDistance((prev) => !prev);
-  };
+  const searchParams = useSearchParams();
+  const hasRequestedNearRef = useRef(false);
+  const nearActive = searchParams.get("near") === "true";
 
   const hasMoreUnique = uniqueEvents.length < totalUniqueCount;
   const hasMoreRecurring = recurringEventList.length < totalRecurringCount;
@@ -67,6 +60,20 @@ export function HomeEventsClient({
     setRecurringEventList(recurringEvents);
     setLoadingMoreRecurring(false);
   }, [date, recurringEvents, totalRecurringCount]);
+
+  useEffect(() => {
+    if (!nearActive) {
+      hasRequestedNearRef.current = false;
+      return;
+    }
+
+    if (position || loading || hasRequestedNearRef.current) {
+      return;
+    }
+
+    hasRequestedNearRef.current = true;
+    requestLocation();
+  }, [nearActive, position, loading, requestLocation]);
 
   const loadMoreUnique = useCallback(async () => {
     if (!hasMoreUnique || loadingMoreUnique) return;
@@ -132,23 +139,17 @@ export function HomeEventsClient({
     }
   }, [date, filters, hasMoreRecurring, loadingMoreRecurring, recurringEventList.length]);
 
-  const geoState = { position, sortByDistance };
+  const geoState = { position, sortByDistance: nearActive && !!position };
 
   return (
     <>
-      {/* "Cerca de mí" button — always right below filters */}
-      <div className="mb-4 fade-up">
-        <NearbyButton
-          active={sortByDistance && !!position}
-          loading={loading}
-          onClick={handleNearby}
-        />
-        {error && (
-          <p className="mt-1 text-[11px] text-amber-300">
+      {nearActive && error && (
+        <div className="mb-4 fade-up">
+          <p className="text-[11px] text-amber-300">
             No pudimos acceder a tu ubicación: {error}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Los más buscados (only when no filters active) */}
       {trending.length > 0 && !hasFilters && (

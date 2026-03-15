@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { EventList } from "./event-list";
-import { NearbyButton } from "./nearby-button";
 import { EventSkeleton } from "./event-skeleton";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { RotateCw, ChevronDown, Loader2 } from "lucide-react";
@@ -31,9 +30,10 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
   const [loadingMoreByDate, setLoadingMoreByDate] = useState<Record<string, boolean>>({});
   const [cursor, setCursor] = useState(nextFrom);
   const [canLoadMore, setCanLoadMore] = useState(hasMore);
-  const [sortByDistance, setSortByDistance] = useState(false);
   const { position, loading, error, requestLocation } = useGeolocation();
   const searchParams = useSearchParams();
+  const hasRequestedNearRef = useRef(false);
+  const nearActive = searchParams.get("near") === "true";
 
   useEffect(() => {
     setGroups(initialGroups);
@@ -43,14 +43,19 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
     setLoadingMoreByDate({});
   }, [initialGroups, nextFrom, hasMore]);
 
-  const handleNearby = () => {
-    if (!position) {
-      setSortByDistance(true);
-      requestLocation();
+  useEffect(() => {
+    if (!nearActive) {
+      hasRequestedNearRef.current = false;
       return;
     }
-    setSortByDistance((prev) => !prev);
-  };
+
+    if (position || loading || hasRequestedNearRef.current) {
+      return;
+    }
+
+    hasRequestedNearRef.current = true;
+    requestLocation();
+  }, [nearActive, position, loading, requestLocation]);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loadingMore) return;
@@ -156,23 +161,17 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
     }
   }, [groups, loadingMoreByDate, searchParams]);
 
-  const geoState = { position, sortByDistance };
+  const geoState = { position, sortByDistance: nearActive && !!position };
 
   return (
     <div>
-      {/* Single "cerca de mí" button at the top */}
-      <div className="mb-4">
-        <NearbyButton
-          active={sortByDistance && !!position}
-          loading={loading}
-          onClick={handleNearby}
-        />
-        {error && (
+      {nearActive && error && (
+        <div className="mb-4">
           <p className="mt-1 text-[11px] text-amber-300">
             No pudimos acceder a tu ubicación: {error}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="space-y-8">
         {groups.map(({ date, totalCount, events: dateEvents, recurringEvents: recurringDateEvents }) => {
