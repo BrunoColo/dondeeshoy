@@ -67,7 +67,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<Record<stri
     weekendEvents,
     weekendCount,
   ] = await Promise.all([
-    getEventsByDatePaged(today, 0, 6, uniqueFilters),
+    getEventsByDatePaged(today, 0, 6, uniqueFilters, hasFilters ? "default" : "diverse"),
     getEventCountByDate(today, uniqueFilters),
     getEventsByDatePaged(today, 0, 6, recurringFilters),
     getEventCountByDate(today, recurringFilters),

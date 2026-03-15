@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEventCountByDate, getEventsByDatePaged } from "@/lib/queries";
+import { getEventCountByDate, getEventsByDatePaged, type EventOrderStrategy } from "@/lib/queries";
 import { apiRateLimit, getClientIp } from "@/lib/rate-limit";
 import type { EventFilters, EventType } from "@/types/events";
 
@@ -38,6 +38,8 @@ export async function GET(request: Request) {
     const night = searchParams.get("night");
     const q = searchParams.get("q");
     const recurring = searchParams.get("recurring");
+    const strategyParam = searchParams.get("strategy");
+    const strategy: EventOrderStrategy = strategyParam === "diverse" ? "diverse" : "default";
 
     if (type) filters.type = type as EventType;
     if (genre) filters.genre = genre;
@@ -49,7 +51,7 @@ export async function GET(request: Request) {
     if (recurring === "false") filters.recurring = false;
 
     const [events, totalCount] = await Promise.all([
-      getEventsByDatePaged(date, offset, limit, filters),
+      getEventsByDatePaged(date, offset, limit, filters, strategy),
       getEventCountByDate(date, filters),
     ]);
 

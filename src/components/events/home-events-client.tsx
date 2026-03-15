@@ -92,6 +92,7 @@ export function HomeEventsClient({
       if (filters.free) params.set("free", "true");
       if (filters.night) params.set("night", "true");
       if (filters.q) params.set("q", filters.q);
+      if (!hasFilters) params.set("strategy", "diverse");
 
       const res = await fetch(`/api/events/by-date?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch more daily events");
@@ -105,7 +106,7 @@ export function HomeEventsClient({
     } finally {
       setLoadingMoreUnique(false);
     }
-  }, [date, filters, hasMoreUnique, loadingMoreUnique, uniqueEvents.length]);
+  }, [date, filters, hasFilters, hasMoreUnique, loadingMoreUnique, uniqueEvents.length]);
 
   const loadMoreRecurring = useCallback(async () => {
     if (!hasMoreRecurring || loadingMoreRecurring) return;
