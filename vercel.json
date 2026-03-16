@@ -33,10 +33,6 @@
       "schedule": "40 16 * * *"
     },
     {
-      "path": "/api/scrape/passline",
-      "schedule": "50 16 * * *"
-    },
-    {
       "path": "/api/scrape/process",
       "schedule": "15 15 * * *"
     },

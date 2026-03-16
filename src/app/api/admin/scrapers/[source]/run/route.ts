@@ -6,7 +6,6 @@ import { EntrasteScraper } from "@/scrapers/entraste";
 import { HayPlanScraper } from "@/scrapers/hayplan";
 import { MiEntradaScraper } from "@/scrapers/mientrada";
 import { MvdEventosScraper } from "@/scrapers/mvd-eventos";
-import { PasslineScraper } from "@/scrapers/passline";
 import { RedTicketsScraper } from "@/scrapers/redtickets";
 import { TicketFacilScraper } from "@/scrapers/ticketfacil";
 import { acquireCronLock, releaseCronLock } from "@/lib/security";
@@ -14,7 +13,7 @@ import { acquireCronLock, releaseCronLock } from "@/lib/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada", "hayplan", "passline"] as const;
+const validSources = ["redtickets", "entraste", "cartelera", "mvd_eventos", "cobraticket", "ticketfacil", "mientrada", "hayplan"] as const;
 
 type ValidSource = (typeof validSources)[number];
 
@@ -40,8 +39,6 @@ function createScraper(source: ValidSource) {
       return new MiEntradaScraper();
     case "hayplan":
       return new HayPlanScraper();
-    case "passline":
-      return new PasslineScraper();
   }
 }
 
