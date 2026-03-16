@@ -679,6 +679,22 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     (context?.isRecurringHint === true && shouldTrustRecurringHint(context?.dateText)) ||
     detectRecurrence(normalized, context?.dateText);
 
+  // Hard rule requested by editorial/product:
+  // any event that explicitly includes "feria" in the title must be typed as "feria".
+  if (/\bferia\b/i.test(normalized.name)) {
+    const feriaMatchedTypes = matchedTypes.includes("feria")
+      ? matchedTypes
+      : (["feria", ...matchedTypes] as EventType[]);
+
+    return {
+      eventType: "feria",
+      musicGenre,
+      matchedTypes: feriaMatchedTypes,
+      isRecurring,
+      fromSourceCategory: false,
+    };
+  }
+
   // ── 1. Source category: trust the scraper's own classification first ──
   // Exception: if the text heuristics strongly indicate a high-priority type
   // (e.g. "familiar" for a trampoline park), that overrides the source category.

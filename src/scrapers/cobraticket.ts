@@ -89,6 +89,11 @@ interface CobraPurchasableTicket {
   showPrices?: boolean;
   canBuy?: boolean;
   commingSoon?: boolean;
+  name?: string;
+  title?: string;
+  label?: string;
+  description?: string;
+  subtitle?: string;
   price?: number | string;
   priceUnit?: number | string;
 }
@@ -561,8 +566,10 @@ export class CobraTicketScraper extends BaseScraper {
         (item) => item.canBuy !== false && item.commingSoon !== true,
       );
       const pricedItems = preferredItems.length > 0 ? preferredItems : visibleItems;
+      const nonMemberItems = pricedItems.filter((item) => !this.isMemberOnlyTicket(item));
+      const itemsForPrice = nonMemberItems.length > 0 ? nonMemberItems : pricedItems;
 
-      const rawPrices = pricedItems
+      const rawPrices = itemsForPrice
         .map((item) => this.parseTicketPrice(item.priceUnit ?? item.price))
         .filter((price): price is number => price !== null);
 
@@ -586,6 +593,16 @@ export class CobraTicketScraper extends BaseScraper {
     }
 
     return null;
+  }
+
+  private isMemberOnlyTicket(item: CobraPurchasableTicket): boolean {
+    const text = normalizeWhitespace(
+      `${item.name ?? ""} ${item.title ?? ""} ${item.label ?? ""} ${item.description ?? ""} ${item.subtitle ?? ""}`,
+    ).toLowerCase();
+
+    if (!text) return false;
+
+    return /\bsoci[oa]s?\b|\bafiliad[oa]s?\b|\bcarnet\s+digital\b|\bmembres[ií]a\b|\bcanje\b/.test(text);
   }
 
   /**

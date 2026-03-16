@@ -684,6 +684,22 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
   const safeLimit = Math.max(1, Math.min(limit, WEEKEND_HIGHLIGHT_LIMIT));
   const manualSlugs = await getStoredWeekendHighlightManualSlugs();
 
+  const manualCandidates =
+    manualSlugs.length > 0
+      ? await db
+          .select(listColumns)
+          .from(events)
+          .where(
+            and(
+              activeStatus,
+              gte(events.date, weekendStart),
+              lte(events.date, weekendEnd),
+              eq(events.isRecurring, false),
+              inArray(events.slug, manualSlugs),
+            ),
+          )
+      : [];
+
   const candidates = await db
     .select(listColumns)
     .from(events)
@@ -705,7 +721,16 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
   const selected: Array<(typeof candidates)[number]> = [];
   const selectedIds = new Set<string>();
   const selectedTypeCounts = new Map<EventType, number>();
-  const candidatesBySlug = new Map(candidates.map((candidate) => [candidate.slug, candidate]));
+  const candidatesBySlug = new Map<string, (typeof candidates)[number]>();
+
+  for (const candidate of manualCandidates) {
+    candidatesBySlug.set(candidate.slug, candidate);
+  }
+  for (const candidate of candidates) {
+    if (!candidatesBySlug.has(candidate.slug)) {
+      candidatesBySlug.set(candidate.slug, candidate);
+    }
+  }
 
   const addCandidate = (candidate: (typeof candidates)[number] | undefined) => {
     if (!candidate || selectedIds.has(candidate.id) || selected.length >= safeLimit) {

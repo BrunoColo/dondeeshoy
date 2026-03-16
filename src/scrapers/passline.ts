@@ -106,17 +106,10 @@ export class PasslineScraper extends BaseScraper {
   }
 
   private async fetchBillboard(): Promise<PasslineApiPayload> {
-    const response = await fetch(scraperConfig.passlineCountryBillboardUrl, {
+    const endpoint = process.env.PASSLINE_API_URL?.trim() || scraperConfig.passlineCountryBillboardUrl;
+    const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        accept: "*/*",
-        "accept-language": "es-419,es;q=0.9,en;q=0.8",
-        "content-type": "text/plain;charset=UTF-8",
-        origin: scraperConfig.passlineHomeUrl,
-        referer: `${scraperConfig.passlineHomeUrl}/`,
-        "user-agent":
-          "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36",
-      },
+      headers: this.buildRequestHeaders(),
       body: JSON.stringify({
         country: "uruguay",
         limit: "0,48",
@@ -126,6 +119,11 @@ export class PasslineScraper extends BaseScraper {
     });
 
     if (!response.ok) {
+      const fallback = await this.tryFallbackFetch();
+      if (fallback) {
+        return fallback;
+      }
+
       throw new Error(`[passline] Billboard API returned HTTP ${response.status}`);
     }
 
@@ -135,7 +133,14 @@ export class PasslineScraper extends BaseScraper {
     if (!contentType.includes("application/json")) {
       const looksLikeCloudflareChallenge = /cloudflare|challenge|enable javascript and cookies/i.test(raw);
       if (looksLikeCloudflareChallenge) {
-        throw new Error("[passline] Billboard API is protected by challenge (Cloudflare). Response was not JSON.");
+        const fallback = await this.tryFallbackFetch();
+        if (fallback) {
+          return fallback;
+        }
+
+        throw new Error(
+          "[passline] Billboard API is protected by Cloudflare challenge. Configure PASSLINE_COOKIE and/or PASSLINE_FALLBACK_JSON_URL for automated cron ingestion.",
+        );
       }
 
       throw new Error("[passline] Billboard API returned non-JSON content.");
@@ -148,6 +153,69 @@ export class PasslineScraper extends BaseScraper {
     }
 
     return parsed;
+  }
+
+  private buildRequestHeaders(): Record<string, string> {
+    const cookie = process.env.PASSLINE_COOKIE?.trim();
+
+    const headers: Record<string, string> = {
+      accept: "*/*",
+      "accept-language": "es-419,es;q=0.9,en;q=0.8",
+      "content-type": "text/plain;charset=UTF-8",
+      origin: scraperConfig.passlineHomeUrl,
+      referer: `${scraperConfig.passlineHomeUrl}/`,
+      "user-agent":
+        process.env.PASSLINE_USER_AGENT?.trim() ||
+        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36",
+    };
+
+    if (cookie) {
+      headers.cookie = cookie;
+    }
+
+    return headers;
+  }
+
+  private async tryFallbackFetch(): Promise<PasslineApiPayload | null> {
+    const fallbackUrl = process.env.PASSLINE_FALLBACK_JSON_URL?.trim();
+    if (!fallbackUrl) {
+      return null;
+    }
+
+    try {
+      const res = await fetch(fallbackUrl, {
+        headers: {
+          accept: "application/json",
+          "user-agent":
+            process.env.PASSLINE_USER_AGENT?.trim() ||
+            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36",
+          ...(process.env.PASSLINE_FALLBACK_AUTH_HEADER
+            ? { Authorization: process.env.PASSLINE_FALLBACK_AUTH_HEADER }
+            : {}),
+        },
+        signal: AbortSignal.timeout(scraperConfig.timeoutMs),
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const ct = res.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        return null;
+      }
+
+      const parsed = (await res.json()) as PasslineApiPayload;
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      console.log("[passline] usando fallback JSON endpoint");
+      return parsed;
+    } catch {
+      return null;
+    }
   }
 
   private extractSourceId(value: string | number): string | null {
