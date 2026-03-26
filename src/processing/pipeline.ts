@@ -501,6 +501,7 @@ async function createEvent(
  * free text (e.g. MVD Eventos, Entraste, Cartelera).
  */
 const TRUSTED_DATE_SOURCES = new Set(["cobraticket", "redtickets", "ticketfacil", "mientrada", "hayplan"]);
+const TRUSTED_PRICE_SOURCES = new Set(["cobraticket", "redtickets", "ticketfacil", "mientrada", "hayplan"]);
 
 async function mergeEventData(
   eventId: string,
@@ -574,11 +575,17 @@ async function mergeEventData(
     }
   }
 
-  // Always update price if rawData has price and event doesn't have one yet
-  // This ensures re-scraped events with new prices get updated
+  // Price update rules:
+  // - If event has no price yet: always fill.
+  // - If source is trusted and price changed: refresh existing price.
+  // This prevents stale values (e.g. old scrape artifacts) from persisting.
   if (normalized.priceMin != null) {
     const hasExistingPrice = existingPriceMin != null && existingPriceMin > 1;
-    if (!hasExistingPrice) {
+    const incomingPriceMin = normalized.priceMin;
+    const incomingPriceMax = normalized.priceMax ?? normalized.priceMin;
+    const priceChanged = existing.priceMin !== incomingPriceMin || existing.priceMax !== incomingPriceMax;
+
+    if (!hasExistingPrice || (TRUSTED_PRICE_SOURCES.has(incoming.source) && priceChanged)) {
       updates.priceMin = normalized.priceMin;
       updates.priceMax = normalized.priceMax ?? normalized.priceMin;
     }

@@ -144,7 +144,7 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "cultural",
     regex:
-      /\bmuseo\b|\bexposici[oó]n\b|\bgaler[ií]a\b|\bpatrimonio\b|\bcultural\b|\bart[eí]stic[oa]\b|\bcine\b|\bpel[ií]cula\b|\bfilm\b|\bdocumental\b|\bproyecci[oó]n\b|\bcortometraje\b|\baudiovisual\b|\bliteratura\b|\bpoes[ií]a\b|\btablado\b|\bvisitas?\s+guiadas?\b|\bmisterios?\s+del?\b|\bpeatonal\s+tours?\b|\bvisit[aá]s?\s+(?:a\s+)?(?:la|el|al)\b|\breserva\s+(?:natural|de\s+fauna)\b|\bconocé\s+el\b/i,
+      /\bmuseo\b|\bexposici[oó]n\b|\bgaler[ií]a\b|\bpatrimonio\b|\bcultural\b|\bart[eí]stic[oa]\b|\bcine\b|\bpel[ií]cula\b|\bfilm\b|\bdocumental\b|\bproyecci[oó]n\b|\bcortometraje\b|\baudiovisual\b|\bliteratura\b|\bpoes[ií]a\b|\bpo[eé]tic\w*\b|\bpoetry\s*slam\b|\bslam\s+po[eé]tic\w*\b|\bbatalla\s+po[eé]tic\w*\b|\bbatalla\s+de\s+poetas?\b|\bmic\s+abierto\b|\bwatch\s*party\b|\bmilonga\b|\btango\b|\btablado\b|\bvisitas?\s+guiadas?\b|\bmisterios?\s+del?\b|\bpeatonal\s+tours?\b|\bvisit[aá]s?\s+(?:a\s+)?(?:la|el|al)\b|\breserva\s+(?:natural|de\s+fauna)\b|\bconocé\s+el\b/i,
   },
   {
     type: "deportivo",
@@ -154,7 +154,7 @@ const EVENT_TYPE_RULES: Array<{ type: EventType; regex: RegExp }> = [
   {
     type: "gastronomico",
     regex:
-      /\bgastron[oó]mic\w*\b|\bfood\b|\bcata\b|\bdegustaci[oó]n\b|\bcerveza\b|\bvino\b|\bparrilla\b|\bmen[uú]\b|\bchef\b|\bcocina\b|\bcomida\b|\bwine\s*lodge\b|\bchacra\s+tramonto\b/i,
+      /\bgastron[oó]mic\w*\b|\bfood\b|\bcata\b|\bdegustaci[oó]n\b|\bcerveza\b|\bvino\b|\bparrilla\b|\bmen[uú]\b|\bchef\b|\bcocina\b|\bcomida\b|\bmesa\s+dulce\b|\bpasteler[ií]a\b|\breposter[ií]a\b|\bwine\s*lodge\b|\bchacra\s+tramonto\b/i,
   },
   {
     type: "familiar",
@@ -204,6 +204,69 @@ const GENRE_RULES: Array<{ genre: string; regex: RegExp }> = [
   { genre: "pop", regex: /pop/i },
   { genre: "jazz", regex: /jazz|blues/i },
 ];
+
+const NIGHTLIFE_FIESTA_SIGNAL_REGEX =
+  /\bdj\b|\breggaeton\b|\breggeaton\b|\breguet[oó]n\b|\btechno\b|\bhouse\b|\belectro\b|\bboliche\b|\bnight(?:club|life)?\b|\bafter\s*party\b|\bopen\s*bar\b|\bperreo\b|\bcumbia\b|\bguaracha\b|\bdiscoteca\b|\bpista\s*de\s*baile\b/i;
+const WELLNESS_EVENT_SIGNAL_REGEX =
+  /\bmeditaci[oó]n\b|\bterapia\b|\bterap[ée]utic[oa]\b|\byoga\b|\bbreathwork\b|\brespiraci[oó]n\s+consciente\b|\bsound\s*healing\b|\bba[oñ]o\s+de\s+sonido\b|\bchakra\b|\bwellness\b|\bbienestar\b|\bmindfulness\b|\bautoconocimiento\b/i;
+const DANCE_STAGE_EVENT_SIGNAL_REGEX =
+  /\bdanza\b|\bballet\b|\bcoreograf\w*\b|\bcompa(?:ñ|n)[ií]a\s+de\s+danza\b|\bfunci[oó]n\s+de\s+danza\b|\bdanza\s+contempor[aá]nea\b/i;
+const MUSIC_SHOW_SIGNAL_REGEX =
+  /\bm[uú]sica\s*:\b|\bshow\s+musical\b|\bm[uú]sica\s+en\s+vivo\b|\brecital\b|\bla\s+trova\b/i;
+const SOCIAL_BAR_EVENT_SIGNAL_REGEX =
+  /\bmeet\s*(?:&|and)\s*drink\b|\bcena\s+show\b|\bafter\s*office\b|\bhappy\s*hour\b/i;
+const COFFEE_PARTY_SIGNAL_REGEX = /\bcoffee\s*party\b|\bparty\s*de\s*(?:caf[eé]|coffee)\b|\bcaf[eé]\s*party\b/i;
+const POETRY_EVENT_SIGNAL_REGEX = /\bpo[eé]tic\w*\b|\bpoetry\s*slam\b|\bbatalla\s+po[eé]tic\w*\b|\bbatalla\s+de\s+poetas?\b|\bmic\s+abierto\b/i;
+const SWEET_TABLE_SIGNAL_REGEX = /\bmesa\s+dulce\b|\bpasteler[ií]a\b|\breposter[ií]a\b/i;
+const WATCH_PARTY_SIGNAL_REGEX = /\bwatch\s*party\b/i;
+const MILONGA_SIGNAL_REGEX = /\bmilonga\b|\btango\b/i;
+const SPORTS_EVENT_SIGNAL_REGEX = /\bpartido\b|\bf[uú]tbol\b|\bbasket\b|\bbasquet\b|\bselecci[oó]n\b|\bvs\b|\bversus\b|\bcopa\b|\bliga\b|\bchampions\b|\blibertadores\b|\bsudamericana\b/i;
+
+function inferNonNightlifeFiestaOverride(normalized: NormalizedEventInput): EventType | null {
+  const text = `${normalized.name} ${normalized.description ?? ""} ${normalized.venueName ?? ""}`;
+
+  if (WELLNESS_EVENT_SIGNAL_REGEX.test(text)) {
+    return "taller";
+  }
+
+  if (POETRY_EVENT_SIGNAL_REGEX.test(text)) {
+    return "cultural";
+  }
+
+  if (MILONGA_SIGNAL_REGEX.test(text)) {
+    return "cultural";
+  }
+
+  if (DANCE_STAGE_EVENT_SIGNAL_REGEX.test(text) && !NIGHTLIFE_FIESTA_SIGNAL_REGEX.test(text)) {
+    return "cultural";
+  }
+
+  if (MUSIC_SHOW_SIGNAL_REGEX.test(text) && !NIGHTLIFE_FIESTA_SIGNAL_REGEX.test(text)) {
+    return "concierto";
+  }
+
+  if (SOCIAL_BAR_EVENT_SIGNAL_REGEX.test(text) && !NIGHTLIFE_FIESTA_SIGNAL_REGEX.test(text)) {
+    return "bar";
+  }
+
+  if (SWEET_TABLE_SIGNAL_REGEX.test(text)) {
+    return "gastronomico";
+  }
+
+  if (
+    WATCH_PARTY_SIGNAL_REGEX.test(text) &&
+    !NIGHTLIFE_FIESTA_SIGNAL_REGEX.test(text) &&
+    !SPORTS_EVENT_SIGNAL_REGEX.test(text)
+  ) {
+    return "cultural";
+  }
+
+  if (COFFEE_PARTY_SIGNAL_REGEX.test(text) && !NIGHTLIFE_FIESTA_SIGNAL_REGEX.test(text)) {
+    return "bar";
+  }
+
+  return null;
+}
 
 /* ─── Known theater venues in Uruguay ─── */
 const KNOWN_THEATER_VENUES = [
@@ -663,10 +726,16 @@ const SOURCE_CATEGORY_OVERRIDE_TYPES = new Set<EventType>([
   "deportivo",
   "teatro",
   "festival",
+  "cultural",
+  "concierto",
+  "taller",
+  "bar",
+  "gastronomico",
 ]);
 
 export function classifyEvent(normalized: NormalizedEventInput, context?: ClassificationContext): ClassificationResult {
   const text = `${normalized.name} ${normalized.description ?? ""} ${normalized.venueName}`;
+  const nonNightlifeOverrideType = inferNonNightlifeFiestaOverride(normalized);
 
   const matchedTypes = EVENT_TYPE_RULES
     .filter((rule) => rule.regex.test(text))
@@ -702,6 +771,16 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
   // when the actual event is a family/adventure activity.
   const sourceMapped = mapSourceCategory(context?.category);
   if (sourceMapped && sourceMapped !== "otro") {
+    if (sourceMapped === "fiesta" && nonNightlifeOverrideType) {
+      return {
+        eventType: nonNightlifeOverrideType,
+        musicGenre,
+        matchedTypes,
+        isRecurring,
+        fromSourceCategory: false,
+      };
+    }
+
     // Check if text heuristics strongly indicate a different high-priority type
     const strongTextType = matchedTypes[0];
     const venueConfirmsSource =
@@ -766,6 +845,11 @@ export function classifyEvent(normalized: NormalizedEventInput, context?: Classi
     if (eventType === "otro" || shouldPreferHintedType(eventType, hintedType)) {
       eventType = hintedType;
     }
+  }
+
+  // ── 3.5. Guardrail: non-nightlife wellness/social wording should not stay as fiesta ──
+  if (eventType === "fiesta" && nonNightlifeOverrideType) {
+    eventType = nonNightlifeOverrideType;
   }
 
   // ── 4. Time-based reclassification: late-night generic events → fiesta ──

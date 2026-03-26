@@ -824,6 +824,11 @@ export class RedTicketsScraper extends BaseScraper {
    *   - unitPrice: string like "13324.00" (base price)
    *   - soldOut: boolean (on the parent Time/Date level)
    *   - caption: string (ticket type name, e.g. "Segunda Tanda")
+   *
+   * Pricing rules:
+   *   - Skip sold-out ticket rows (even if the parent date/time is not sold out)
+   *   - Skip non-admission rows like parking/estacionamiento
+  *   - Prefer `price` (final buyer-facing amount) over `unitPrice`
    */
   private extractTicketPrices(
     $: cheerio.CheerioAPI,
@@ -865,9 +870,19 @@ export class RedTicketsScraper extends BaseScraper {
           if (!Array.isArray(tickets)) continue;
 
           for (const ticket of tickets) {
-            // Use unitPrice (base price without fees) if available, else price
+            const ticketText = normalizeWhitespace(
+              `${(ticket.caption as string) ?? ""} ${(ticket.name as string) ?? ""} ${(ticket.description as string) ?? ""}`,
+            ).toLowerCase();
+
+            if (this.shouldSkipTicketForPricing(ticket, ticketText)) {
+              continue;
+            }
+
+            // Use final buyer-facing price first, fallback to unitPrice.
+            // Business requirement for this source is to show "Desde" as the
+            // lowest published ticket amount seen by the user in RedTickets.
             const priceStr =
-              (ticket.unitPrice as string) || (ticket.price as string);
+              (ticket.price as string) || (ticket.unitPrice as string);
             if (!priceStr) continue;
 
             const amount = Number.parseFloat(priceStr);
@@ -882,6 +897,32 @@ export class RedTicketsScraper extends BaseScraper {
     }
 
     return uniqueNumbers(prices);
+  }
+
+  /**
+   * Decide whether a ticket row should be excluded from public price ranges.
+   * We only want real admission tickets that are currently available.
+   */
+  private shouldSkipTicketForPricing(
+    ticket: Record<string, unknown>,
+    ticketText: string,
+  ): boolean {
+    const stock = toNumber(ticket.stock);
+    const availableStock = toNumber(ticket.availableStock);
+
+    const isSoldOutByFlag =
+      ticket.soldOut === true ||
+      ticket.available === false ||
+      (stock !== null && stock <= 0) ||
+      (availableStock !== null && availableStock <= 0);
+
+    const isSoldOutByText = /\b(agotad[oa]s?|sold\s*out|no\s+disponible)\b/i.test(
+      ticketText,
+    );
+
+    const isNonAdmission = /\b(parking|estacionamiento)\b/i.test(ticketText);
+
+    return isSoldOutByFlag || isSoldOutByText || isNonAdmission;
   }
 
   /**
