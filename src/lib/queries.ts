@@ -150,7 +150,7 @@ function buildOrderByExpressions(
       FROM events e2
       WHERE
         e2.status = 'active'
-        AND e2.date >= ${events.date}
+        AND e2.date >= (${events.date} - INTERVAL '45 days')::date
         AND e2.date <= (${events.date} + INTERVAL '45 days')::date
         AND lower(trim(e2.name)) = lower(trim(${events.name}))
         AND lower(trim(e2.venue_name)) = lower(trim(${events.venueName}))
@@ -442,7 +442,9 @@ export async function getUpcomingEventGroupsPreview(
  */
 export async function getUpcomingEventsFromDate(startDate: string, filters?: EventFilters) {
   const filterConditions = buildFilterConditions(filters);
-  const orderByExpressions = buildOrderByExpressions("diverse");
+  const orderByExpressions = buildOrderByExpressions("diverse", {
+    deprioritizeMultiDaySeries: true,
+  });
 
   const results = await db
     .select(listColumns)
