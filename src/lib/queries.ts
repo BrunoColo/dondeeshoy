@@ -140,7 +140,23 @@ export interface FilterOptions {
 
 export type EventOrderStrategy = "default" | "diverse";
 
-function buildOrderByExpressions(orderStrategy: EventOrderStrategy = "default") {
+function buildOrderByExpressions(
+  orderStrategy: EventOrderStrategy = "default",
+  options?: { deprioritizeMultiDaySeries?: boolean },
+) {
+  const multiDaySeriesCount = options?.deprioritizeMultiDaySeries
+    ? sql`(
+      SELECT COUNT(*)
+      FROM events e2
+      WHERE
+        e2.status = 'active'
+        AND e2.date >= ${events.date}
+        AND e2.date <= (${events.date} + INTERVAL '45 days')::date
+        AND lower(trim(e2.name)) = lower(trim(${events.name}))
+        AND lower(trim(e2.venue_name)) = lower(trim(${events.venueName}))
+    )`
+    : sql`1`;
+
   if (orderStrategy === "diverse") {
     return [
       sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
@@ -148,11 +164,13 @@ function buildOrderByExpressions(orderStrategy: EventOrderStrategy = "default") 
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${events.eventType}
         ORDER BY
+          ${multiDaySeriesCount} ASC,
           COALESCE(${events.confidenceScore}, 0) DESC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
           ${events.name} ASC
       )`,
+      asc(multiDaySeriesCount),
       desc(sql`COALESCE(${events.confidenceScore}, 0)`),
       desc(rankingScore),
       asc(events.startTime),
@@ -274,7 +292,9 @@ export async function getEventsByDatePaged(
       ),
     );
 
-  const orderByExpressions = buildOrderByExpressions(orderStrategy);
+  const orderByExpressions = buildOrderByExpressions(orderStrategy, {
+    deprioritizeMultiDaySeries: orderStrategy === "diverse",
+  });
   const orderedQuery = baseQuery.orderBy(...orderByExpressions);
 
   return orderedQuery.limit(safeLimit).offset(safeOffset);
