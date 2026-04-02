@@ -829,7 +829,8 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
         gte(events.date, weekendStart),
         lte(events.date, weekendEnd),
         eq(events.isRecurring, false),
-        sql`${sameSeriesInMonthCount} <= 3`,
+        sql`${sameSeriesInWindowCount} <= 2`,
+        sql`${sameSeriesInMonthCount} <= 2`,
       ),
     )
     .orderBy(desc(editorialInterestingScore), desc(rankingScore), asc(events.date), asc(events.startTime))
