@@ -59,6 +59,78 @@ const rankingScore = sql`(
   + (LOG(COALESCE(${events.viewCount}, 0) + 1) / 5.0) * 0.4
 )`;
 
+const sameSeriesInWindowCount = sql`(
+  SELECT COUNT(*)
+  FROM events e2
+  WHERE
+    e2.status = 'active'
+    AND e2.date >= (${events.date} - INTERVAL '45 days')::date
+    AND e2.date <= (${events.date} + INTERVAL '45 days')::date
+    AND lower(trim(e2.name)) = lower(trim(${events.name}))
+    AND lower(trim(e2.venue_name)) = lower(trim(${events.venueName}))
+)`;
+
+const sameSeriesInMonthCount = sql`(
+  SELECT COUNT(*)
+  FROM events e3
+  WHERE
+    e3.status = 'active'
+    AND date_trunc('month', e3.date::timestamp) = date_trunc('month', ${events.date}::timestamp)
+    AND lower(trim(e3.name)) = lower(trim(${events.name}))
+    AND lower(trim(e3.venue_name)) = lower(trim(${events.venueName}))
+)`;
+
+const eventTextForScoring = sql`lower(coalesce(${events.name}, '') || ' ' || coalesce(${events.description}, ''))`;
+const descriptionLength = sql`length(trim(coalesce(${events.description}, '')))`;
+
+const repeatedSeriesPenalty = sql`(
+  CASE
+    WHEN ${sameSeriesInMonthCount} >= 6 THEN 0.9
+    WHEN ${sameSeriesInMonthCount} >= 4 THEN 0.55
+    WHEN ${sameSeriesInMonthCount} >= 3 THEN 0.3
+    WHEN ${sameSeriesInWindowCount} >= 6 THEN 0.2
+    WHEN ${sameSeriesInWindowCount} >= 4 THEN 0.12
+    ELSE 0
+  END
+)`;
+
+/**
+ * Editorial score used for selecting the "6 mejores" without exposing a score in UI.
+ * Prioritizes novelty + stronger metadata while penalizing repetitive series.
+ */
+const editorialInterestingScore = sql`(
+  ${rankingScore}
+  + CASE
+      WHEN ${descriptionLength} >= 320 THEN 0.18
+      WHEN ${descriptionLength} >= 180 THEN 0.12
+      WHEN ${descriptionLength} >= 80 THEN 0.05
+      ELSE 0
+    END
+  + CASE WHEN ${events.startTime} IS NOT NULL THEN 0.04 ELSE 0 END
+  + CASE WHEN ${events.imageUrl} IS NOT NULL THEN 0.05 ELSE 0 END
+  + CASE
+      WHEN ${eventTextForScoring} ~* '(halloween|noche de brujas|disfraz|terror)'
+        AND (
+          (EXTRACT(MONTH FROM ${events.date}) = 10 AND EXTRACT(DAY FROM ${events.date}) >= 20)
+          OR (EXTRACT(MONTH FROM ${events.date}) = 11 AND EXTRACT(DAY FROM ${events.date}) <= 3)
+        )
+      THEN 0.5
+      WHEN ${eventTextForScoring} ~* '(carnaval|tablado|murga|comparsa|llamadas)'
+        AND EXTRACT(MONTH FROM ${events.date}) IN (2, 3)
+      THEN 0.3
+      WHEN ${eventTextForScoring} ~* '(nostalgia|ochent|novent|retro)'
+        AND EXTRACT(MONTH FROM ${events.date}) = 8
+        AND EXTRACT(DAY FROM ${events.date}) BETWEEN 20 AND 26
+      THEN 0.35
+      WHEN ${eventTextForScoring} ~* '(edici[oó]n especial|aniversario|lineup|show en vivo|live set|estreno|beneficio|especial)'
+      THEN 0.18
+      ELSE 0
+    END
+  - ${repeatedSeriesPenalty}
+  - CASE WHEN ${events.eventType} = 'otro' THEN 0.15 ELSE 0 END
+  - CASE WHEN ${events.startTime} IS NULL AND ${descriptionLength} < 40 THEN 0.06 ELSE 0 END
+)`;
+
 /* ─── Filter builder ─── */
 function buildFilterConditions(filters?: EventFilters) {
   const conditions = [];
@@ -144,17 +216,8 @@ function buildOrderByExpressions(
   orderStrategy: EventOrderStrategy = "default",
   options?: { deprioritizeMultiDaySeries?: boolean },
 ) {
-  const multiDaySeriesCount = options?.deprioritizeMultiDaySeries
-    ? sql`(
-      SELECT COUNT(*)
-      FROM events e2
-      WHERE
-        e2.status = 'active'
-        AND e2.date >= (${events.date} - INTERVAL '45 days')::date
-        AND e2.date <= (${events.date} + INTERVAL '45 days')::date
-        AND lower(trim(e2.name)) = lower(trim(${events.name}))
-        AND lower(trim(e2.venue_name)) = lower(trim(${events.venueName}))
-    )`
+  const seriesCount = options?.deprioritizeMultiDaySeries
+    ? sameSeriesInWindowCount
     : sql`1`;
 
   if (orderStrategy === "diverse") {
@@ -164,14 +227,21 @@ function buildOrderByExpressions(
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${events.eventType}
         ORDER BY
-          ${multiDaySeriesCount} ASC,
-          COALESCE(${events.confidenceScore}, 0) DESC,
+          ${seriesCount} ASC,
+          ${editorialInterestingScore} DESC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
           ${events.name} ASC
       )`,
-      asc(multiDaySeriesCount),
-      desc(sql`COALESCE(${events.confidenceScore}, 0)`),
+      sql`row_number() OVER (
+        PARTITION BY ${events.date}, lower(trim(${events.venueName}))
+        ORDER BY
+          ${editorialInterestingScore} DESC,
+          ${events.startTime} ASC NULLS LAST,
+          ${events.name} ASC
+      )`,
+      asc(seriesCount),
+      desc(editorialInterestingScore),
       desc(rankingScore),
       asc(events.startTime),
       asc(events.name),
@@ -180,6 +250,7 @@ function buildOrderByExpressions(
 
   return [
     sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+    desc(editorialInterestingScore),
     desc(rankingScore),
     asc(events.startTime),
     asc(events.name),
@@ -261,6 +332,7 @@ export async function getEventsByDate(date: string, filters?: EventFilters) {
     )
     .orderBy(
       sql`CASE WHEN ${events.isRecurring} THEN 1 ELSE 0 END`,
+      desc(editorialInterestingScore),
       desc(rankingScore),
       asc(events.startTime),
       asc(events.name),
@@ -733,7 +805,7 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
         eq(events.isRecurring, false),
       ),
     )
-    .orderBy(desc(rankingScore), asc(events.date), asc(events.startTime))
+    .orderBy(desc(editorialInterestingScore), desc(rankingScore), asc(events.date), asc(events.startTime))
     .limit(Math.max(safeLimit * 4, 24));
 
   if (candidates.length === 0) {
@@ -743,7 +815,25 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
   const selected: Array<(typeof candidates)[number]> = [];
   const selectedIds = new Set<string>();
   const selectedTypeCounts = new Map<EventType, number>();
+  const selectedSeriesKeys = new Set<string>();
   const candidatesBySlug = new Map<string, (typeof candidates)[number]>();
+
+  const normalizeSeriesValue = (value: string | null | undefined) => {
+    if (!value) return "";
+    return value
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const getSeriesKey = (candidate: (typeof candidates)[number]) => {
+    const name = normalizeSeriesValue(candidate.name);
+    const venue = normalizeSeriesValue(candidate.venueName);
+    if (!name || !venue) return "";
+    return `${name}::${venue}`;
+  };
 
   for (const candidate of manualCandidates) {
     candidatesBySlug.set(candidate.slug, candidate);
@@ -754,19 +844,30 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
     }
   }
 
-  const addCandidate = (candidate: (typeof candidates)[number] | undefined) => {
+  const addCandidate = (
+    candidate: (typeof candidates)[number] | undefined,
+    options?: { allowDuplicateSeries?: boolean },
+  ) => {
     if (!candidate || selectedIds.has(candidate.id) || selected.length >= safeLimit) {
+      return false;
+    }
+
+    const seriesKey = getSeriesKey(candidate);
+    if (!options?.allowDuplicateSeries && seriesKey && selectedSeriesKeys.has(seriesKey)) {
       return false;
     }
 
     selected.push(candidate);
     selectedIds.add(candidate.id);
+    if (seriesKey) {
+      selectedSeriesKeys.add(seriesKey);
+    }
     selectedTypeCounts.set(candidate.eventType, (selectedTypeCounts.get(candidate.eventType) ?? 0) + 1);
     return true;
   };
 
   for (const slug of manualSlugs.length > 0 ? manualSlugs : WEEKEND_HIGHLIGHT_MANUAL_SLUGS) {
-    addCandidate(candidatesBySlug.get(slug));
+    addCandidate(candidatesBySlug.get(slug), { allowDuplicateSeries: true });
   }
 
   for (const target of WEEKEND_HIGHLIGHT_TYPE_TARGETS) {

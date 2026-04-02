@@ -6,23 +6,23 @@
     },
     {
       "path": "/api/scrape/entraste",
-      "schedule": "0 15 * * *"
+      "schedule": "25 14 * * *"
     },
     {
       "path": "/api/scrape/cobraticket",
-      "schedule": "30 15 * * *"
+      "schedule": "50 14 * * *"
     },
     {
       "path": "/api/scrape/ticketfacil",
-      "schedule": "45 15 * * *"
+      "schedule": "15 15 * * *"
     },
     {
       "path": "/api/scrape/cartelera",
-      "schedule": "0 16 * * *"
+      "schedule": "40 15 * * *"
     },
     {
       "path": "/api/scrape/mvd-eventos",
-      "schedule": "15 16 * * *"
+      "schedule": "5 16 * * *"
     },
     {
       "path": "/api/scrape/mientrada",
@@ -30,35 +30,43 @@
     },
     {
       "path": "/api/scrape/hayplan",
-      "schedule": "40 16 * * *"
+      "schedule": "55 16 * * *"
     },
     {
       "path": "/api/scrape/process",
-      "schedule": "15 15 * * *"
+      "schedule": "20 17 * * *"
     },
     {
       "path": "/api/scrape/process",
-      "schedule": "45 16 * * *"
+      "schedule": "5 18 * * *"
     },
     {
       "path": "/api/scrape/process",
-      "schedule": "0 17 * * *"
+      "schedule": "50 18 * * *"
     },
     {
       "path": "/api/scrape/process",
-      "schedule": "45 17 * * *"
+      "schedule": "35 19 * * *"
     },
     {
       "path": "/api/scrape/process",
-      "schedule": "30 18 * * *"
+      "schedule": "20 20 * * *"
+    },
+    {
+      "path": "/api/scrape/process",
+      "schedule": "0 21 * * *"
     },
     {
       "path": "/api/scrape/mark-past",
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/scrape/process",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/scrape/reclassify-otros",
-      "schedule": "0 19 * * *"
+      "schedule": "30 21 * * *"
     },
     {
       "path": "/api/cron/newsletter",
