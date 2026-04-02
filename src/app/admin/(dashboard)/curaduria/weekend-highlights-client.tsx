@@ -183,7 +183,7 @@ export function WeekendHighlightsClient({ initialState, weekendStart, weekendEnd
           <div>
             <h2 className="text-sm font-semibold text-zinc-100">Picks manuales</h2>
             <p className="text-xs text-zinc-500 mt-1">
-              Fin de semana actual: {formatDate(weekendStart)} → {formatDate(weekendEnd)}. Si el lunes tus picks quedan fuera de ese rango, se ignoran solos y vuelven los defaults editoriales + ranking.
+              Fin de semana actual: {formatDate(weekendStart)} → {formatDate(weekendEnd)}. Si el lunes tus picks quedan fuera de ese rango, se ignoran solos y vuelve la selección automática (filtros + variedad + ranking).
             </p>
           </div>
           <div className="text-xs text-zinc-500">
@@ -192,7 +192,7 @@ export function WeekendHighlightsClient({ initialState, weekendStart, weekendEnd
         </div>
 
         <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/8 p-3 text-xs text-cyan-100/90">
-          Orden = prioridad. Primero entran tus picks manuales; después se completa con 2 fiestas, 2 teatros, 1 cultural y 1 deportivo si hay disponibles; el resto sale por ranking.
+          Orden = prioridad. Primero entran tus picks manuales; después se completa en rondas por tipo (2 fiestas, 2 teatros, 1 cultural y 1 deportivo) para evitar repeticiones seguidas cuando hay opciones; el resto sale por ranking.
         </div>
 
         <div className="flex flex-col gap-2">
@@ -282,7 +282,7 @@ export function WeekendHighlightsClient({ initialState, weekendStart, weekendEnd
         <div className="space-y-2">
           {manualEvents.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-800 px-3 py-6 text-sm text-zinc-500 text-center">
-              No hay picks manuales guardados. En ese caso entran los cupos por tipo y después el ranking automático.
+              No hay picks manuales guardados. En ese caso se usa selección automática con filtros editoriales, cupos por tipo y ranking.
             </div>
           ) : (
             manualEvents.map((event, index) => {

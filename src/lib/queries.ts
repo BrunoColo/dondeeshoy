@@ -8,7 +8,6 @@ import { DEPARTMENT_BOUNDS, type UruguayDepartment } from "@/processing/departme
 import { escapeLikePattern } from "@/lib/utils";
 import {
   WEEKEND_HIGHLIGHT_LIMIT,
-  WEEKEND_HIGHLIGHT_MANUAL_SLUGS,
   WEEKEND_HIGHLIGHT_TYPE_TARGETS,
 } from "@/config/weekend-highlights";
 import { getStoredWeekendHighlightManualSlugs } from "@/lib/weekend-highlights-store";
@@ -59,6 +58,33 @@ const rankingScore = sql`(
   + (LOG(COALESCE(${events.viewCount}, 0) + 1) / 5.0) * 0.4
 )`;
 
+const SERIES_WEEKDAY_TOKEN_REGEX = "\\b(?:lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b";
+const SERIES_DATE_TOKEN_REGEX = "\\b\\d{1,2}[./-]\\d{1,2}(?:[./-]\\d{2,4})?\\b|\\b\\d{4}\\b";
+const SERIES_TIME_TOKEN_REGEX = "\\b\\d{1,2}:\\d{2}\\b";
+
+function normalizedSeriesNameExpression(nameExpression: unknown) {
+  return sql`trim(
+    regexp_replace(
+      regexp_replace(
+        regexp_replace(
+          regexp_replace(lower(coalesce(${nameExpression}, '')), ${SERIES_WEEKDAY_TOKEN_REGEX}, ' ', 'gi'),
+          ${SERIES_DATE_TOKEN_REGEX},
+          ' ',
+          'g'
+        ),
+        ${SERIES_TIME_TOKEN_REGEX},
+        ' ',
+        'g'
+      ),
+      '\\s+',
+      ' ',
+      'g'
+    )
+  )`;
+}
+
+const normalizedCurrentSeriesName = normalizedSeriesNameExpression(events.name);
+
 const sameSeriesInWindowCount = sql`(
   SELECT COUNT(*)
   FROM events e2
@@ -66,8 +92,8 @@ const sameSeriesInWindowCount = sql`(
     e2.status = 'active'
     AND e2.date >= (${events.date} - INTERVAL '45 days')::date
     AND e2.date <= (${events.date} + INTERVAL '45 days')::date
-    AND lower(trim(e2.name)) = lower(trim(${events.name}))
-    AND lower(trim(e2.venue_name)) = lower(trim(${events.venueName}))
+    AND ${normalizedSeriesNameExpression(sql`e2.name`)} = ${normalizedCurrentSeriesName}
+    AND lower(trim(coalesce(e2.venue_name, ''))) = lower(trim(coalesce(${events.venueName}, '')))
 )`;
 
 const sameSeriesInMonthCount = sql`(
@@ -76,8 +102,8 @@ const sameSeriesInMonthCount = sql`(
   WHERE
     e3.status = 'active'
     AND date_trunc('month', e3.date::timestamp) = date_trunc('month', ${events.date}::timestamp)
-    AND lower(trim(e3.name)) = lower(trim(${events.name}))
-    AND lower(trim(e3.venue_name)) = lower(trim(${events.venueName}))
+    AND ${normalizedSeriesNameExpression(sql`e3.name`)} = ${normalizedCurrentSeriesName}
+    AND lower(trim(coalesce(e3.venue_name, ''))) = lower(trim(coalesce(${events.venueName}, '')))
 )`;
 
 const eventTextForScoring = sql`lower(coalesce(${events.name}, '') || ' ' || coalesce(${events.description}, ''))`;
@@ -803,6 +829,7 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
         gte(events.date, weekendStart),
         lte(events.date, weekendEnd),
         eq(events.isRecurring, false),
+        sql`${sameSeriesInMonthCount} <= 3`,
       ),
     )
     .orderBy(desc(editorialInterestingScore), desc(rankingScore), asc(events.date), asc(events.startTime))
@@ -824,6 +851,10 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
       .normalize("NFD")
       .replace(/\p{Diacritic}/gu, "")
       .toLowerCase()
+      .replace(/\b(lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gu, " ")
+      .replace(/\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b|\b\d{4}\b/g, " ")
+      .replace(/\b\d{1,2}:\d{2}\b/g, " ")
+      .replace(/[|_/\\-]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   };
@@ -866,22 +897,41 @@ export async function getWeekendHighlights(weekendStart: string, weekendEnd: str
     return true;
   };
 
-  for (const slug of manualSlugs.length > 0 ? manualSlugs : WEEKEND_HIGHLIGHT_MANUAL_SLUGS) {
+  for (const slug of manualSlugs) {
     addCandidate(candidatesBySlug.get(slug), { allowDuplicateSeries: true });
   }
 
-  for (const target of WEEKEND_HIGHLIGHT_TYPE_TARGETS) {
-    const alreadySelected = selectedTypeCounts.get(target.type) ?? 0;
-    const remainingSlotsForType = Math.max(0, target.count - alreadySelected);
+  const typeBuckets = WEEKEND_HIGHLIGHT_TYPE_TARGETS.map((target) => ({
+    type: target.type,
+    remaining: Math.max(0, target.count - (selectedTypeCounts.get(target.type) ?? 0)),
+    matches: candidates.filter((candidate) => candidate.eventType === target.type && !selectedIds.has(candidate.id)),
+  }));
 
-    if (remainingSlotsForType === 0) {
-      continue;
-    }
+  let distributedAny = true;
+  while (distributedAny && selected.length < safeLimit) {
+    distributedAny = false;
 
-    const matches = candidates.filter((candidate) => candidate.eventType === target.type && !selectedIds.has(candidate.id));
+    for (const bucket of typeBuckets) {
+      if (selected.length >= safeLimit) {
+        break;
+      }
 
-    for (const candidate of matches.slice(0, remainingSlotsForType)) {
-      addCandidate(candidate);
+      if (bucket.remaining <= 0) {
+        continue;
+      }
+
+      while (bucket.matches.length > 0) {
+        const nextCandidate = bucket.matches.shift();
+        if (!nextCandidate) {
+          break;
+        }
+
+        if (addCandidate(nextCandidate)) {
+          bucket.remaining -= 1;
+          distributedAny = true;
+          break;
+        }
+      }
     }
   }
 

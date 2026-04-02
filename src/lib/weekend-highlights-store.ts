@@ -5,7 +5,6 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { editorialConfigs, events } from "@/lib/db/schema";
 import {
-  WEEKEND_HIGHLIGHT_MANUAL_SLUGS,
   WEEKEND_HIGHLIGHT_LIMIT,
 } from "@/config/weekend-highlights";
 
@@ -55,7 +54,7 @@ export async function getStoredWeekendHighlightManualSlugs(): Promise<string[]> 
   const payload = rows[0]?.payload as WeekendHighlightsPayload | undefined;
   const manualSlugs = Array.isArray(payload?.manualSlugs)
     ? payload.manualSlugs.filter((value): value is string => typeof value === "string")
-    : WEEKEND_HIGHLIGHT_MANUAL_SLUGS;
+    : [];
 
   return sanitizeManualSlugs(manualSlugs);
 }

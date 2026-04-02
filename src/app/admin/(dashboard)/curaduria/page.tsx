@@ -13,7 +13,7 @@ export default async function CuraduriaPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-100 mb-2">Curaduría</h1>
-        <p className="text-zinc-500 text-sm">Elegí picks manuales para “Lo mejor del finde” y dejá que el ranking complete el resto.</p>
+        <p className="text-zinc-500 text-sm">Elegí picks manuales para “Lo mejor del finde”. Si no guardás picks, se usa selección automática con filtros editoriales.</p>
       </div>
 
       <WeekendHighlightsClient
