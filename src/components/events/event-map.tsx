@@ -45,6 +45,20 @@ const TYPE_ICON_MARKUP: Record<string, string> = {
   otro: '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" /><path d="M12 4.5c-3.6 0-6.5 2.9-6.5 6.4 0 4.8 6.5 8.6 6.5 8.6s6.5-3.8 6.5-8.6c0-3.5-2.9-6.4-6.5-6.4Z" />',
 };
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatEventTypeLabel(eventType: EventType): string {
+  const text = eventType.replaceAll("_", " ").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function createMarkerIcon(eventType: string, isSelected: boolean): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   const iconSize = isSelected ? 16 : 14;
@@ -272,27 +286,33 @@ export function EventMap({
     const dateTimeLabel = timeLabel ? `${shortDateLabel} · ${timeLabel}` : shortDateLabel;
 
     const typeColor = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
+    const safeName = escapeHtml(event.name);
+    const safeVenue = escapeHtml(event.venueName);
+    const safePrice = escapeHtml(price ?? "Consultar");
+    const safeDateTime = escapeHtml(dateTimeLabel);
+    const safeEventType = escapeHtml(formatEventTypeLabel(event.eventType));
+    const eventHref = `/evento/${encodeURIComponent(event.slug)}`;
+
     const container = document.createElement("div");
     container.innerHTML = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 280px;">
-        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; box-shadow: 0 0 6px ${typeColor}88; flex-shrink: 0;"></span>
-          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${typeColor};">${event.eventType}</span>
+      <div class="w-[252px] rounded-xl border border-white/15 bg-[#0B1020]/95 p-3 shadow-[0_14px_32px_rgba(2,6,23,0.55)] backdrop-blur-md text-slate-100">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <span class="inline-flex max-w-[62%] items-center gap-1.5 truncate rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style="border-color:${typeColor}66;color:${typeColor};background:${typeColor}1A;">
+            <span class="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style="background:${typeColor};box-shadow:0 0 8px ${typeColor}99;"></span>
+            <span class="truncate">${safeEventType}</span>
+          </span>
+          <span class="shrink-0 text-[11px] font-medium text-slate-300">${safeDateTime}</span>
         </div>
-        <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #F1F5F9; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #94A3B8;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>📍</span>
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${dateTimeLabel}</span></div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>🎫</span>
-            <span style="font-weight: 600; color: ${event.isFree ? "#34D399" : "#CBD5E1"};">${price}</span>
-          </div>
+
+        <h3 class="mb-2 text-[14px] font-semibold leading-snug text-slate-100">${safeName}</h3>
+
+        <div class="space-y-1.5 text-[12px] text-slate-300">
+          <p class="truncate"><span class="font-semibold text-slate-400">Lugar:</span> ${safeVenue}</p>
+          <p><span class="font-semibold text-slate-400">Entrada:</span> <span class="font-semibold ${event.isFree ? "text-emerald-300" : "text-slate-100"}">${safePrice}</span></p>
         </div>
-        <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 7px 12px; border-radius: 10px; background: rgba(13,148,136,0.15); border: 1px solid rgba(13,148,136,0.35); font-size: 12px; font-weight: 600; color: #14B8A6; text-decoration: none; transition: background 0.2s ease;">
-          Ver evento →
+
+        <a href="${eventHref}" class="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-teal-400/55 bg-teal-500/15 px-3 py-2 text-[12px] font-semibold text-teal-200 transition-colors hover:border-teal-300/70 hover:bg-teal-500/25">
+          Ver evento completo
         </a>
       </div>
     `;
