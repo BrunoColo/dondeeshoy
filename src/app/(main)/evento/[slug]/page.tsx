@@ -5,6 +5,7 @@ import { EventDetail } from "@/components/events/event-detail";
 import { ViewTracker } from "@/components/events/view-tracker";
 import { siteConfig } from "@/config/site";
 import { EVENT_TYPE_LABELS } from "@/types/events";
+import { getTodayUY } from "@/lib/format";
 import type { Metadata } from "next";
 
 interface EventPageProps {
@@ -16,8 +17,17 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
   const event = await getEventBySlug(slug);
 
   if (!event) {
-    return { title: "Evento no encontrado" };
+    return {
+      title: "Evento no encontrado",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
   }
+
+  const today = getTodayUY();
+  const isIndexable = event.status === "active" && event.date >= today;
 
   const canonicalUrl = `${siteConfig.url}/evento/${slug}`;
 
@@ -27,6 +37,15 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
   return {
     title: event.name,
     description,
+    robots: isIndexable
+      ? {
+          index: true,
+          follow: true,
+        }
+      : {
+          index: false,
+          follow: false,
+        },
     alternates: {
       canonical: canonicalUrl,
     },

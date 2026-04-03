@@ -10,17 +10,55 @@ import { Zap } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
 
-export const metadata: Metadata = {
-  alternates: {
-    canonical: "/",
-  },
-};
-
-export const revalidate = 300; // ISR: revalidate every 5 minutes
-
 interface HomePageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+const HOME_FILTER_PARAM_KEYS = ["q", "type", "genre", "department", "free", "night"] as const;
+
+function hasUrlParamValue(value: string | string[] | undefined): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => item.trim().length > 0);
+  }
+
+  return false;
+}
+
+export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const hasFilterParams = HOME_FILTER_PARAM_KEYS.some((key) => {
+    const value = params[key];
+
+    if (key === "free" || key === "night") {
+      if (typeof value === "string") return value === "true";
+      if (Array.isArray(value)) return value.includes("true");
+      return false;
+    }
+
+    return hasUrlParamValue(value);
+  });
+
+  return {
+    alternates: {
+      canonical: "/",
+    },
+    robots: hasFilterParams
+      ? {
+          index: false,
+          follow: true,
+        }
+      : {
+          index: true,
+          follow: true,
+        },
+  };
+}
+
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export default function HomePage({ searchParams }: HomePageProps) {
   return (

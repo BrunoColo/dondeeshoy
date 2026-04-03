@@ -6,10 +6,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/proximos", "/mapa", "/evento/"],
-        disallow: ["/api/"],
+        allow: "/",
+        disallow: ["/api/", "/admin", "/ingreso-admin", "/internal-admin-access", "/favoritos"],
       },
     ],
+    host: new URL(siteConfig.url).host,
     sitemap: `${siteConfig.url}/sitemap.xml`,
   };
 }

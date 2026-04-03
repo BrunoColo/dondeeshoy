@@ -15,6 +15,21 @@ const BLOCKED_UA_PATTERNS = [
   /php\//i,
 ];
 
+const TRACKING_PARAM_NAMES = new Set([
+  "gclid",
+  "dclid",
+  "fbclid",
+  "msclkid",
+  "mc_cid",
+  "mc_eid",
+  "mkt_tok",
+  "igshid",
+  "_ga",
+  "_gl",
+]);
+
+const CANONICAL_HOST = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.dondeeshoy.com").host.toLowerCase();
+
 function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
@@ -25,6 +40,47 @@ function getClientIp(request: NextRequest): string {
     request.headers.get("x-real-ip") ??
     "anonymous"
   );
+}
+
+function shouldNoindexByHost(request: NextRequest): boolean {
+  const hostHeader = request.headers.get("host");
+  if (!hostHeader) return false;
+
+  const requestHost = hostHeader.toLowerCase().split(":")[0];
+
+  if (requestHost === CANONICAL_HOST) return false;
+  if (requestHost === "localhost" || requestHost === "127.0.0.1") return false;
+
+  return true;
+}
+
+function getTrackingCleanUrl(request: NextRequest): URL | null {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return null;
+  }
+
+  const { pathname } = request.nextUrl;
+  if (
+    matchesPathPrefix(pathname, "/admin")
+    || matchesPathPrefix(pathname, "/api")
+    || matchesPathPrefix(pathname, "/internal-admin-access")
+    || matchesPathPrefix(pathname, "/ingreso-admin")
+  ) {
+    return null;
+  }
+
+  const url = new URL(request.url);
+  let changed = false;
+
+  for (const key of Array.from(url.searchParams.keys())) {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey.startsWith("utm_") || TRACKING_PARAM_NAMES.has(normalizedKey)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+
+  return changed ? url : null;
 }
 
 function getAllowedAdminIps(): string[] {
@@ -79,6 +135,11 @@ export async function proxy(request: NextRequest) {
   const isAdminPage = matchesPathPrefix(pathname, "/admin");
   const isAdminApi = matchesPathPrefix(pathname, "/api/admin");
 
+  const trackingCleanUrl = getTrackingCleanUrl(request);
+  if (trackingCleanUrl) {
+    return NextResponse.redirect(trackingCleanUrl, 308);
+  }
+
   // Block obvious scraping bots on public events API
   if (pathname.startsWith("/api/events")) {
     if (!ua || BLOCKED_UA_PATTERNS.some((p) => p.test(ua))) {
@@ -110,7 +171,13 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  if (shouldNoindexByHost(request)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
+  return response;
 }
 
 export const config = {

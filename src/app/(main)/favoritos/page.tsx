@@ -4,6 +4,10 @@ import { FavoritesClient } from "./favorites-client";
 export const metadata: Metadata = {
   title: "Favoritos",
   description: "Tus eventos guardados en ¿Dónde es hoy?",
+  robots: {
+    index: false,
+    follow: false,
+  },
   alternates: {
     canonical: "/favoritos",
   },

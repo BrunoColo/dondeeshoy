@@ -14,7 +14,13 @@ export async function GET(
   const adminSecret = process.env.ADMIN_SECRET;
 
   if (!adminAccessKey || !adminSecret || token !== adminAccessKey) {
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+      },
+    });
   }
 
   const accessToken = await createAccessToken(adminSecret);
@@ -27,6 +33,9 @@ export async function GET(
     maxAge: ACCESS_MAX_AGE,
     path: "/",
   });
+
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
 
   return response;
 }

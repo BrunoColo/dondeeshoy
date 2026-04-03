@@ -13,16 +13,54 @@ import type { Event } from "@/lib/db/schema/events";
 
 export const revalidate = 300; // ISR: revalidate every 5 minutes
 
-export const metadata: Metadata = {
-  title: "Próximos eventos",
-  description: "Próximos eventos en Uruguay. Conciertos, ferias, teatro, fiestas y más.",
-  alternates: {
-    canonical: "/proximos",
-  },
-};
-
 interface ProximosPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+const PROXIMOS_PARAM_KEYS = ["q", "type", "genre", "department", "free", "night", "when", "fecha"] as const;
+
+function hasUrlParamValue(value: string | string[] | undefined): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => item.trim().length > 0);
+  }
+
+  return false;
+}
+
+export async function generateMetadata({ searchParams }: ProximosPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const hasVariantParams = PROXIMOS_PARAM_KEYS.some((key) => {
+    const value = params[key];
+
+    if (key === "free" || key === "night") {
+      if (typeof value === "string") return value === "true";
+      if (Array.isArray(value)) return value.includes("true");
+      return false;
+    }
+
+    return hasUrlParamValue(value);
+  });
+
+  return {
+    title: "Próximos eventos",
+    description: "Próximos eventos en Uruguay. Conciertos, ferias, teatro, fiestas y más.",
+    alternates: {
+      canonical: "/proximos",
+    },
+    robots: hasVariantParams
+      ? {
+          index: false,
+          follow: true,
+        }
+      : {
+          index: true,
+          follow: true,
+        },
+  };
 }
 
 export default function ProximosPage({ searchParams }: ProximosPageProps) {
