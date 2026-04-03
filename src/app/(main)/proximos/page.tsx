@@ -133,7 +133,9 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
     grouped = await getUpcomingEventGroupsPreview(tomorrow, 7, 6, filters, "fast-diverse");
     filterRange = { start: tomorrow, end: getDateOffsetUY(8) };
     enableLoadMore = true;
-    nextFrom = getDateOffsetUY(8);
+    // Initial window starts at tomorrow and spans 8 days total (tomorrow + 7).
+    // Cursor must point to the day AFTER that window to avoid overlap.
+    nextFrom = getDateOffsetUY(9);
   }
 
   // 2 queries instead of 4: events + combined filter options

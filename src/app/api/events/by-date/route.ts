@@ -39,7 +39,10 @@ export async function GET(request: Request) {
     const q = searchParams.get("q");
     const recurring = searchParams.get("recurring");
     const strategyParam = searchParams.get("strategy");
-    const strategy: EventOrderStrategy = strategyParam === "diverse" ? "diverse" : "default";
+    let strategy: EventOrderStrategy = "default";
+    if (strategyParam === "diverse" || strategyParam === "fast-diverse") {
+      strategy = strategyParam;
+    }
 
     if (type) filters.type = type as EventType;
     if (genre) filters.genre = genre;

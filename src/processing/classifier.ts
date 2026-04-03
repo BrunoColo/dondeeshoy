@@ -590,6 +590,8 @@ const REJECT_PATTERNS = [
   /^\s*colabor[aá]\s+con\s+/i,
   // Recurring classes / schedules (not one-time events)
   /\bclases?\s+(regulares?|permanentes?|semanales?)\b/i,
+  /\b(?:una|1|dos|2|tres|3)\s+clases?\s+por\s+semana\b/i,
+  /\bclases?\s+por\s+semana\b/i,
   /\btodos?\s+los\s+talleres?\s+de\s+verano\b/i,
   /\bsolo\s+asist[íi]\s+en\s+el\s+d[ií]a\s+y\s+horario\s+de\s+la\s+actividad\b/i,
   // Generic placeholder / test entries

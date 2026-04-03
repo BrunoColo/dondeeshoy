@@ -16,6 +16,55 @@ interface DateGroup {
   recurringEvents: Event[];
 }
 
+function mergeEventsById(existing: Event[], incoming: Event[]): Event[] {
+  if (incoming.length === 0) return existing;
+
+  const merged = [...existing];
+  const existingIds = new Set(existing.map((event) => event.id));
+
+  for (const event of incoming) {
+    if (!existingIds.has(event.id)) {
+      merged.push(event);
+      existingIds.add(event.id);
+    }
+  }
+
+  return merged;
+}
+
+function mergeDateGroups(existingGroups: DateGroup[], incomingGroups: DateGroup[]): DateGroup[] {
+  if (incomingGroups.length === 0) return existingGroups;
+
+  const byDate = new Map<string, DateGroup>();
+
+  for (const group of existingGroups) {
+    byDate.set(group.date, {
+      ...group,
+      events: [...group.events],
+      recurringEvents: [...group.recurringEvents],
+    });
+  }
+
+  for (const group of incomingGroups) {
+    const existing = byDate.get(group.date);
+
+    if (!existing) {
+      byDate.set(group.date, {
+        ...group,
+        events: [...group.events],
+        recurringEvents: [...group.recurringEvents],
+      });
+      continue;
+    }
+
+    existing.totalCount = Math.max(existing.totalCount, group.totalCount);
+    existing.events = mergeEventsById(existing.events, group.events);
+    existing.recurringEvents = mergeEventsById(existing.recurringEvents, group.recurringEvents);
+  }
+
+  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+}
+
 interface ProximosEventsClientProps {
   groups: DateGroup[];
   /** The day after the last loaded date — used to fetch the next batch */
@@ -92,7 +141,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       if (newGroups.length === 0) {
         setCanLoadMore(false);
       } else {
-        setGroups((prev) => [...prev, ...newGroups]);
+        setGroups((prev) => mergeDateGroups(prev, newGroups));
         // Compute next cursor: day after the last loaded date
         const lastDate = newGroups[newGroups.length - 1].date;
         const [y, m, d] = lastDate.split("-").map(Number);
@@ -121,7 +170,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       params.set("date", date);
       params.set("offset", String(loadedCount));
       params.set("limit", "6");
-      params.set("strategy", "diverse");
+      params.set("strategy", "fast-diverse");
 
       const type = searchParams.get("type");
       const genre = searchParams.get("genre");
@@ -150,8 +199,8 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
           return {
             ...group,
             totalCount: data.totalCount,
-            events: [...group.events, ...newUnique],
-            recurringEvents: [...group.recurringEvents, ...newRecurring],
+            events: mergeEventsById(group.events, newUnique),
+            recurringEvents: mergeEventsById(group.recurringEvents, newRecurring),
           };
         }),
       );

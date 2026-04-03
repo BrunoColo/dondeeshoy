@@ -10,11 +10,14 @@ type DuplicateCandidate = {
   id: string;
   name: string;
   venueName: string;
+  ticketUrl: string | null;
   startTime: string | null;
+  department: string;
 };
 
 export type DuplicateLookupCache = {
   sameDayByKey: Map<string, DuplicateCandidate[]>;
+  sameDayByDate: Map<string, DuplicateCandidate[]>;
   recurringByDepartment: Map<string, DuplicateCandidate[]>;
 };
 
@@ -23,6 +26,48 @@ const PLACEHOLDER_VENUE = "venue por confirmar";
 function isPlaceholderVenue(venue: string): boolean {
   const v = venue.toLowerCase().trim();
   return v === PLACEHOLDER_VENUE || v === "por confirmar" || v === "" || v === "tba";
+}
+
+function isWeakVenue(venue: string, eventName: string): boolean {
+  const normalizedVenue = normalize(venue);
+  const normalizedName = normalize(eventName);
+
+  if (isPlaceholderVenue(venue)) {
+    return true;
+  }
+
+  // Some scrapers fill venue with the event name itself (e.g. "CIRCO FANTASY"),
+  // which is too weak for reliable location matching.
+  if (normalizedVenue.length > 0 && normalizedVenue === normalizedName) {
+    return true;
+  }
+
+  return false;
+}
+
+function normalizeUrlForDedupe(url: string | null): string | null {
+  if (!url) return null;
+
+  const raw = url.trim();
+  if (!raw) return null;
+
+  try {
+    const parsed = new URL(raw);
+    parsed.hash = "";
+
+    // Remove tracking noise that can differ between sources
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (/^utm_/i.test(key) || /^(gclid|fbclid|mc_cid|mc_eid)$/i.test(key)) {
+        parsed.searchParams.delete(key);
+      }
+    }
+
+    let normalized = parsed.toString();
+    normalized = normalized.replace(/\/$/, "");
+    return normalized.toLowerCase();
+  } catch {
+    return raw.replace(/\/$/, "").toLowerCase();
+  }
 }
 
 export async function findDuplicateEventId(
@@ -36,16 +81,61 @@ export async function findDuplicateEventId(
     // Recurring events are not tied to a specific date — match by name + city only
     // so that re-scrapes of the same recurring event merge into the existing row
     // instead of creating a new duplicate for each scrape cycle.
-    return findRecurringDuplicate(normalized, cache);
+    const recurringDuplicate = await findRecurringDuplicate(normalized, cache);
+    if (recurringDuplicate) {
+      return recurringDuplicate;
+    }
+
+    // Fallback: some sources may hint recurrence while another source publishes
+    // the same event as a date-specific listing. Try same-day dedupe before creating.
+    const sameDepartmentEvents = await loadSameDayCandidates(normalized, cache);
+    if (sameDepartmentEvents.length > 0) {
+      const sameDepartmentMatch = scoreBestMatch(normalized, sameDepartmentEvents, {
+        department: normalized.city,
+        crossDepartmentFallback: false,
+      });
+
+      if (sameDepartmentMatch) {
+        return sameDepartmentMatch;
+      }
+    }
+
+    const sameDayEvents = await loadSameDayCandidatesByDate(normalized.date, cache);
+    if (sameDayEvents.length === 0) {
+      return null;
+    }
+
+    return scoreBestMatch(normalized, sameDayEvents, {
+      department: normalized.city,
+      crossDepartmentFallback: true,
+    });
   }
 
-  const sameDayEvents = await loadSameDayCandidates(normalized, cache);
+  const sameDepartmentEvents = await loadSameDayCandidates(normalized, cache);
+
+  if (sameDepartmentEvents.length > 0) {
+    const sameDepartmentMatch = scoreBestMatch(normalized, sameDepartmentEvents, {
+      department: normalized.city,
+      crossDepartmentFallback: false,
+    });
+
+    if (sameDepartmentMatch) {
+      return sameDepartmentMatch;
+    }
+  }
+
+  // Fallback: detect obvious cross-department duplicates when one source has
+  // weak venue/location quality (e.g. venue equals event name).
+  const sameDayEvents = await loadSameDayCandidatesByDate(normalized.date, cache);
 
   if (sameDayEvents.length === 0) {
     return null;
   }
 
-  return scoreBestMatch(normalized, sameDayEvents);
+  return scoreBestMatch(normalized, sameDayEvents, {
+    department: normalized.city,
+    crossDepartmentFallback: true,
+  });
 }
 
 async function findRecurringDuplicate(
@@ -66,13 +156,14 @@ async function findRecurringDuplicate(
 export function createDuplicateLookupCache(): DuplicateLookupCache {
   return {
     sameDayByKey: new Map(),
+    sameDayByDate: new Map(),
     recurringByDepartment: new Map(),
   };
 }
 
 export function rememberDuplicateCandidate(
   cache: DuplicateLookupCache,
-  normalized: Pick<NormalizedEventInput, "date" | "city" | "name" | "venueName" | "startTime">,
+  normalized: Pick<NormalizedEventInput, "date" | "city" | "name" | "venueName" | "ticketUrl" | "startTime">,
   eventId: string,
   isRecurring: boolean,
 ): void {
@@ -80,12 +171,20 @@ export function rememberDuplicateCandidate(
     id: eventId,
     name: normalized.name,
     venueName: normalized.venueName,
+    ticketUrl: normalized.ticketUrl,
     startTime: normalized.startTime,
+    department: normalized.city,
   };
 
   rememberCandidateInCollection(
     cache.sameDayByKey,
     buildSameDayCacheKey(normalized.date, normalized.city),
+    candidate,
+  );
+
+  rememberCandidateInCollection(
+    cache.sameDayByDate,
+    buildSameDayDateCacheKey(normalized.date),
     candidate,
   );
 
@@ -113,13 +212,42 @@ async function loadSameDayCandidates(
       id: events.id,
       name: events.name,
       venueName: events.venueName,
+      ticketUrl: events.ticketUrl,
       startTime: events.startTime,
+      department: events.department,
     })
     .from(events)
     .where(and(eq(events.date, normalized.date), eq(events.department, normalized.city)))
     .limit(300);
 
   cache?.sameDayByKey.set(cacheKey, rows);
+  return rows;
+}
+
+async function loadSameDayCandidatesByDate(
+  date: string,
+  cache?: DuplicateLookupCache,
+): Promise<DuplicateCandidate[]> {
+  const cacheKey = buildSameDayDateCacheKey(date);
+
+  if (cache?.sameDayByDate.has(cacheKey)) {
+    return cache.sameDayByDate.get(cacheKey) ?? [];
+  }
+
+  const rows = await db
+    .select({
+      id: events.id,
+      name: events.name,
+      venueName: events.venueName,
+      ticketUrl: events.ticketUrl,
+      startTime: events.startTime,
+      department: events.department,
+    })
+    .from(events)
+    .where(eq(events.date, date))
+    .limit(800);
+
+  cache?.sameDayByDate.set(cacheKey, rows);
   return rows;
 }
 
@@ -138,7 +266,9 @@ async function loadRecurringCandidates(
       id: events.id,
       name: events.name,
       venueName: events.venueName,
+      ticketUrl: events.ticketUrl,
       startTime: events.startTime,
+      department: events.department,
     })
     .from(events)
     .where(and(eq(events.department, normalized.city), eq(events.isRecurring, true)))
@@ -150,6 +280,10 @@ async function loadRecurringCandidates(
 
 function buildSameDayCacheKey(date: string, city: string): string {
   return `${date}::${city}`;
+}
+
+function buildSameDayDateCacheKey(date: string): string {
+  return date;
 }
 
 function buildRecurringCacheKey(city: string): string {
@@ -175,17 +309,23 @@ function rememberCandidateInCollection(
 
 function scoreBestMatch(
   normalized: NormalizedEventInput,
-  candidates: Array<{ id: string; name: string; venueName: string; startTime: string | null }>,
+  candidates: Array<{ id: string; name: string; venueName: string; ticketUrl: string | null; startTime: string | null; department: string }>,
+  options?: { department?: string; crossDepartmentFallback?: boolean },
 ): string | null {
   const normalizedName = normalize(normalized.name);
   const normalizedVenue = normalize(normalized.venueName);
-  const incomingIsPlaceholder = isPlaceholderVenue(normalized.venueName);
+  const normalizedTicketUrl = normalizeUrlForDedupe(normalized.ticketUrl);
+  const incomingIsPlaceholder = isWeakVenue(normalized.venueName, normalized.name);
+  const expectedDepartment = options?.department ?? normalized.city;
+  const crossDepartmentFallback = options?.crossDepartmentFallback ?? false;
 
   let bestId: string | null = null;
   let bestScore = 0;
   let bestHasExactVenue = false;
   let bestHasMatchingStartTime = false;
   let bestHasExactName = false;
+  let bestHasPlaceholderVenue = false;
+  let bestHasSameTicketUrl = false;
 
   for (const candidate of candidates) {
     const candidateName = normalize(candidate.name);
@@ -210,8 +350,14 @@ function scoreBestMatch(
 
     // If either venue is a placeholder, venue comparison is irrelevant —
     // rely entirely on name similarity
-    const candidateIsPlaceholder = isPlaceholderVenue(candidate.venueName);
+    const candidateIsPlaceholder = isWeakVenue(candidate.venueName, candidate.name);
     const candidateVenue = normalize(candidate.venueName);
+    const candidateTicketUrl = normalizeUrlForDedupe(candidate.ticketUrl);
+    const sameTicketUrl =
+      normalizedTicketUrl !== null &&
+      candidateTicketUrl !== null &&
+      normalizedTicketUrl === candidateTicketUrl;
+    const venueScore = similarity(normalizedVenue, candidateVenue);
     let totalScore: number;
     let exactVenue = false;
 
@@ -219,9 +365,25 @@ function scoreBestMatch(
       // Name-only: high name match is enough
       totalScore = nameScore;
     } else {
-      const venueScore = similarity(normalizedVenue, candidateVenue);
       exactVenue = normalizedVenue === candidateVenue && normalizedVenue.length > 0;
       totalScore = nameScore * 0.75 + venueScore * 0.25;
+    }
+
+    if (sameTicketUrl) {
+      // Same canonical ticket URL across sources is a very strong duplicate signal.
+      totalScore = Math.max(totalScore, 0.99);
+    }
+
+    if (crossDepartmentFallback && candidate.department !== expectedDepartment) {
+      const strongCrossDepartmentSignal =
+        sameTicketUrl ||
+        (exactName &&
+          sameStartTime &&
+          (incomingIsPlaceholder || candidateIsPlaceholder || exactVenue || venueScore >= 0.8));
+
+      if (!strongCrossDepartmentSignal) {
+        continue;
+      }
     }
 
     if (totalScore > bestScore) {
@@ -230,12 +392,18 @@ function scoreBestMatch(
       bestHasExactVenue = exactVenue;
       bestHasMatchingStartTime = sameStartTime;
       bestHasExactName = exactName;
+      bestHasPlaceholderVenue = incomingIsPlaceholder || candidateIsPlaceholder;
+      bestHasSameTicketUrl = sameTicketUrl;
     }
   }
 
   // Lower threshold when venues match exactly — if they're at the same place
   // on the same day with similar names, it's almost certainly a duplicate
   let threshold = 0.82;
+
+  if (bestHasSameTicketUrl) {
+    threshold = Math.min(threshold, 0.6);
+  }
 
   if (bestHasExactVenue) {
     threshold = 0.72;
@@ -244,7 +412,9 @@ function scoreBestMatch(
   // Exact title + same start time on the same day is a very strong signal,
   // even when venue aliases differ (e.g. "ACJ Montevideo" vs the full name).
   if (bestHasExactName && bestHasMatchingStartTime) {
-    threshold = Math.min(threshold, 0.68);
+    // Only relax heavily if venue matches OR one side has weak/placeholder venue.
+    // If both venues are explicit and different, keep a stricter threshold.
+    threshold = Math.min(threshold, bestHasExactVenue || bestHasPlaceholderVenue ? 0.68 : 0.78);
   } else if (bestHasMatchingStartTime) {
     threshold = Math.min(threshold, 0.78);
   }
