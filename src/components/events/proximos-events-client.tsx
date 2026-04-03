@@ -16,20 +16,94 @@ interface DateGroup {
   recurringEvents: Event[];
 }
 
-function mergeEventsById(existing: Event[], incoming: Event[]): Event[] {
+function normalizeTextForDedupe(value: string | null | undefined): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeUrlForDedupe(url: string | null | undefined): string | null {
+  if (!url) return null;
+
+  const raw = url.trim();
+  if (!raw) return null;
+
+  try {
+    const parsed = new URL(raw);
+    parsed.hash = "";
+
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (/^utm_/i.test(key) || /^(gclid|fbclid|mc_cid|mc_eid)$/i.test(key)) {
+        parsed.searchParams.delete(key);
+      }
+    }
+
+    return parsed.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return raw.replace(/\/$/, "").toLowerCase();
+  }
+}
+
+function buildSemanticEventKey(event: Event): string {
+  const canonicalUrl = normalizeUrlForDedupe(event.ticketUrl);
+
+  if (canonicalUrl) {
+    return `url::${event.date}::${canonicalUrl}`;
+  }
+
+  const normalizedName = normalizeTextForDedupe(event.name);
+  const normalizedVenue = normalizeTextForDedupe(event.venueName);
+  const startTime = event.startTime ?? "";
+
+  return `slot::${event.date}::${startTime}::${normalizedName}::${normalizedVenue}`;
+}
+
+function mergeEventsForDisplay(
+  existing: Event[],
+  incoming: Event[],
+  options?: { seenSemanticKeys?: Set<string> },
+): Event[] {
   if (incoming.length === 0) return existing;
 
   const merged = [...existing];
   const existingIds = new Set(existing.map((event) => event.id));
+  const semanticKeys = options?.seenSemanticKeys ?? new Set(existing.map((event) => buildSemanticEventKey(event)));
 
   for (const event of incoming) {
-    if (!existingIds.has(event.id)) {
-      merged.push(event);
-      existingIds.add(event.id);
+    const semanticKey = buildSemanticEventKey(event);
+    if (existingIds.has(event.id) || semanticKeys.has(semanticKey)) {
+      continue;
     }
+
+    merged.push(event);
+    existingIds.add(event.id);
+    semanticKeys.add(semanticKey);
   }
 
   return merged;
+}
+
+function sanitizeDateGroup(group: DateGroup): DateGroup {
+  const dedupedEvents = mergeEventsForDisplay([], group.events);
+  const seenSemanticKeys = new Set(dedupedEvents.map((event) => buildSemanticEventKey(event)));
+  const dedupedRecurring = mergeEventsForDisplay([], group.recurringEvents, { seenSemanticKeys });
+
+  const visibleCount = dedupedEvents.length + dedupedRecurring.length;
+
+  return {
+    ...group,
+    totalCount: Math.max(group.totalCount, visibleCount),
+    events: dedupedEvents,
+    recurringEvents: dedupedRecurring,
+  };
+}
+
+function mergeEventsById(existing: Event[], incoming: Event[]): Event[] {
+  return mergeEventsForDisplay(existing, incoming);
 }
 
 function mergeDateGroups(existingGroups: DateGroup[], incomingGroups: DateGroup[]): DateGroup[] {
@@ -38,28 +112,38 @@ function mergeDateGroups(existingGroups: DateGroup[], incomingGroups: DateGroup[
   const byDate = new Map<string, DateGroup>();
 
   for (const group of existingGroups) {
+    const sanitized = sanitizeDateGroup(group);
     byDate.set(group.date, {
-      ...group,
-      events: [...group.events],
-      recurringEvents: [...group.recurringEvents],
+      ...sanitized,
+      events: [...sanitized.events],
+      recurringEvents: [...sanitized.recurringEvents],
     });
   }
 
   for (const group of incomingGroups) {
+    const incomingSanitized = sanitizeDateGroup(group);
     const existing = byDate.get(group.date);
 
     if (!existing) {
       byDate.set(group.date, {
-        ...group,
-        events: [...group.events],
-        recurringEvents: [...group.recurringEvents],
+        ...incomingSanitized,
+        events: [...incomingSanitized.events],
+        recurringEvents: [...incomingSanitized.recurringEvents],
       });
       continue;
     }
 
-    existing.totalCount = Math.max(existing.totalCount, group.totalCount);
-    existing.events = mergeEventsById(existing.events, group.events);
-    existing.recurringEvents = mergeEventsById(existing.recurringEvents, group.recurringEvents);
+    existing.totalCount = Math.max(existing.totalCount, incomingSanitized.totalCount);
+    const mergedEvents = mergeEventsById(existing.events, incomingSanitized.events);
+    const seenSemanticKeys = new Set(mergedEvents.map((event) => buildSemanticEventKey(event)));
+    const mergedRecurring = mergeEventsForDisplay(existing.recurringEvents, incomingSanitized.recurringEvents, {
+      seenSemanticKeys,
+    });
+
+    existing.events = mergedEvents;
+    existing.recurringEvents = mergedRecurring;
+    const visibleCount = existing.events.length + existing.recurringEvents.length;
+    existing.totalCount = Math.max(existing.totalCount, visibleCount);
   }
 
   return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
@@ -74,7 +158,7 @@ interface ProximosEventsClientProps {
 }
 
 export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore = false }: ProximosEventsClientProps) {
-  const [groups, setGroups] = useState<DateGroup[]>(initialGroups);
+  const [groups, setGroups] = useState<DateGroup[]>(() => initialGroups.map(sanitizeDateGroup));
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingMoreByDate, setLoadingMoreByDate] = useState<Record<string, boolean>>({});
   const [cursor, setCursor] = useState(nextFrom);
@@ -85,7 +169,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
   const nearActive = searchParams.get("near") === "true";
 
   useEffect(() => {
-    setGroups(initialGroups);
+    setGroups(initialGroups.map(sanitizeDateGroup));
     setCursor(nextFrom);
     setCanLoadMore(hasMore);
     setLoadingMore(false);
@@ -196,11 +280,20 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       setGroups((prev) =>
         prev.map((group) => {
           if (group.date !== date) return group;
+
+          const mergedEvents = mergeEventsById(group.events, newUnique);
+          const seenSemanticKeys = new Set(mergedEvents.map((event) => buildSemanticEventKey(event)));
+          const mergedRecurring = mergeEventsForDisplay(group.recurringEvents, newRecurring, {
+            seenSemanticKeys,
+          });
+          const mergedCount = mergedEvents.length + mergedRecurring.length;
+          const noNewVisibleEvents = mergedCount === loadedCount;
+
           return {
             ...group,
-            totalCount: data.totalCount,
-            events: mergeEventsById(group.events, newUnique),
-            recurringEvents: mergeEventsById(group.recurringEvents, newRecurring),
+            totalCount: noNewVisibleEvents ? loadedCount : Math.max(data.totalCount, mergedCount),
+            events: mergedEvents,
+            recurringEvents: mergedRecurring,
           };
         }),
       );

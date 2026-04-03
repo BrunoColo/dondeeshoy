@@ -257,20 +257,23 @@ function buildOrderByExpressions(
           ${editorialInterestingScore} DESC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
-          ${events.name} ASC
+          ${events.name} ASC,
+          ${events.id} ASC
       )`,
       sql`row_number() OVER (
         PARTITION BY ${events.date}, lower(trim(${events.venueName}))
         ORDER BY
           ${editorialInterestingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
-          ${events.name} ASC
+          ${events.name} ASC,
+          ${events.id} ASC
       )`,
       asc(seriesCount),
       desc(editorialInterestingScore),
       desc(rankingScore),
       asc(events.startTime),
       asc(events.name),
+      asc(events.id),
     ] as const;
   }
 
@@ -283,11 +286,13 @@ function buildOrderByExpressions(
         ORDER BY
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
-          ${events.name} ASC
+          ${events.name} ASC,
+          ${events.id} ASC
       )`,
       desc(rankingScore),
       asc(events.startTime),
       asc(events.name),
+      asc(events.id),
     ] as const;
   }
 
@@ -297,6 +302,7 @@ function buildOrderByExpressions(
     desc(rankingScore),
     asc(events.startTime),
     asc(events.name),
+    asc(events.id),
   ] as const;
 }
 
