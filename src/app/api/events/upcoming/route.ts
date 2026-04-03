@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     if (night === "true") filters.night = true;
     if (q && q.trim().length >= 2) filters.q = q.trim();
 
-    const dayPreview = await getUpcomingEventGroupsPreview(from, days, 6, filters, "diverse");
+    const dayPreview = await getUpcomingEventGroupsPreview(from, days, 6, filters, "fast-diverse");
 
     const groups = dayPreview.map(({ date, events: allDateEvents, totalCount }) => ({
       date,
