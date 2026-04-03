@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { RotateCw, Maximize2 } from "lucide-react";
+import { LocateFixed, MapPin, Maximize2, RotateCw, Search, X } from "lucide-react";
 import { formatPrice, formatTime } from "@/lib/format";
 import type { EventType } from "@/types/events";
+import { loadGoogleMapsApi, type GoogleMapsLike } from "@/lib/maps/google-maps-loader";
 
 /** Marker color per event type */
 const TYPE_COLORS: Record<string, string> = {
@@ -25,121 +24,125 @@ const TYPE_COLORS: Record<string, string> = {
   otro: "#94A3B8",
 };
 
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-/** Category icons (SVG markup) per event type */
-const TYPE_ICON_MARKUP: Record<string, string> = {
-  fiesta: '<path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /><circle cx="12" cy="12" r="2.5" />',
-  festival: '<path d="M12 3.5 14.7 8.9 20.6 9.8 16.3 14 17.3 19.9 12 17.1 6.7 19.9 7.7 14 3.4 9.8 9.3 8.9Z" fill="currentColor" stroke="none" />',
-  concierto: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
-  recital: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
-  cultural: '<path d="M7 5.5A2.5 2.5 0 0 1 9.5 8v10A2.5 2.5 0 0 0 7 15.5H5V5.5Zm10 0A2.5 2.5 0 0 0 14.5 8v10A2.5 2.5 0 0 1 17 15.5h2V5.5Z" fill="currentColor" stroke="none" /><path d="M9.5 8h5M9.5 12h5M9.5 16h5" />',
-  deportivo: '<circle cx="12" cy="12" r="7.5" /><path d="M12 4.5c1.8 1.4 2.9 2.9 3.4 4.5-.8 1.2-2 2.1-3.4 2.8-1.4-.7-2.6-1.6-3.4-2.8.5-1.6 1.6-3.1 3.4-4.5Zm-3.4 7.3L6 16l3.8 2.5M15.4 11.8 18 16l-3.8 2.5" />',
-  gastronomico: '<path d="M8 4v7M6 4v7M8 8H6M15 4v7" /><path d="M18 4c0 3-1 4.7-3 5.2V20" />',
-  familiar: '<circle cx="9" cy="9" r="2.2" fill="currentColor" stroke="none" /><circle cx="15.5" cy="8.2" r="2.6" fill="currentColor" stroke="none" /><path d="M5.5 18a4 4 0 0 1 7 0M11.5 18a4.8 4.8 0 0 1 8 0" />',
-  feria: '<path d="M7 8.5h10l-1 9H8Zm2-3h6l1 3H8Z" /><path d="M10 11.5h4" />',
-  taller: '<path d="M14.8 6.2a3 3 0 0 0-3.9 3.9L5 16v3h3l5.9-5.9a3 3 0 0 0 3.9-3.9l-2.2 2.2-1.6-1.6Z" fill="currentColor" stroke="none" />',
-  club: '<path d="M15 5v8.4a3 3 0 1 1-1.8-2.7V7.2l6-1.8v6a3 3 0 1 1-1.8-2.7V3.9Z" fill="currentColor" stroke="none" />',
-  bar: '<path d="M6 5h12l-4.5 5v3.8l-2 1.2V10Z" /><path d="M10.5 18h3" />',
-  teatro: '<path d="M7 6.5h10v6.8c-2-.8-3.8-.8-5.5.2-1.5.8-2.9.9-4.5.1Z" /><path d="M9.2 9.4h.01M14.8 9.4h.01" /><path d="M9.5 12c.8.7 1.6 1 2.5 1s1.7-.3 2.5-1" />',
-  otro: '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" /><path d="M12 4.5c-3.6 0-6.5 2.9-6.5 6.4 0 4.8 6.5 8.6 6.5 8.6s6.5-3.8 6.5-8.6c0-3.5-2.9-6.4-6.5-6.4Z" />',
-};
-
-function createMarkerIcon(eventType: string, isSelected: boolean): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NS, "svg");
-  const iconSize = isSelected ? 16 : 14;
-
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("width", String(iconSize));
-  svg.setAttribute("height", String(iconSize));
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", isSelected ? "1.9" : "1.8");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.style.color = "#F8FAFC";
-  svg.style.filter = "drop-shadow(0 1px 2px rgba(0,0,0,0.35))";
-  svg.style.pointerEvents = "none";
-  svg.innerHTML = TYPE_ICON_MARKUP[eventType] ?? TYPE_ICON_MARKUP.otro;
-
-  return svg;
+interface GoogleMapInstance {
+  panTo(position: { lat: number; lng: number }): void;
+  setZoom(zoom: number): void;
+  getZoom(): number | undefined;
+  fitBounds(
+    bounds: GoogleLatLngBoundsInstance,
+    padding?: number | { top: number; right: number; bottom: number; left: number },
+  ): void;
 }
 
-/** Create a colored marker element.
- *  IMPORTANT: Do NOT set `position` on the wrapper — Mapbox GL applies
- *  `position: absolute` via the `.mapboxgl-marker` class and uses CSS
- *  `transform` to project it on screen.  Overriding that with
- *  `position: relative` breaks zoom because the marker starts in
- *  document flow instead of at (0,0) of the marker container. */
-function createMarkerElement(color: string, eventType: string, isSelected = false): HTMLDivElement {
-  const circleSize = isSelected ? 34 : 28;
-  const pointerH = isSelected ? 7 : 5;
-  const totalH = circleSize + pointerH - 1; // -1 overlap
+interface GoogleMarkerInstance {
+  setMap(map: GoogleMapInstance | null): void;
+  addListener(eventName: "click", handler: () => void): void;
+}
 
-  // Wrapper — only width/height so Mapbox can compute the anchor offset.
-  // `position` is intentionally NOT set; .mapboxgl-marker (absolute) handles it.
-  const wrapper = document.createElement("div");
-  wrapper.style.width = `${circleSize}px`;
-  wrapper.style.height = `${totalH}px`;
-  wrapper.style.cursor = "pointer";
+interface GoogleInfoWindowInstance {
+  close(): void;
+  open(options: { map: GoogleMapInstance; anchor?: GoogleMarkerInstance; shouldFocus?: boolean }): void;
+  addListener(eventName: "closeclick", handler: () => void): void;
+}
 
-  // Circle — absolutely positioned inside the wrapper
-  const circle = document.createElement("div");
-  circle.style.position = "absolute";
-  circle.style.top = "0";
-  circle.style.left = "0";
-  circle.style.width = `${circleSize}px`;
-  circle.style.height = `${circleSize}px`;
-  circle.style.borderRadius = "50%";
-  circle.style.background = `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.24), rgba(255,255,255,0.02) 34%, transparent 35%), ${color}`;
-  circle.style.border = `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.7)"}`;
-  circle.style.display = "flex";
-  circle.style.alignItems = "center";
-  circle.style.justifyContent = "center";
-  circle.style.boxShadow = isSelected
-    ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.45)`
-    : "0 2px 6px rgba(0,0,0,0.35)";
-  circle.style.transition = "box-shadow 0.2s ease, filter 0.2s ease";
-  circle.dataset.role = "circle";
+interface GoogleLatLngBoundsInstance {
+  extend(position: { lat: number; lng: number }): void;
+}
 
-  // Pulse ring for selected marker
-  if (isSelected) {
-    const pulse = document.createElement("div");
-    pulse.style.position = "absolute";
-    pulse.style.top = "0";
-    pulse.style.left = "0";
-    pulse.style.width = `${circleSize}px`;
-    pulse.style.height = `${circleSize}px`;
-    pulse.style.borderRadius = "50%";
-    pulse.style.border = `2px solid ${color}`;
-    pulse.style.animation = "marker-pulse 2s ease-out infinite";
-    pulse.style.pointerEvents = "none";
-    wrapper.appendChild(pulse);
-  }
+interface GoogleLatLngInstance {
+  lat(): number;
+  lng(): number;
+}
 
-  // SVG icon
-  const icon = createMarkerIcon(eventType, isSelected);
-  circle.appendChild(icon);
-  wrapper.appendChild(circle);
+interface GoogleGeocoderResult {
+  formatted_address?: string;
+  geometry?: {
+    location?: GoogleLatLngInstance;
+  };
+}
 
-  // Triangle pointer — absolute, centred at bottom
-  const pointer = document.createElement("div");
-  pointer.style.position = "absolute";
-  pointer.style.bottom = "0";
-  pointer.style.left = "50%";
-  pointer.style.transform = "translateX(-50%)";
-  pointer.style.width = "0";
-  pointer.style.height = "0";
-  pointer.style.borderLeft = `${pointerH}px solid transparent`;
-  pointer.style.borderRight = `${pointerH}px solid transparent`;
-  pointer.style.borderTop = `${pointerH}px solid ${color}`;
-  wrapper.appendChild(pointer);
+interface GoogleGeocoderInstance {
+  geocode(
+    request: {
+      address: string;
+      region?: string;
+      componentRestrictions?: {
+        country: string;
+      };
+    },
+    callback: (results: GoogleGeocoderResult[] | null, status: string) => void,
+  ): void;
+}
 
-  // Drop-in entrance animation (on the wrapper — uses opacity+scale only,
-  // NOT translate, so it doesn't fight Mapbox's positioning transform).
-  wrapper.style.animation = "marker-drop 0.35s cubic-bezier(0.34,1.56,0.64,1) both";
+interface GoogleMapsNamespace {
+  maps: {
+    Map: new (
+      container: HTMLElement,
+      options: {
+        center: { lat: number; lng: number };
+        zoom: number;
+        mapTypeControl?: boolean;
+        streetViewControl?: boolean;
+        fullscreenControl?: boolean;
+        clickableIcons?: boolean;
+        gestureHandling?: "cooperative" | "greedy" | "none" | "auto";
+        restriction?: {
+          latLngBounds: {
+            north: number;
+            south: number;
+            west: number;
+            east: number;
+          };
+          strictBounds?: boolean;
+        };
+      },
+    ) => GoogleMapInstance;
+    Marker: new (options: {
+      map: GoogleMapInstance;
+      position: { lat: number; lng: number };
+      title: string;
+      zIndex?: number;
+      icon?: {
+        path: unknown;
+        scale: number;
+        fillColor: string;
+        fillOpacity: number;
+        strokeColor: string;
+        strokeWeight: number;
+      };
+      label?: {
+        text: string;
+        color: string;
+        fontSize: string;
+        fontWeight: string;
+      };
+    }) => GoogleMarkerInstance;
+    InfoWindow: new (options: {
+      content: HTMLElement;
+      maxWidth?: number;
+    }) => GoogleInfoWindowInstance;
+    LatLngBounds: new () => GoogleLatLngBoundsInstance;
+    Geocoder: new () => GoogleGeocoderInstance;
+    SymbolPath: {
+      CIRCLE: unknown;
+    };
+  };
+}
 
-  return wrapper;
+interface PlaceSearchResult {
+  id: string;
+  label: string;
+  subtitle: string;
+  latitude: number;
+  longitude: number;
+}
+
+type SearchSuggestion =
+  | { kind: "event"; event: MapEvent }
+  | { kind: "place"; place: PlaceSearchResult };
+
+function isWithinUruguayBounds(latitude: number, longitude: number): boolean {
+  return latitude >= -36 && latitude <= -30 && longitude >= -59 && longitude <= -53;
 }
 
 export interface MapEvent {
@@ -165,6 +168,7 @@ interface EventMapProps {
   weekendEvents: MapEvent[];
   selectedEventId?: string | null;
   activeTypeFilter?: string | null;
+  mobileBottomSheetOpen?: boolean;
   onEventSelect?: (event: MapEvent | null) => void;
   onDateFilterChange?: (filter: DateFilter) => void;
 }
@@ -177,17 +181,27 @@ export function EventMap({
   weekendEvents,
   selectedEventId,
   activeTypeFilter,
+  mobileBottomSheetOpen = false,
   onEventSelect,
   onDateFilterChange,
 }: EventMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const googleMapsRef = useRef<GoogleMapsNamespace | null>(null);
+  const geocoderRef = useRef<GoogleGeocoderInstance | null>(null);
+  const placeSearchRequestIdRef = useRef(0);
+  const placeSearchDebounceRef = useRef<number | null>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const markersRef = useRef<Map<string, GoogleMarkerInstance>>(new Map());
+  const popupRef = useRef<GoogleInfoWindowInstance | null>(null);
 
   const [hideRecurring, setHideRecurring] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("hoy");
   const [mapReady, setMapReady] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [placeSearchResults, setPlaceSearchResults] = useState<PlaceSearchResult[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   // Stable ref for onEventSelect to avoid marker recreation
   const onEventSelectRef = useRef(onEventSelect);
@@ -195,271 +209,675 @@ export function EventMap({
     onEventSelectRef.current = onEventSelect;
   }, [onEventSelect]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+
+    const updateViewport = () => {
+      setIsDesktopViewport(mediaQuery.matches);
+    };
+
+    updateViewport();
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateViewport);
+      return () => {
+        mediaQuery.removeEventListener("change", updateViewport);
+      };
+    }
+
+    mediaQuery.addListener(updateViewport);
+    return () => {
+      mediaQuery.removeListener(updateViewport);
+    };
+  }, []);
+
   const activeEvents = useMemo(() => {
     if (dateFilter === "manana") return tomorrowEvents;
     if (dateFilter === "finde") return weekendEvents;
     return todayEvents;
   }, [dateFilter, todayEvents, tomorrowEvents, weekendEvents]);
 
-  const recurringCount = useMemo(() => activeEvents.filter((e) => e.isRecurring).length, [activeEvents]);
+  const recurringCount = useMemo(
+    () => activeEvents.filter((event) => event.isRecurring).length,
+    [activeEvents],
+  );
 
   const visibleEvents = useMemo(() => {
     let events = activeEvents;
-    if (hideRecurring) events = events.filter((e) => !e.isRecurring);
-    if (activeTypeFilter) events = events.filter((e) => e.eventType === activeTypeFilter);
+    if (hideRecurring) events = events.filter((event) => !event.isRecurring);
+    if (activeTypeFilter) {
+      events = events.filter((event) => event.eventType === activeTypeFilter);
+    }
     return events;
   }, [activeEvents, hideRecurring, activeTypeFilter]);
+
+  const mapSearchResults = useMemo(() => {
+    const q = mapSearchQuery.trim().toLowerCase();
+    if (q.length < 2) return [] as MapEvent[];
+
+    return visibleEvents
+      .filter(
+        (event) =>
+          event.name.toLowerCase().includes(q) ||
+          event.venueName.toLowerCase().includes(q),
+      )
+      .slice(0, 6);
+  }, [mapSearchQuery, visibleEvents]);
+
+  const searchSuggestions = useMemo(() => {
+    const eventSuggestions: SearchSuggestion[] = mapSearchResults.map((event) => ({
+      kind: "event",
+      event,
+    }));
+
+    const eventNames = new Set(
+      mapSearchResults.map((event) => event.name.trim().toLowerCase()),
+    );
+
+    const canShowPlaces = searchFocused && mapSearchQuery.trim().length >= 3;
+    const effectivePlaceResults = canShowPlaces ? placeSearchResults : [];
+
+    const placeSuggestions: SearchSuggestion[] = effectivePlaceResults
+      .filter((place) => !eventNames.has(place.label.trim().toLowerCase()))
+      .map((place) => ({
+        kind: "place",
+        place,
+      }));
+
+    return [...eventSuggestions, ...placeSuggestions].slice(0, 8);
+  }, [mapSearchQuery, mapSearchResults, placeSearchResults, searchFocused]);
 
   // Notify parent only when the date filter pill changes
   useEffect(() => {
     onDateFilterChange?.(dateFilter);
   }, [dateFilter, onDateFilterChange]);
 
-  // Initialize Mapbox GL map
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
+  const clearMarkers = useCallback(() => {
+    for (const [, marker] of markersRef.current) {
+      marker.setMap(null);
+    }
+    markersRef.current.clear();
+  }, []);
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error("NEXT_PUBLIC_MAPBOX_TOKEN not set");
+  useEffect(() => {
+    if (!isDesktopViewport && popupRef.current) {
+      popupRef.current.close();
+      popupRef.current = null;
+    }
+  }, [isDesktopViewport]);
+
+  // Initialize Google Map
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initMap() {
+      if (!mapContainerRef.current) return;
+
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        console.error("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY not set");
+        return;
+      }
+
+      try {
+        const googleMaps = (await loadGoogleMapsApi({
+          apiKey,
+          libraries: ["places"],
+        })) as GoogleMapsLike as GoogleMapsNamespace;
+
+        if (cancelled) return;
+
+        const map = new googleMaps.maps.Map(mapContainerRef.current, {
+          center: { lat: -34.9011, lng: -56.1645 },
+          zoom: 12,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+          gestureHandling: "greedy",
+          restriction: {
+            latLngBounds: {
+              north: -30.0,
+              south: -35.8,
+              west: -58.5,
+              east: -53.0,
+            },
+            strictBounds: false,
+          },
+        });
+
+        googleMapsRef.current = googleMaps;
+        geocoderRef.current = new googleMaps.maps.Geocoder();
+        mapRef.current = map;
+        setMapReady(true);
+      } catch (error) {
+        console.error("Failed to initialize Google Maps", error);
+      }
+    }
+
+    initMap();
+
+    return () => {
+      cancelled = true;
+      setMapReady(false);
+      clearMarkers();
+      popupRef.current?.close();
+      popupRef.current = null;
+      mapRef.current = null;
+      geocoderRef.current = null;
+      googleMapsRef.current = null;
+
+      if (placeSearchDebounceRef.current) {
+        window.clearTimeout(placeSearchDebounceRef.current);
+        placeSearchDebounceRef.current = null;
+      }
+    };
+  }, [clearMarkers]);
+
+  useEffect(() => {
+    const query = mapSearchQuery.trim();
+    if (!searchFocused || query.length < 3) {
+      placeSearchRequestIdRef.current += 1;
+
+      if (placeSearchDebounceRef.current) {
+        window.clearTimeout(placeSearchDebounceRef.current);
+        placeSearchDebounceRef.current = null;
+      }
       return;
     }
 
-    mapboxgl.accessToken = token;
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [-56.1645, -34.9011],
-      zoom: 12,
-      attributionControl: true,
-      maxBounds: [
-        [-58.5, -35.8],
-        [-53.0, -30.0],
-      ],
-    });
+    const geocoder = geocoderRef.current;
+    if (!geocoder) return;
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+    const requestId = placeSearchRequestIdRef.current + 1;
+    placeSearchRequestIdRef.current = requestId;
 
-    map.on("load", () => {
-      setMapReady(true);
-    });
+    if (placeSearchDebounceRef.current) {
+      window.clearTimeout(placeSearchDebounceRef.current);
+    }
 
-    mapRef.current = map;
+    placeSearchDebounceRef.current = window.setTimeout(() => {
+      geocoder.geocode(
+        {
+          address: query,
+          region: "uy",
+          componentRestrictions: {
+            country: "UY",
+          },
+        },
+        (results, status) => {
+          if (requestId !== placeSearchRequestIdRef.current) return;
+
+          if (status !== "OK" || !results || results.length === 0) {
+            setPlaceSearchResults([]);
+            return;
+          }
+
+          const mapped = results
+            .slice(0, 4)
+            .map((result, index) => {
+              const location = result.geometry?.location;
+              if (!location) return null;
+
+              const latitude = location.lat();
+              const longitude = location.lng();
+
+              if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+              if (!isWithinUruguayBounds(latitude, longitude)) return null;
+
+              const formattedAddress = result.formatted_address?.trim() ?? query;
+              const label = formattedAddress.split(",")[0]?.trim() || formattedAddress;
+
+              return {
+                id: `${requestId}-${index}-${formattedAddress}`,
+                label,
+                subtitle: formattedAddress,
+                latitude,
+                longitude,
+              } as PlaceSearchResult;
+            })
+            .filter((place): place is PlaceSearchResult => Boolean(place));
+
+          setPlaceSearchResults(mapped);
+        },
+      );
+    }, 260);
 
     return () => {
-      setMapReady(false);
-      map.remove();
-      mapRef.current = null;
+      if (placeSearchDebounceRef.current) {
+        window.clearTimeout(placeSearchDebounceRef.current);
+        placeSearchDebounceRef.current = null;
+      }
     };
-  }, []);
-
+  }, [mapSearchQuery, searchFocused]);
 
   // Show popup for a given event
-  const showPopup = useCallback((map: mapboxgl.Map, event: MapEvent) => {
-    if (popupRef.current) popupRef.current.remove();
+  const showPopup = useCallback(
+    (
+      map: GoogleMapInstance,
+      marker: GoogleMarkerInstance,
+      event: MapEvent,
+    ) => {
+      const googleMaps = googleMapsRef.current;
+      if (!googleMaps) return;
 
-    const price = event.isFree
-      ? "Gratis"
-      : event.priceMin
-        ? formatPrice(event.priceMin, null, false, event.currency)
-        : "Consultar";
-    const timeLabel = formatTime(event.startTime ?? null);
-    const shortDateLabel = (() => {
-      const [year, month, day] = event.date.split("-").map(Number);
-      if (!year || !month || !day) return event.date;
-      return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
-    })();
-    const dateTimeLabel = timeLabel ? `${shortDateLabel} · ${timeLabel}` : shortDateLabel;
+      popupRef.current?.close();
 
-    const typeColor = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
-    const container = document.createElement("div");
-    container.innerHTML = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 280px;">
-        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; box-shadow: 0 0 6px ${typeColor}88; flex-shrink: 0;"></span>
-          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${typeColor};">${event.eventType}</span>
-        </div>
-        <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #F1F5F9; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #94A3B8;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>📍</span>
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
+      const price = event.isFree
+        ? "Gratis"
+        : event.priceMin
+          ? formatPrice(event.priceMin, null, false, event.currency)
+          : "Consultar";
+
+      const timeLabel = formatTime(event.startTime ?? null);
+      const shortDateLabel = (() => {
+        const [year, month, day] = event.date.split("-").map(Number);
+        if (!year || !month || !day) return event.date;
+        return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
+      })();
+      const dateTimeLabel = timeLabel ? `${shortDateLabel} · ${timeLabel}` : shortDateLabel;
+
+      const typeColor = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
+      const container = document.createElement("div");
+      container.innerHTML = `
+        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 280px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; box-shadow: 0 0 6px ${typeColor}88; flex-shrink: 0;"></span>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${typeColor};">${event.eventType}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${dateTimeLabel}</span></div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>🎫</span>
-            <span style="font-weight: 600; color: ${event.isFree ? "#34D399" : "#CBD5E1"};">${price}</span>
+          <h3 style="font-size: 14px; font-weight: 600; line-height: 1.3; color: #0F172A; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.name}</h3>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #334155;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>📍</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.venueName}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;"><span>🕐</span><span>${dateTimeLabel}</span></div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>🎫</span>
+              <span style="font-weight: 600; color: ${event.isFree ? "#059669" : "#1E293B"};">${price}</span>
+            </div>
           </div>
+          <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(13,148,136,0.12); border: 1px solid rgba(13,148,136,0.25); font-size: 12px; font-weight: 600; color: #0F766E; text-decoration: none; transition: background 0.2s ease;">Ver evento →</a>
         </div>
-        <a href="/evento/${event.slug}" style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 7px 12px; border-radius: 10px; background: rgba(13,148,136,0.15); border: 1px solid rgba(13,148,136,0.35); font-size: 12px; font-weight: 600; color: #14B8A6; text-decoration: none; transition: background 0.2s ease;">
-          Ver evento →
-        </a>
-      </div>
-    `;
+      `;
 
-    const popup = new mapboxgl.Popup({
-      closeButton: true,
-      maxWidth: "300px",
-      offset: 28,
-      className: "dark-popup",
-    })
-      .setLngLat([event.longitude, event.latitude])
-      .setDOMContent(container)
-      .addTo(map);
+      const popup = new googleMaps.maps.InfoWindow({
+        content: container,
+        maxWidth: 320,
+      });
 
-    popup.on("close", () => {
-      onEventSelectRef.current?.(null);
-      popupRef.current = null;
-    });
+      popup.addListener("closeclick", () => {
+        onEventSelectRef.current?.(null);
+        popupRef.current = null;
+      });
 
-    popupRef.current = popup;
-  }, []);
+      popup.open({
+        map,
+        anchor: marker,
+        shouldFocus: false,
+      });
+
+      popupRef.current = popup;
+    },
+    [],
+  );
 
   // Render markers when visible events change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    const googleMaps = googleMapsRef.current;
+    if (!map || !googleMaps || !mapReady) return;
 
-    // Remove old markers
-    for (const [, marker] of markersRef.current) {
-      marker.remove();
-    }
-    markersRef.current.clear();
+    clearMarkers();
 
-    // Add new markers
     for (const event of visibleEvents) {
       const isSelected = selectedEventId === event.id;
       const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
-      const el = createMarkerElement(color, event.eventType, isSelected);
 
-      // Hover effect — glow on circle child only, NO transform to avoid
-      // conflicting with Mapbox's internal marker positioning.
-      const circleEl = el.querySelector('[data-role="circle"]') as HTMLElement | null;
-      if (circleEl) {
-        el.addEventListener("mouseenter", () => {
-          circleEl.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.9), 0 0 12px ${color}80, 0 4px 16px rgba(0,0,0,0.5)`;
-          circleEl.style.filter = "brightness(1.2)";
-        });
-        el.addEventListener("mouseleave", () => {
-          circleEl.style.boxShadow = isSelected
-            ? `0 0 0 3px ${color}55, 0 4px 12px rgba(0,0,0,0.45)`
-            : "0 2px 6px rgba(0,0,0,0.35)";
-          circleEl.style.filter = "brightness(1)";
-        });
-      }
-
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onEventSelectRef.current?.(event);
-        showPopup(map, event);
+      const marker = new googleMaps.maps.Marker({
+        map,
+        position: {
+          lat: event.latitude,
+          lng: event.longitude,
+        },
+        title: event.name,
+        zIndex: isSelected ? 3000 : 1000,
+        icon: {
+          path: googleMaps.maps.SymbolPath.CIRCLE,
+          scale: isSelected ? 11 : 9,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: "#FFFFFF",
+          strokeWeight: isSelected ? 3 : 2,
+        },
+        label: {
+          text: event.eventType.slice(0, 1).toUpperCase(),
+          color: "#FFFFFF",
+          fontSize: isSelected ? "10px" : "9px",
+          fontWeight: "700",
+        },
       });
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-        .setLngLat([event.longitude, event.latitude])
-        .addTo(map);
+      marker.addListener("click", () => {
+        onEventSelectRef.current?.(event);
+        if (isDesktopViewport) {
+          showPopup(map, marker, event);
+        } else if (popupRef.current) {
+          popupRef.current.close();
+          popupRef.current = null;
+        }
+      });
 
       markersRef.current.set(event.id, marker);
     }
-  }, [visibleEvents, mapReady, selectedEventId, showPopup]);
+  }, [visibleEvents, mapReady, selectedEventId, clearMarkers, showPopup, isDesktopViewport]);
 
   // Fly to selected event
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !selectedEventId) return;
 
-    const event = visibleEvents.find((e) => e.id === selectedEventId);
-    if (event) {
-      map.flyTo({
-        center: [event.longitude, event.latitude],
-        zoom: Math.max(map.getZoom(), 14),
-        duration: 800,
-      });
-      showPopup(map, event);
+    const event = visibleEvents.find((item) => item.id === selectedEventId);
+    if (!event) return;
+
+    const marker = markersRef.current.get(event.id);
+
+    map.panTo({
+      lat: event.latitude,
+      lng: event.longitude,
+    });
+
+    const zoom = map.getZoom() ?? 12;
+    if (zoom < 14) {
+      map.setZoom(14);
     }
-  }, [selectedEventId, visibleEvents, mapReady, showPopup]);
+
+    if (marker && isDesktopViewport) {
+      showPopup(map, marker, event);
+    }
+  }, [selectedEventId, visibleEvents, mapReady, showPopup, isDesktopViewport]);
 
   const fitBounds = useCallback(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const googleMaps = googleMapsRef.current;
+    if (!map || !googleMaps) return;
 
-    const events = visibleEvents;
-    if (events.length === 0) return;
+    if (visibleEvents.length === 0) return;
 
-    if (events.length === 1) {
-      map.flyTo({ center: [events[0].longitude, events[0].latitude], zoom: 14, duration: 600 });
+    if (visibleEvents.length === 1) {
+      map.panTo({
+        lat: visibleEvents[0].latitude,
+        lng: visibleEvents[0].longitude,
+      });
+      map.setZoom(14);
       return;
     }
 
-    const bounds = new mapboxgl.LngLatBounds();
-    for (const e of events) {
-      bounds.extend([e.longitude, e.latitude]);
+    const bounds = new googleMaps.maps.LatLngBounds();
+    for (const event of visibleEvents) {
+      bounds.extend({ lat: event.latitude, lng: event.longitude });
     }
-    map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
-  }, [visibleEvents]);
 
-  const handleDateChange = (f: DateFilter) => {
-    setDateFilter(f);
+    map.fitBounds(bounds, {
+      top: isDesktopViewport ? 90 : 130,
+      right: 56,
+      bottom: isDesktopViewport ? 120 : mobileBottomSheetOpen ? 320 : 150,
+      left: 56,
+    });
+  }, [visibleEvents, isDesktopViewport, mobileBottomSheetOpen]);
+
+  const focusEventFromSearch = useCallback(
+    (event: MapEvent) => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      onEventSelectRef.current?.(event);
+      setMapSearchQuery(event.name);
+      setSearchFocused(false);
+
+      map.panTo({
+        lat: event.latitude,
+        lng: event.longitude,
+      });
+
+      const zoom = map.getZoom() ?? 12;
+      if (zoom < 14) {
+        map.setZoom(14);
+      }
+
+      const marker = markersRef.current.get(event.id);
+      if (marker && isDesktopViewport) {
+        showPopup(map, marker, event);
+      }
+    },
+    [showPopup, isDesktopViewport],
+  );
+
+  const focusPlaceFromSearch = useCallback((place: PlaceSearchResult) => {
+    const map = mapRef.current;
+    if (!map) return;
+
     onEventSelectRef.current?.(null);
-    if (popupRef.current) popupRef.current.remove();
-    setTimeout(() => fitBounds(), 50);
+    popupRef.current?.close();
+    popupRef.current = null;
+
+    setMapSearchQuery(place.label);
+    setSearchFocused(false);
+
+    map.panTo({
+      lat: place.latitude,
+      lng: place.longitude,
+    });
+
+    const zoom = map.getZoom() ?? 12;
+    if (zoom < 14) {
+      map.setZoom(14);
+    }
+  }, []);
+
+  const effectiveBottomOffset = isDesktopViewport
+    ? 74
+    : mobileBottomSheetOpen
+      ? 248
+      : 74;
+
+  const goToMyLocation = useCallback(() => {
+    if (geoLoading) return;
+
+    const map = mapRef.current;
+    if (!map || typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    setGeoLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+
+        map.panTo(coords);
+        const zoom = map.getZoom() ?? 12;
+        if (zoom < 14) {
+          map.setZoom(14);
+        }
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoLoading(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+      },
+    );
+  }, [geoLoading]);
+
+  const handleDateChange = (filter: DateFilter) => {
+    setDateFilter(filter);
+    onEventSelectRef.current?.(null);
+
+    popupRef.current?.close();
+    popupRef.current = null;
+
+    window.setTimeout(() => {
+      fitBounds();
+    }, 80);
   };
 
   return (
     <div className="relative h-full w-full">
-      {/* Mapbox GL container */}
+      {/* Google Maps container */}
       <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* ─── Top bar: date pills + style/fit ─── */}
+      {/* ─── Top search bar (Google Maps-like) ─── */}
       <div
-        className="absolute z-[1000] flex items-start justify-between gap-2.5"
+        className="absolute z-[1002]"
         style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+          top: "calc(env(safe-area-inset-top, 0px) + 10px)",
+          left: "calc(env(safe-area-inset-left, 0px) + 12px)",
+          right: "calc(env(safe-area-inset-right, 0px) + 12px)",
+        }}
+      >
+        <div className="mx-auto max-w-[440px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280] pointer-events-none" />
+            <input
+              type="text"
+              value={mapSearchQuery}
+              onChange={(event) => setMapSearchQuery(event.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => {
+                window.setTimeout(() => {
+                  setSearchFocused(false);
+                }, 120);
+              }}
+              placeholder="Buscar evento o lugar en el mapa..."
+              className="w-full rounded-2xl border border-black/10 bg-white/95 px-10 py-2.5 text-[13px] text-slate-800 shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-xl placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#0D9488]/35"
+            />
+            {mapSearchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMapSearchQuery("");
+                  setPlaceSearchResults([]);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6B7280] hover:bg-black/5 hover:text-slate-800"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {searchFocused && mapSearchQuery.trim().length >= 2 && (
+            <div className="mt-1.5 overflow-hidden rounded-xl border border-black/10 bg-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+              {searchSuggestions.length > 0 ? (
+                <ul className="max-h-[260px] overflow-y-auto py-1.5">
+                  {searchSuggestions.map((suggestion) => {
+                    if (suggestion.kind === "event") {
+                      const event = suggestion.event;
+                      return (
+                        <li key={`event-${event.id}`}>
+                          <button
+                            type="button"
+                            onMouseDown={(eventMouseDown) => eventMouseDown.preventDefault()}
+                            onClick={() => focusEventFromSearch(event)}
+                            className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-black/[0.05]"
+                          >
+                            <span
+                              className="mt-1 inline-block h-2 w-2 rounded-full"
+                              style={{
+                                backgroundColor: TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro,
+                              }}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[12px] font-semibold text-slate-900">{event.name}</span>
+                              <span className="block truncate text-[11px] text-slate-500">{event.venueName}</span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    }
+
+                    const place = suggestion.place;
+                    return (
+                      <li key={`place-${place.id}`}>
+                        <button
+                          type="button"
+                          onMouseDown={(eventMouseDown) => eventMouseDown.preventDefault()}
+                          onClick={() => focusPlaceFromSearch(place)}
+                          className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-black/[0.05]"
+                        >
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0D9488]" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12px] font-semibold text-slate-900">{place.label}</span>
+                            <span className="block truncate text-[11px] text-slate-500">{place.subtitle}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="px-3 py-3 text-[12px] text-slate-500">No encontramos eventos ni lugares en este mapa.</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Date filter pills ─── */}
+      <div
+        className="absolute z-[1001]"
+        style={{
+          top: "calc(env(safe-area-inset-top, 0px) + 66px)",
           left: "calc(env(safe-area-inset-left, 0px) + 14px)",
           right: "calc(env(safe-area-inset-right, 0px) + 14px)",
         }}
       >
-        {/* Date filter pills */}
         <div className="flex items-center gap-1.5 rounded-2xl p-0.5">
-          {(["hoy", "manana", "finde"] as DateFilter[]).map((f) => {
-            const labels: Record<DateFilter, string> = { hoy: "Hoy", manana: "Mañana", finde: "Finde" };
+          {(["hoy", "manana", "finde"] as DateFilter[]).map((filter) => {
+            const labels: Record<DateFilter, string> = {
+              hoy: "Hoy",
+              manana: "Mañana",
+              finde: "Finde",
+            };
+
             const counts: Record<DateFilter, number> = {
               hoy: todayEvents.length,
               manana: tomorrowEvents.length,
               finde: weekendEvents.length,
             };
-            const isActive = dateFilter === f;
+
+            const isActive = dateFilter === filter;
+
             return (
               <button
-                key={f}
+                key={filter}
                 type="button"
-                onClick={() => handleDateChange(f)}
+                onClick={() => handleDateChange(filter)}
                 className={`relative flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold tracking-wide transition-all duration-200 ${
                   isActive
-                    ? "bg-[rgba(34,39,74,0.88)] text-white ring-1 ring-indigo-200/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_18px_rgba(8,10,24,0.22)] backdrop-blur-xl"
-                    : "bg-[rgba(8,10,24,0.58)] text-white/72 ring-1 ring-white/[0.08] shadow-[0_6px_16px_rgba(0,0,0,0.16)] backdrop-blur-lg hover:text-white hover:bg-[rgba(12,15,32,0.72)]"
+                    ? "bg-[rgba(34,39,74,0.9)] text-white ring-1 ring-indigo-200/20 shadow-[0_8px_18px_rgba(8,10,24,0.22)]"
+                    : "bg-[rgba(248,250,252,0.88)] text-slate-700 ring-1 ring-black/[0.06] shadow-[0_6px_14px_rgba(0,0,0,0.12)] hover:bg-white"
                 }`}
               >
-                {labels[f]}
-                <span className={`text-[9px] tabular-nums font-semibold ${
-                  isActive ? "bg-white/[0.10] text-indigo-100 px-1.5 py-0.5 rounded-full" : "text-white/45"
-                }`}>
-                  {counts[f]}
+                {labels[filter]}
+                <span
+                  className={`text-[9px] tabular-nums font-semibold ${
+                    isActive
+                      ? "bg-white/[0.10] text-indigo-100 px-1.5 py-0.5 rounded-full"
+                      : "text-slate-500"
+                  }`}
+                >
+                  {counts[filter]}
                 </span>
               </button>
             );
           })}
-        </div>
-
-        {/* Right side: fit */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={fitBounds}
-            title="Encuadrar todos los eventos"
-            className="flex items-center justify-center rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-2.5 text-white/60 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-          </button>
         </div>
       </div>
 
@@ -468,10 +886,9 @@ export function EventMap({
         className="absolute z-[1000] flex max-w-[calc(100%-20px)] flex-col gap-1.5"
         style={{
           left: "calc(env(safe-area-inset-left, 0px) + 10px)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 74px)",
+          bottom: `calc(env(safe-area-inset-bottom, 0px) + ${effectiveBottomOffset}px)`,
         }}
       >
-        {/* Event count badge */}
         <div className="rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2 text-[11px] font-medium text-white/90">
           <span className="font-bold text-white">{visibleEvents.length}</span>{" "}
           {visibleEvents.length === 1 ? "evento" : "eventos"}
@@ -482,11 +899,10 @@ export function EventMap({
           )}
         </div>
 
-        {/* Hide recurring toggle */}
         {recurringCount > 0 && (
           <button
             type="button"
-            onClick={() => setHideRecurring((v) => !v)}
+            onClick={() => setHideRecurring((value) => !value)}
             title={hideRecurring ? "Mostrar recurrentes" : "Ocultar recurrentes"}
             className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-semibold tracking-wide transition-all duration-200 shadow-xl backdrop-blur-xl ${
               hideRecurring
@@ -500,22 +916,31 @@ export function EventMap({
         )}
       </div>
 
-      {/* ─── Bottom-right: legend (desktop only) ─── */}
+      {/* ─── Bottom-right: map actions (moved lower for mobile ergonomics) ─── */}
       <div
-        className="absolute z-[1000] hidden lg:flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl px-3 py-2.5 text-[10px] max-w-[300px]"
+        className="absolute z-[1000] flex flex-col gap-1.5"
         style={{
-          right: "calc(env(safe-area-inset-right, 0px) + 14px)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
+          right: "calc(env(safe-area-inset-right, 0px) + 10px)",
+          bottom: `calc(env(safe-area-inset-bottom, 0px) + ${effectiveBottomOffset}px)`,
         }}
       >
-        {Object.entries(TYPE_COLORS)
-          .filter(([key]) => key !== "otro")
-          .map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-              <span className="capitalize text-white/60">{type}</span>
-            </div>
-          ))}
+        <button
+          type="button"
+          onClick={goToMyLocation}
+          title="Ir a mi ubicación"
+          className="flex items-center justify-center rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-2.5 text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+        >
+          <LocateFixed className={`h-3.5 w-3.5 ${geoLoading ? "animate-pulse" : ""}`} />
+        </button>
+
+        <button
+          type="button"
+          onClick={fitBounds}
+          title="Encuadrar todos los eventos"
+          className="flex items-center justify-center rounded-xl bg-[rgba(6,6,17,0.85)] border border-white/[0.12] shadow-xl backdrop-blur-xl p-2.5 text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import knownVenuesData from "@/config/known-venues.json";
 export interface GeocodeResult {
   latitude: number | null;
   longitude: number | null;
-  source: "scraper" | "lookup" | "mapbox" | "none";
+  source: "scraper" | "lookup" | "google" | "none";
 }
 
 export type GeocodeCache = Map<string, GeocodeResult>;
@@ -61,25 +61,67 @@ export async function geocodeVenue(
     return result;
   }
 
-  // 3. Try Mapbox geocoding
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  // 3. Try Google Geocoding API
+  const googleResult = await geocodeWithGoogle(normalized);
 
-  if (!mapboxToken) {
+  if (!googleResult) {
     const result = { latitude: null, longitude: null, source: "none" as const };
     options?.cache?.set(cacheKey, result);
     return result;
   }
 
-  // Build a good geocoding query — try address first, then venue name
+  const result: GeocodeResult = {
+    latitude: googleResult.latitude,
+    longitude: googleResult.longitude,
+    source: "google",
+  };
+
+  options?.cache?.set(cacheKey, result);
+  return result;
+}
+
+type GoogleGeocodeResponse = {
+  status?: string;
+  results?: Array<{
+    geometry?: {
+      location?: {
+        lat?: number;
+        lng?: number;
+      };
+    };
+  }>;
+};
+
+function getGoogleGeocodingApiKey(): string | null {
+  return (
+    process.env.GOOGLE_GEOCODING_API_KEY ??
+    process.env.GOOGLE_MAPS_SERVER_API_KEY ??
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
+    null
+  );
+}
+
+async function geocodeWithGoogle(normalized: NormalizedEventInput): Promise<{ latitude: number; longitude: number } | null> {
+  const apiKey = getGoogleGeocodingApiKey();
+  if (!apiKey) return null;
+
   const queryParts = [
     normalized.venueAddress,
     normalized.venueName,
     normalized.city || "Uruguay",
   ].filter(Boolean);
 
-  const query = encodeURIComponent(queryParts.join(", "));
+  if (queryParts.length === 0) return null;
 
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?limit=1&country=uy&access_token=${mapboxToken}`;
+  const params = new URLSearchParams({
+    address: queryParts.join(", "),
+    components: "country:UY",
+    region: "uy",
+    language: "es",
+    key: apiKey,
+  });
+
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
 
   try {
     const response = await fetch(url, {
@@ -87,46 +129,26 @@ export async function geocodeVenue(
       cache: "no-store",
     });
 
-    if (!response.ok) {
-      const result = { latitude: null, longitude: null, source: "none" as const };
-      options?.cache?.set(cacheKey, result);
-      return result;
-    }
+    if (!response.ok) return null;
 
-    const body = (await response.json()) as {
-      features?: Array<{ center?: [number, number]; relevance?: number }>;
-    };
+    const body = (await response.json()) as GoogleGeocodeResponse;
+    if (body.status !== "OK") return null;
 
-    const feature = body.features?.[0];
-    const center = feature?.center;
+    const location = body.results?.[0]?.geometry?.location;
+    const lat = Number(location?.lat);
+    const lng = Number(location?.lng);
 
-    if (!center || center.length < 2) {
-      const result = { latitude: null, longitude: null, source: "none" as const };
-      options?.cache?.set(cacheKey, result);
-      return result;
-    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (!isWithinUruguayBounds(lat, lng)) return null;
 
-    // Sanity check: must be within Uruguay bounding box (roughly)
-    const [lng, lat] = center;
-    if (lat < -36 || lat > -30 || lng < -59 || lng > -53) {
-      const result = { latitude: null, longitude: null, source: "none" as const };
-      options?.cache?.set(cacheKey, result);
-      return result;
-    }
-
-    const result: GeocodeResult = {
-      latitude: lat,
-      longitude: lng,
-      source: "mapbox",
-    };
-
-    options?.cache?.set(cacheKey, result);
-    return result;
+    return { latitude: lat, longitude: lng };
   } catch {
-    const result = { latitude: null, longitude: null, source: "none" as const };
-    options?.cache?.set(cacheKey, result);
-    return result;
+    return null;
   }
+}
+
+function isWithinUruguayBounds(latitude: number, longitude: number): boolean {
+  return latitude >= -36 && latitude <= -30 && longitude >= -59 && longitude <= -53;
 }
 
 function buildGeocodeCacheKey(normalized: Pick<NormalizedEventInput, "venueName" | "venueAddress" | "city">): string {

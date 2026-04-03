@@ -19,14 +19,14 @@ Pipeline de Procesamiento
     ├── Normalizer   → limpia texto, parsea fechas/precios, detecta departamento
     ├── Classifier   → shouldRejectEvent() filtra no-eventos,
     │                   classifyEvent() asigna eventType + musicGenre
-    ├── Geocoder     → coordenadas GPS (scraper-provided o Nominatim)
+    ├── Geocoder     → coordenadas GPS (scraper-provided o Google Geocoding)
     ├── Deduplicator → busca duplicados por slug/nombre+fecha+venue
     └── AI Client    → clasificación con OpenAI para casos ambiguos
     ↓  crea/merge events en DB
 Frontend Next.js (App Router)
     ├── / (home)        → eventos de hoy
     ├── /proximos       → eventos futuros con filtros de tiempo
-    ├── /mapa           → vista de mapa con leaflet
+    ├── /mapa           → vista de mapa con Google Maps
     ├── /evento/[slug]  → detalle
     ├── /publicar       → envío de evento por usuario
     └── /admin          → dashboard admin (stats, scrapers, pipeline, submissions)
@@ -67,7 +67,7 @@ Frontend Next.js (App Router)
 - **React**: 19.2 (server components, useTransition, Suspense)
 - **ORM**: Drizzle ORM con PostgreSQL (Neon/Supabase)
 - **Estilos**: Tailwind CSS 4 (dark theme, custom neon colors)
-- **Mapas**: Leaflet + React-Leaflet
+- **Mapas**: Google Maps JavaScript API
 - **Email**: Resend
 - **Rate limit**: Upstash Redis
 - **AI**: OpenAI (clasificación de eventos)

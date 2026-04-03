@@ -234,6 +234,85 @@ function TypeChip({
   );
 }
 
+function MobileSelectedEventSheet({
+  event,
+  onClose,
+}: {
+  event: MapEvent;
+  onClose: () => void;
+}) {
+  const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
+  const price = formatPrice(event.priceMin ?? null, null, event.isFree, event.currency);
+  const timeLabel = formatTime(event.startTime ?? null);
+
+  return (
+    <div
+      className="lg:hidden absolute left-0 right-0 z-[1003] px-3"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+    >
+      <div
+        className="rounded-2xl border border-white/15 bg-[rgba(8,10,24,0.94)] backdrop-blur-2xl shadow-[0_18px_40px_rgba(0,0,0,0.45)] p-3"
+      >
+        <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/25" />
+
+        <div className="flex items-start gap-2.5">
+          <div
+            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]"
+            style={{ backgroundColor: color, color }}
+          />
+
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
+              {event.eventType}
+            </p>
+            <h3 className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-tight text-white">
+              {event.name}
+            </h3>
+
+            <div className="mt-1.5 flex flex-col gap-1 text-[11px] text-[#A8B8CC]">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                <span className="truncate">{event.venueName}</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {timeLabel && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                    {timeLabel}
+                  </span>
+                )}
+
+                <span className="inline-flex items-center gap-1.5">
+                  <Ticket className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                  <span className={cn(event.isFree ? "text-[#34D399]" : "text-[#CBD5E1]")}>{price ?? "—"}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-full bg-white/10 p-1.5 text-[#CBD5E1] hover:bg-white/20 hover:text-white transition"
+            aria-label="Cerrar tarjeta"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <Link
+          href={`/evento/${event.slug}`}
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-[#0D9488]/20 border border-[#0D9488]/45 px-3 py-2 text-[12px] font-semibold text-[#2DD4BF]"
+        >
+          Ver evento completo
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: EventMapWrapperProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [currentFilter, setCurrentFilter] = useState<DateFilter>("hoy");
@@ -293,6 +372,11 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
     }
     return events;
   }, [sidebarEvents, activeTypeFilter, searchQuery]);
+
+  const selectedEvent = useMemo(
+    () => sidebarEvents.find((event) => event.id === selectedEventId) ?? null,
+    [sidebarEvents, selectedEventId],
+  );
 
   const filterLabels: Record<DateFilter, string> = {
     hoy: "Hoy",
@@ -524,11 +608,19 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               weekendEvents={weekendEvents}
               selectedEventId={selectedEventId}
               activeTypeFilter={activeTypeFilter}
+              mobileBottomSheetOpen={mobileView === "map" && Boolean(selectedEvent)}
               onEventSelect={handleEventSelect}
               onDateFilterChange={handleDateFilterChange}
             />
           </div>
         </div>
+
+        {mobileView === "map" && selectedEvent && (
+          <MobileSelectedEventSheet
+            event={selectedEvent}
+            onClose={() => setSelectedEventId(null)}
+          />
+        )}
 
         {/* Mobile list view */}
         {mobileView === "list" && (

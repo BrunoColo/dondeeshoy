@@ -1,6 +1,6 @@
 /**
  * Re-geocode all events that are missing coordinates.
- * Uses the expanded known venues list and Mapbox API fallback.
+ * Uses the expanded known venues list and Google Geocoding API fallback.
  *
  * Usage: node scripts/regeocode.mjs
  */
@@ -18,7 +18,11 @@ if (p.hostname.includes('pooler.supabase.com') && p.port === '5432') {
 }
 const sql = postgres(url, { prepare: false, max: 1 });
 
-const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const googleGeocodingKey =
+  process.env.GOOGLE_GEOCODING_API_KEY ||
+  process.env.GOOGLE_MAPS_SERVER_API_KEY ||
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  null;
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const knownVenuesPath = path.join(scriptDir, "..", "src", "config", "known-venues.json");
@@ -38,21 +42,30 @@ function lookupKnownVenue(venueName, venueAddress) {
   return null;
 }
 
-async function geocodeMapbox(venueName, venueAddress, city) {
-  if (!mapboxToken) return null;
+async function geocodeGoogle(venueName, venueAddress, city) {
+  if (!googleGeocodingKey) return null;
+
   const parts = [venueAddress, venueName, city || 'Uruguay'].filter(Boolean);
-  const query = encodeURIComponent(parts.join(', '));
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?limit=1&country=uy&access_token=${mapboxToken}`;
+  const params = new URLSearchParams({
+    address: parts.join(', '),
+    components: 'country:UY',
+    region: 'uy',
+    language: 'es',
+    key: googleGeocodingKey,
+  });
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
     const body = await res.json();
-    const center = body.features?.[0]?.center;
-    if (!center || center.length < 2) return null;
-    const [lng, lat] = center;
+    if (body.status !== 'OK') return null;
+    const location = body.results?.[0]?.geometry?.location;
+    const lat = Number(location?.lat);
+    const lng = Number(location?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     if (lat < -36 || lat > -30 || lng < -59 || lng > -53) return null;
-    return { latitude: lat, longitude: lng, source: 'mapbox' };
+    return { latitude: lat, longitude: lng, source: 'google' };
   } catch {
     return null;
   }
@@ -66,10 +79,13 @@ const events = await sql`
 `;
 
 console.log(`Found ${events.length} events without coordinates\n`);
+if (!googleGeocodingKey) {
+  console.warn('⚠ GOOGLE_GEOCODING_API_KEY / GOOGLE_MAPS_SERVER_API_KEY no está configurada. Solo se usarán venues conocidos.');
+}
 
 let updated = 0;
 let lookupHits = 0;
-let mapboxHits = 0;
+let googleHits = 0;
 let failed = 0;
 
 for (const event of events) {
@@ -79,10 +95,10 @@ for (const event of events) {
   if (result) {
     lookupHits++;
   } else {
-    // Try Mapbox
-    result = await geocodeMapbox(event.venue_name, event.venue_address, event.city);
+    // Try Google Geocoding
+    result = await geocodeGoogle(event.venue_name, event.venue_address, event.city);
     if (result) {
-      mapboxHits++;
+      googleHits++;
     } else {
       failed++;
       console.log(`  ✗ Could not geocode: "${event.venue_name}" (${event.venue_address || 'no address'})`);
@@ -98,16 +114,16 @@ for (const event of events) {
   updated++;
   console.log(`  ✓ [${result.source}] ${event.venue_name} → (${result.latitude}, ${result.longitude})`);
   
-  // Rate limit Mapbox calls
-  if (result.source === 'mapbox') {
-    await new Promise(r => setTimeout(r, 200));
+  // Rate limit Google Geocoding calls
+  if (result.source === 'google') {
+    await new Promise(r => setTimeout(r, 120));
   }
 }
 
 console.log(`\n── Results ──`);
 console.log(`  Updated: ${updated}`);
 console.log(`  Lookup hits: ${lookupHits}`);
-console.log(`  Mapbox hits: ${mapboxHits}`);
+console.log(`  Google hits: ${googleHits}`);
 console.log(`  Failed: ${failed}`);
 
 await sql.end();

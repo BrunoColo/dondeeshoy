@@ -22,11 +22,11 @@ El usuario puede filtrar por tipo de evento, departamento, género musical, prec
 | Estilos | Tailwind CSS 4 |
 | Base de datos | PostgreSQL vía Drizzle ORM |
 | Cache / Locks | Upstash Redis |
-| Geocodificación | Mapbox API + tabla de venues conocidos |
+| Geocodificación | Google Geocoding API + tabla de venues conocidos |
 | Clasificación IA | OpenAI GPT-4o-mini (fallback) |
 | Email | Resend |
 | Deploy | Vercel (con Cron Jobs) |
-| Mapas | Leaflet + React Leaflet |
+| Mapas | Google Maps JavaScript API |
 | Animaciones | Motion (Framer Motion) |
 
 ---
@@ -52,7 +52,7 @@ El usuario puede filtrar por tipo de evento, departamento, género musical, prec
          por cada raw_event:
            normalizeRawEvent()       ← parseo de fechas, precios, venue
            shouldRejectEvent()       ← filtros de calidad
-           geocodeVenue()            ← GPS: scraper → KNOWN_VENUES → Mapbox
+           geocodeVenue()            ← GPS: scraper → KNOWN_VENUES → Google Geocoding
            detectDepartment()        ← bounding boxes de los 19 departamentos
            classifyEvent()           ← regex heurísticas + source category
            classifyEventWithAi()     ← GPT-4o-mini si tipo = "otro"
@@ -127,7 +127,8 @@ Variables requeridas:
 - `DATABASE_URL` — PostgreSQL (Supabase, Neon, Railway, etc.)
 - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis
 - `OPENAI_API_KEY` — OpenAI (clasificación IA)
-- `NEXT_PUBLIC_MAPBOX_TOKEN` — Mapbox (geocodificación)
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` — Google Maps JavaScript API (frontend)
+- `GOOGLE_GEOCODING_API_KEY` — Google Geocoding API (pipeline y scripts)
 - `RESEND_API_KEY` — Resend (emails)
 - `ADMIN_PASSWORD` + `ADMIN_SECRET` — Panel admin
 - `CRON_SECRET` — Seguridad de cron jobs

@@ -99,11 +99,11 @@ Web pública / mapa / admin / newsletter
 | Base de datos | PostgreSQL |
 | ORM | Drizzle ORM |
 | Cache / rate limit / locks | Upstash Redis |
-| Geocodificación | Coordenadas del scraper + venues conocidos + Mapbox |
+| Geocodificación | Coordenadas del scraper + venues conocidos + Google Geocoding API |
 | Clasificación ambigua | OpenAI |
 | Emails | Resend |
 | Deploy | Vercel |
-| Mapa | Leaflet / React-Leaflet |
+| Mapa | Google Maps JavaScript API |
 
 ---
 
@@ -151,7 +151,7 @@ El pipeline toma `raw_events` con `processed = false` y los procesa uno por uno:
 3. **geocodeVenue()**
    - usa primero coordenadas del scraper,
    - si no hay, busca en venues conocidos,
-   - si tampoco hay, intenta con Mapbox.
+   - si tampoco hay, intenta con Google Geocoding API.
 
 4. **detectDepartment()**
    - prioriza coordenadas,

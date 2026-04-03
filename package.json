@@ -28,7 +28,6 @@
     "drizzle-orm": "^0.45.1",
     "html-entities": "^2.6.0",
     "lucide-react": "^0.564.0",
-    "mapbox-gl": "^3.19.1",
     "motion": "^12.34.0",
     "next": "16.1.6",
     "openai": "^6.22.0",

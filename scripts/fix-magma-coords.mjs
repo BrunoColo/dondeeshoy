@@ -1,6 +1,6 @@
 /**
  * Fix wrong coordinates for Magma Futura events.
- * Mapbox geocoded "Magma Futura" to Rocha (~-34.047, -53.543) instead of Montevideo.
+ * Legacy geocoding sent "Magma Futura" to Rocha (~-34.047, -53.543) instead of Montevideo.
  * Correct location: Zelmar Michelini 1252, Montevideo (-34.9058, -56.1882)
  *
  * Usage: node scripts/fix-magma-coords.mjs
