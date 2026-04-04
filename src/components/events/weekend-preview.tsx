@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { EventList } from "./event-list";
 import { SectionHeader } from "./section-header";
-import { Calendar, ArrowRight } from "lucide-react";
+import { SubscriptionCompactCta } from "@/components/shared/subscription-compact-cta";
+import { Calendar } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 
 interface WeekendPreviewProps {
@@ -39,13 +40,19 @@ export function WeekendPreview({ events, totalCount, weekendLabel }: WeekendPrev
         {totalCount > events.length && (
           <Link
             href="/proximos?when=finde"
-            className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-2.5 text-[12px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:border-sky-400/30 hover:shadow-[0_0_16px_rgba(56,189,248,0.15)] group"
+            className="mt-3 flex items-center justify-center rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-2.5 text-[12px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:border-sky-400/30 hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]"
           >
             Ver todos los eventos del finde
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
           </Link>
         )}
       </div>
+
+      <SubscriptionCompactCta
+        className="mt-3"
+        title="Recibí esta curaduría cada jueves por mail"
+        description="Te mandamos lo mejor del finde según tus gustos y departamento, sin ruido ni spam."
+        href="/suscribirse?utm_source=home-weekend&utm_medium=cta&utm_campaign=newsletter"
+      />
     </div>
   );
 }

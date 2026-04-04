@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CalendarOff, Compass, Music } from "lucide-react";
 
@@ -24,6 +25,8 @@ const VARIANTS = {
     title: "Sin resultados",
     description: "No encontramos eventos que coincidan. Probá con otro filtro.",
     accentColor: "text-accent3",
+    ctaHref: "/suscribirse?utm_source=empty-search&utm_medium=cta&utm_campaign=newsletter",
+    ctaLabel: "Recibir recomendaciones por mail",
   },
 } as const;
 
@@ -60,6 +63,17 @@ export function EmptyState({ variant = "today", className }: EmptyStateProps) {
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           {config.description}
         </p>
+
+        {"ctaHref" in config && config.ctaHref && "ctaLabel" in config && config.ctaLabel && (
+          <div className="pt-1.5">
+            <Link
+              href={config.ctaHref}
+              className="inline-flex min-h-10 items-center rounded-full border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-teal-500/20 px-4 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
+            >
+              {config.ctaLabel}
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

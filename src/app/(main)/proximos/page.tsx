@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EventFilters } from "@/components/events/event-filters";
 import { TimeFilter } from "@/components/events/time-filter";
 import { ProximosEventsClient } from "@/components/events/proximos-events-client";
+import { SubscriptionCompactCta } from "@/components/shared/subscription-compact-cta";
 import { CalendarDays, Loader2 } from "lucide-react";
 import type { Metadata } from "next";
 import type { EventType, EventFilters as Filters } from "@/types/events";
@@ -190,6 +191,14 @@ async function ProximosContent({ searchParams }: { searchParams: Promise<Record<
           }))}
           nextFrom={enableLoadMore ? nextFrom : undefined}
           hasMore={enableLoadMore}
+          subscriptionCta={
+            <SubscriptionCompactCta
+              title="¿Querés un resumen del finde sin entrar todos los días?"
+              description="Cada jueves te enviamos una selección con conciertos, ferias, teatro y más según tus preferencias."
+              href="/suscribirse?utm_source=proximos&utm_medium=cta&utm_campaign=newsletter"
+              ctaText="Quiero el resumen"
+            />
+          }
         />
       ) : (
         <EmptyState variant={hasFilters ? "search" : "upcoming"} />

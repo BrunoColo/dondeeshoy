@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { getEventsWithCoordinates, getEventsBetweenDates } from "@/lib/queries";
 import { getTodayUY, getTomorrowUY, getWeekendDatesUY } from "@/lib/format";
 import type { Metadata } from "next";
@@ -89,6 +90,12 @@ async function MapContent() {
           <p className="text-text-muted text-xs mt-1">
             Los eventos aparecerán aquí cuando tengan coordenadas asignadas
           </p>
+          <Link
+            href="/suscribirse?utm_source=mapa-empty&utm_medium=cta&utm_campaign=newsletter"
+            className="mt-4 inline-flex items-center justify-center rounded-full border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-teal-500/20 px-4 py-2 text-xs font-semibold text-white transition hover:brightness-110"
+          >
+            Recibir recomendaciones por mail
+          </Link>
         </div>
       </div>
     );

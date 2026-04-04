@@ -38,6 +38,24 @@ const emailStyles = {
     `display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: ${color}20; color: ${color}; border: 1px solid ${color}30;`,
 } as const;
 
+function renderPreheader(text: string): string {
+  return `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;font-size:1px;line-height:1px;mso-hide:all;">${escapeHtml(text)}</div>`;
+}
+
+function renderPrimaryButton(url: string, label: string): string {
+  return `
+    <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+      <tr>
+        <td style="border-radius: 12px; background: linear-gradient(135deg, #0D9488, #6366F1);">
+          <a href="${url}" style="display: inline-block; color: #FFFFFF; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; letter-spacing: 0.3px; border-radius: 12px;">
+            ${escapeHtml(label)}
+          </a>
+        </td>
+      </tr>
+    </table>
+  `.trim();
+}
+
 const EVENT_TYPE_COLORS: Record<string, string> = {
   fiesta: "#F472B6",
   festival: "#FBBF24",
@@ -79,12 +97,14 @@ export async function sendVerificationEmail(
   verificationToken: string,
 ): Promise<void> {
   const verifyUrl = `${BASE_URL}/api/subscriptions/verify?token=${verificationToken}`;
+  const preheader = "Confirmá tu email y empezá a recibir los mejores eventos del finde.";
 
   const html = `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Verificá tu suscripción</title></head>
 <body style="${emailStyles.body}">
+  ${renderPreheader(preheader)}
   <div style="${emailStyles.container}">
     <div style="${emailStyles.card}">
       <!-- Logo -->
@@ -101,9 +121,7 @@ export async function sendVerificationEmail(
 
       <!-- CTA Button -->
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${verifyUrl}" style="${emailStyles.button}">
-          ✓ Confirmar suscripción
-        </a>
+        ${renderPrimaryButton(verifyUrl, "✓ Confirmar suscripción")}
       </div>
 
       <hr style="${emailStyles.divider}" />
@@ -146,12 +164,17 @@ export async function sendSubscriptionConfirmedEmail(
     frequency === "weekly"
       ? "Cada jueves te vamos a enviar una selección del finde (viernes a domingo), filtrada por tus intereses y departamentos elegidos."
       : "Te vamos a escribir con recomendaciones frescas según tus preferencias.";
+  const preheader =
+    frequency === "weekly"
+      ? "Suscripción confirmada: cada jueves vas a recibir una curaduría del finde."
+      : "Suscripción confirmada: te vamos a enviar recomendaciones frescas según tus preferencias.";
 
   const html = `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Suscripción confirmada</title></head>
 <body style="${emailStyles.body}">
+  ${renderPreheader(preheader)}
   <div style="${emailStyles.container}">
     <div style="${emailStyles.card}">
       <div style="text-align: center; margin-bottom: 24px;">
@@ -169,9 +192,7 @@ export async function sendSubscriptionConfirmedEmail(
       </p>
 
       <div style="text-align: center; margin: 28px 0 10px;">
-        <a href="${BASE_URL}" style="${emailStyles.button}">
-          Ver eventos ahora →
-        </a>
+        ${renderPrimaryButton(BASE_URL, "Ver eventos ahora →")}
       </div>
     </div>
 
@@ -255,6 +276,9 @@ export async function sendDigestEmail(
   const subject = isWeekly
     ? `🎉 Tu fin de semana — lo mejor que viene`
     : `☀️ Buenos días — eventos de hoy`;
+  const preheader = isWeekly
+    ? "Tu selección del finde ya está lista: abrí para ver los eventos recomendados."
+    : "Tu resumen del día está listo: abrí para ver los eventos de hoy.";
 
   // Build day sections
   let daysSections = "";
@@ -282,30 +306,30 @@ export async function sendDigestEmail(
       daysSections += `
       <!-- Event card -->
       <a href="${eventUrl}" style="display: block; text-decoration: none; margin-bottom: 8px;">
-        <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 16px; transition: all 0.2s;">
-          <div style="display: flex; align-items: flex-start; gap: 12px;">
-            <div style="flex: 1; min-width: 0;">
-              <!-- Event name -->
-              <div style="font-size: 14px; font-weight: 600; color: #F8FAFC; margin-bottom: 6px; line-height: 1.4;">
-                ${escapeHtml(event.name)}
-              </div>
-              <!-- Meta row -->
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <span style="${emailStyles.badge(typeColor)}">
-                  ${typeLabel}
-                </span>
-                ${time ? `<span style="font-size: 12px; color: #94A3B8; font-family: monospace;">🕐 ${time}</span>` : ""}
-                <span style="font-size: 12px; color: #94A3B8;">📍 ${escapeHtml(event.venueName)}</span>
-              </div>
-              <!-- Price -->
-              <div style="margin-top: 6px; font-size: 12px; color: ${event.isFree ? "#34D399" : "#CBD5E1"}; font-weight: 600;">
-                ${price}
-              </div>
-            </div>
-            <!-- Arrow -->
-            <div style="color: #475569; font-size: 18px; padding-top: 4px;">→</div>
-          </div>
-        </div>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+          <tr>
+            <td style="padding: 14px 16px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="vertical-align: top;">
+                    <div style="font-size: 14px; font-weight: 600; color: #F8FAFC; margin-bottom: 6px; line-height: 1.4;">
+                      ${escapeHtml(event.name)}
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                      <span style="${emailStyles.badge(typeColor)}">${typeLabel}</span>
+                      ${time ? `<span style="font-size: 12px; color: #94A3B8; font-family: monospace; margin-left: 8px;">🕐 ${time}</span>` : ""}
+                    </div>
+                    <div style="font-size: 12px; color: #94A3B8;">📍 ${escapeHtml(event.venueName)}</div>
+                    <div style="margin-top: 6px; font-size: 12px; color: ${event.isFree ? "#34D399" : "#CBD5E1"}; font-weight: 600;">
+                      ${price}
+                    </div>
+                  </td>
+                  <td style="vertical-align: top; width: 20px; text-align: right; color: #475569; font-size: 18px; padding-top: 4px;">→</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </a>
       `;
     }
@@ -320,6 +344,7 @@ export async function sendDigestEmail(
 <html lang="es">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${subject}</title></head>
 <body style="${emailStyles.body}">
+  ${renderPreheader(preheader)}
   <div style="${emailStyles.container}">
     <!-- Main card -->
     <div style="${emailStyles.card}">
@@ -347,9 +372,7 @@ export async function sendDigestEmail(
 
       <!-- CTA -->
       <div style="text-align: center; margin: 24px 0 8px;">
-        <a href="${BASE_URL}" style="${emailStyles.button}">
-          Ver todos los eventos →
-        </a>
+        ${renderPrimaryButton(BASE_URL, "Ver todos los eventos →")}
       </div>
     </div>
 

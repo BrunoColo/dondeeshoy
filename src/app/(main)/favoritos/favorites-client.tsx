@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Heart, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Heart, Loader2, Mail, Sparkles, Trash2 } from "lucide-react";
 import { useFavorites } from "@/hooks/use-favorites";
 import { EventList, type EventListItem } from "@/components/events/event-list";
 
@@ -111,13 +111,23 @@ export function FavoritesClient() {
         </header>
 
         <div className="glass-card rounded-2xl p-5">
-          <Link
-            href="/proximos"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-teal-500/20 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
-          >
-            <Sparkles className="h-4 w-4" strokeWidth={2.2} />
-            Explorar próximos eventos
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/proximos"
+              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-indigo-400/35 bg-gradient-to-r from-indigo-500/20 to-teal-500/20 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              <Sparkles className="h-4 w-4" strokeWidth={2.2} />
+              Explorar próximos eventos
+            </Link>
+
+            <Link
+              href="/suscribirse?utm_source=favoritos-empty&utm_medium=cta&utm_campaign=newsletter"
+              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/18 bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
+            >
+              <Mail className="h-4 w-4" strokeWidth={2.2} />
+              Recibir recomendaciones por mail
+            </Link>
+          </div>
         </div>
       </div>
     );

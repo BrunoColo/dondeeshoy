@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Compass, Instagram, Mail, Megaphone, Rocket, Users } from "lucide-react";
+import { CheckCircle2, Compass, Instagram, Mail, Megaphone, Rocket, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Comunidad",
@@ -62,7 +62,7 @@ export default function ComunidadPage() {
             <div className="mt-3 grid grid-cols-1 gap-2.5">
               <Link
                 href="/suscribirse"
-                className="group flex items-center gap-3 rounded-xl border border-[#818CF8]/35 bg-[linear-gradient(120deg,rgba(79,70,229,0.28)_0%,rgba(99,102,241,0.16)_50%,rgba(13,148,136,0.18)_100%)] px-3.5 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:brightness-110"
+                className="flex items-center gap-3 rounded-xl border border-[#818CF8]/35 bg-[linear-gradient(120deg,rgba(79,70,229,0.28)_0%,rgba(99,102,241,0.16)_50%,rgba(13,148,136,0.18)_100%)] px-3.5 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:brightness-110"
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/20">
                   <Mail className="h-4.5 w-4.5 text-[#C7D2FE]" strokeWidth={2.2} />
@@ -71,12 +71,11 @@ export default function ComunidadPage() {
                   <span className="block text-[14px] font-bold text-white">Suscribirme gratis</span>
                   <span className="block text-[12px] text-[#CBD5E1]">Recibí eventos seleccionados por email</span>
                 </span>
-                <ArrowRight className="h-4 w-4 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
               </Link>
 
               <Link
                 href="/publicar"
-                className="group flex items-center gap-3 rounded-xl border border-[#14B8A6]/35 bg-[linear-gradient(120deg,rgba(13,148,136,0.24)_0%,rgba(20,184,166,0.14)_50%,rgba(99,102,241,0.18)_100%)] px-3.5 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:brightness-110"
+                className="flex items-center gap-3 rounded-xl border border-[#14B8A6]/35 bg-[linear-gradient(120deg,rgba(13,148,136,0.24)_0%,rgba(20,184,166,0.14)_50%,rgba(99,102,241,0.18)_100%)] px-3.5 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:brightness-110"
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/20">
                   <Rocket className="h-4.5 w-4.5 text-[#99F6E4]" strokeWidth={2.2} />
@@ -85,7 +84,6 @@ export default function ComunidadPage() {
                   <span className="block text-[14px] font-bold text-white">Publicar mi evento</span>
                   <span className="block text-[12px] text-[#CBD5E1]">Aparecé en búsquedas y en el mapa</span>
                 </span>
-                <ArrowRight className="h-4 w-4 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
               </Link>
             </div>
           </div>
@@ -148,7 +146,6 @@ export default function ComunidadPage() {
           >
             <Instagram className="h-3.5 w-3.5" strokeWidth={2.2} />
             @dondeeshoy.uy
-            <ArrowRight className="ml-auto h-3.5 w-3.5" strokeWidth={2.2} />
           </a>
         </div>
       </section>

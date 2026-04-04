@@ -19,7 +19,6 @@ import {
   Rocket,
   ExternalLink,
   TrendingUp,
-  ArrowRight,
   Mail,
 } from "lucide-react";
 
@@ -116,7 +115,6 @@ export async function DesktopSidebar() {
                           <span className="truncate">{event.venueName}</span>
                         </div>
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 text-white/0 group-hover:text-white/30 transition-all shrink-0 mt-1 -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
                     </Link>
                   </li>
                 );
@@ -225,11 +223,10 @@ export async function DesktopSidebar() {
             >
               <Link
                 href="/proximos"
-                className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#818CF8]/80 hover:text-[#818CF8] transition-colors group"
+                className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#818CF8]/80 hover:text-[#818CF8] transition-colors"
               >
                 <CalendarDays className="h-3.5 w-3.5" />
                 Ver todos los próximos
-                <ArrowRight className="h-3 w-3 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
           </div>
@@ -385,7 +382,7 @@ export async function DesktopSidebar() {
               <span className="text-[11px] text-[#A8B8CC] leading-snug">
                 El venue más innovador de Montevideo. Shows en vivo todos los fines de semana.
               </span>
-              <span className="text-[10px] font-semibold text-[#14B8A6]/75 mt-0.5 group-hover:text-[#14B8A6] transition-colors">magmafutura.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#14B8A6]/75 mt-0.5 group-hover:text-[#14B8A6] transition-colors">magmafutura.com.uy</span>
             </div>
           </a>
 
@@ -411,7 +408,7 @@ export async function DesktopSidebar() {
               <span className="text-[11px] text-[#A8B8CC] leading-snug">
                 Vendé entradas online para tu evento. Rápido, seguro y sin complicaciones.
               </span>
-              <span className="text-[10px] font-semibold text-[#818CF8]/75 mt-0.5 group-hover:text-[#818CF8] transition-colors">redtickets.com.uy →</span>
+              <span className="text-[10px] font-semibold text-[#818CF8]/75 mt-0.5 group-hover:text-[#818CF8] transition-colors">redtickets.com.uy</span>
             </div>
           </a>
 
@@ -491,7 +488,6 @@ export async function DesktopSidebar() {
                 <Zap className="h-3.5 w-3.5 text-[#FBBF24]" strokeWidth={2} />
               </div>
               Eventos de hoy
-              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/40 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/proximos"
@@ -504,7 +500,6 @@ export async function DesktopSidebar() {
                 <CalendarDays className="h-3.5 w-3.5 text-[#818CF8]" strokeWidth={2} />
               </div>
               Próximos eventos
-              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/40 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
             <Link
               href="/mapa"
@@ -517,7 +512,6 @@ export async function DesktopSidebar() {
                 <MapPin className="h-3.5 w-3.5 text-[#14B8A6]" strokeWidth={2} />
               </div>
               Ver en el mapa
-              <ArrowRight className="h-3 w-3 ml-auto text-white/0 group-hover:text-white/30 transition-all -translate-x-1 group-hover:translate-x-0" strokeWidth={2} />
             </Link>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { formatPrice, formatTime, formatDateES, getTimeStatus } from "@/lib/form
 import { EventTypeBadge } from "@/components/shared/event-type-badge";
 import { ShareButton } from "@/components/shared/share-button";
 import { FavoriteButton } from "@/components/shared/favorite-button";
+import { NotifySubscribeButton } from "@/components/shared/notify-subscribe-button";
 import { VenueMiniMap } from "@/components/events/venue-mini-map";
 import { HeroImage } from "@/components/events/hero-image";
 import {
@@ -137,11 +138,12 @@ export function EventDetail({ event }: EventDetailProps) {
             </div>
 
             {hasCoordinates && (
-              <div className="mt-3 sm:max-w-sm">
+              <div className="mt-3 w-full lg:max-w-none">
                 <VenueMiniMap
                   lat={latitude}
                   lng={longitude}
                   venueName={event.venueName}
+                  venueAddress={event.venueAddress}
                 />
               </div>
             )}
@@ -208,6 +210,23 @@ export function EventDetail({ event }: EventDetailProps) {
               </p>
             </div>
           )}
+
+          <div className="mt-6 rounded-xl border border-indigo-400/22 bg-[linear-gradient(135deg,rgba(79,70,229,0.18)_0%,rgba(99,102,241,0.12)_45%,rgba(13,148,136,0.18)_100%)] p-4">
+            <p className="text-[13px] font-bold text-white leading-tight">
+              ¿Te interesan eventos como este?
+            </p>
+            <p className="mt-1 text-[12px] text-[#CBD5E1] leading-relaxed">
+              Suscribite y te avisamos por mail cuando haya planes similares según tu zona y tipo de evento.
+            </p>
+            <NotifySubscribeButton
+              className="mt-3"
+              variant="inline"
+              eventType={event.eventType}
+              department={event.department ?? event.city}
+              eventSlug={event.slug}
+              source="event-detail"
+            />
+          </div>
 
           {/* Share */}
           <div className="mt-6">

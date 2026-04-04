@@ -173,6 +173,7 @@ export function HomeEventsClient({
             title="Eventos únicos de hoy"
             subtitle="Solo por hoy"
             count={totalUniqueCount}
+            showPulseDot
             accent={{
               iconWrap: "border-emerald-400/20 bg-gradient-to-br from-emerald-500/18 to-teal-500/10",
               icon: "text-[#6EE7B7]",

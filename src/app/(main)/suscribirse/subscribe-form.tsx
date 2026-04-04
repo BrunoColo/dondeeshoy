@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Mail,
@@ -39,9 +39,19 @@ const EVENT_TYPES = [
   { value: "familiar", label: "👨‍👩‍👧 Familiar", color: "#F9A8D4" },
   { value: "feria", label: "🛍️ Ferias", color: "#FCD34D" },
   { value: "taller", label: "🎨 Talleres", color: "#67E8F9" },
+  { value: "club", label: "🪩 Club", color: "#93C5FD" },
   { value: "teatro", label: "🎬 Teatro", color: "#C084FC" },
   { value: "bar", label: "🍺 Bares", color: "#F87171" },
+  { value: "otro", label: "✨ Otros", color: "#94A3B8" },
 ] as const;
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
 
 const FEATURES = [
   { icon: Calendar, text: "Cada jueves: resumen del finde" },
@@ -56,6 +66,9 @@ export function SubscribeForm() {
   const searchParams = useSearchParams();
   const verified = searchParams.get("verified");
   const unsubscribed = searchParams.get("unsubscribed");
+  const source = searchParams.get("source");
+  const fromNotifyLike = source === "notify-like";
+  const prefillAppliedRef = useRef(false);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -97,6 +110,42 @@ export function SubscribeForm() {
       });
     }
   }, [verified, unsubscribed]);
+
+  useEffect(() => {
+    if (prefillAppliedRef.current) return;
+
+    const rawType = searchParams.get("type");
+    const rawDepartment = searchParams.get("department");
+
+    const typeValues = rawType
+      ? rawType
+          .split(",")
+          .map((value) => value.trim().toLowerCase())
+          .filter((value) => EVENT_TYPES.some((eventType) => eventType.value === value))
+      : [];
+
+    const departmentByNormalized = new Map(
+      DEPARTMENTS.map((department) => [normalizeText(department), department] as const),
+    );
+
+    const departmentValues = rawDepartment
+      ? rawDepartment
+          .split(",")
+          .map((value) => value.trim())
+          .map((value) => departmentByNormalized.get(normalizeText(value)))
+          .filter((value): value is string => Boolean(value))
+      : [];
+
+    if (typeValues.length > 0) {
+      setSelectedTypes((prev) => Array.from(new Set([...prev, ...typeValues])));
+    }
+
+    if (departmentValues.length > 0) {
+      setSelectedDepartments((prev) => Array.from(new Set([...prev, ...departmentValues])));
+    }
+
+    prefillAppliedRef.current = true;
+  }, [searchParams]);
 
   const toggleDepartment = (dept: string) => {
     setSelectedDepartments((prev) =>
@@ -302,6 +351,16 @@ export function SubscribeForm() {
           Elegí qué te interesa y cada jueves te llega una selección del finde.
           Ejemplo: conciertos en Montevideo + planes familiares en Canelones.
         </p>
+
+        {fromNotifyLike && (
+          <div
+            className="mt-4 inline-flex items-center rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-4 py-2"
+          >
+            <span className="text-[12px] font-semibold text-[#99F6E4]">
+              Preseleccionamos intereses según el evento que te gustó ✨
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Feature pills */}
@@ -479,7 +538,6 @@ export function SubscribeForm() {
               }}
             >
               Siguiente
-              <span className="text-[16px]">→</span>
             </button>
           </div>
         )}
@@ -609,7 +667,6 @@ export function SubscribeForm() {
                 }}
               >
                 Siguiente
-                <span className="text-[16px]">→</span>
               </button>
             </div>
           </div>

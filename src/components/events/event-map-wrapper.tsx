@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SubscriptionCompactCta } from "@/components/shared/subscription-compact-cta";
 
 const EventMapLazy = dynamic(
   () => import("./event-map").then((m) => m.EventMap),
@@ -73,8 +74,16 @@ function SidebarEventRow({
 }) {
   const rowRef = useRef<HTMLButtonElement>(null);
   const color = TYPE_COLORS[event.eventType] ?? TYPE_COLORS.otro;
+  const typeLabel = event.eventType.replaceAll("_", " ");
   const price = formatPrice(event.priceMin ?? null, null, event.isFree, event.currency);
   const timeLabel = formatTime(event.startTime ?? null);
+  const selectedStyle = isSelected
+    ? {
+        borderColor: `${color}66`,
+        background: `linear-gradient(135deg, ${color}20 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.04) 100%)`,
+        boxShadow: `0 0 0 1px ${color}55, 0 4px 20px rgba(0,0,0,0.4)`,
+      }
+    : undefined;
 
   // Scroll into view when selected
   useEffect(() => {
@@ -92,9 +101,10 @@ function SidebarEventRow({
       className={cn(
         "card-animate w-full text-left rounded-xl border transition-all duration-200 group overflow-hidden",
         isSelected
-          ? "bg-white/[0.09] border-white/25 shadow-[0_0_0_1px_rgba(13,148,136,0.4),0_4px_20px_rgba(0,0,0,0.4)] ring-1 ring-inset ring-white/5"
+          ? "ring-1 ring-inset ring-white/5"
           : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.15]",
       )}
+      style={{ animationDelay: `${Math.min(index * 35, 400)}ms`, ...selectedStyle }}
     >
       {/* Accent bar on left when selected */}
       <div className="flex items-stretch">
@@ -115,6 +125,19 @@ function SidebarEventRow({
             />
 
             <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center gap-2">
+                <span
+                  className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
+                  style={{
+                    borderColor: `${color}55`,
+                    backgroundColor: `${color}1F`,
+                    color,
+                  }}
+                >
+                  {typeLabel}
+                </span>
+              </div>
+
               {/* Name */}
               <p
                 className={cn(
@@ -127,7 +150,7 @@ function SidebarEventRow({
 
               {/* Venue */}
               <div className="mt-1 flex items-center gap-1 text-[#94A3B8] group-hover:text-[#CBD5E1] transition-colors">
-                <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} />
+                <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} style={{ color }} />
                 <span className="text-[11px] truncate">{event.venueName}</span>
               </div>
 
@@ -135,12 +158,16 @@ function SidebarEventRow({
               <div className="mt-1.5 flex items-center gap-3">
                 {timeLabel && (
                   <div className="flex items-center gap-1 text-[#94A3B8]">
-                    <Clock className="h-3 w-3 shrink-0" strokeWidth={2} />
+                    <Clock className="h-3 w-3 shrink-0" strokeWidth={2} style={{ color }} />
                     <span className="font-mono text-[11px] text-[#94A3B8]">{timeLabel}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Ticket className="h-3 w-3 shrink-0 text-[#94A3B8]" strokeWidth={2} />
+                  <Ticket
+                    className="h-3 w-3 shrink-0"
+                    strokeWidth={2}
+                    style={{ color: event.isFree ? "#34D399" : color }}
+                  />
                   <span
                     className={cn(
                       "text-[11px] font-semibold",
@@ -158,9 +185,10 @@ function SidebarEventRow({
               className={cn(
                 "h-3.5 w-3.5 shrink-0 mt-0.5 transition-all duration-200",
                 isSelected
-                  ? "text-[#14B8A6] opacity-100 translate-x-0"
+                  ? "opacity-100 translate-x-0"
                   : "text-[#94A3B8] opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0",
               )}
+              style={isSelected ? { color } : undefined}
               strokeWidth={2.5}
             />
           </div>
@@ -170,7 +198,12 @@ function SidebarEventRow({
             <Link
               href={`/evento/${event.slug}`}
               onClick={(e) => e.stopPropagation()}
-              className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-[#0D9488]/20 border border-[#0D9488]/40 px-3 py-1.5 text-[11px] font-semibold text-[#14B8A6] hover:bg-[#0D9488]/30 hover:border-[#0D9488]/60 transition-all"
+              className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all hover:brightness-110"
+              style={{
+                borderColor: `${color}66`,
+                backgroundColor: `${color}22`,
+                color,
+              }}
             >
               Ver evento completo
               <ExternalLink className="h-3 w-3" />
@@ -196,6 +229,19 @@ function TypeChip({
   count: number;
   onClick: () => void;
 }) {
+  const chipStyle = active
+    ? {
+        backgroundColor: `${color}30`,
+        borderColor: `${color}70`,
+        color: "#F8FAFC",
+        boxShadow: `0 0 10px ${color}50`,
+      }
+    : {
+        backgroundColor: `${color}14`,
+        borderColor: `${color}3D`,
+        color: "#CBD5E1",
+      };
+
   return (
     <button
       type="button"
@@ -203,23 +249,14 @@ function TypeChip({
       className={cn(
         "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap border",
         active
-          ? "text-white border-transparent shadow-[0_0_8px_currentColor]"
-          : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-[#CBD5E1] hover:border-white/[0.15]",
+          ? ""
+          : "hover:text-white hover:brightness-110",
       )}
-      style={
-        active
-          ? {
-              backgroundColor: `${color}30`,
-              borderColor: `${color}60`,
-              color,
-              boxShadow: `0 0 8px ${color}40`,
-            }
-          : undefined
-      }
+      style={chipStyle}
     >
       <span
         className="h-1.5 w-1.5 rounded-full shrink-0"
-        style={{ backgroundColor: active ? color : "#94A3B8" }}
+        style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}99` }}
       />
       {type}
       <span
@@ -277,6 +314,10 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
       .map(([type, count]) => ({ type, count, color: TYPE_COLORS[type] ?? TYPE_COLORS.otro }));
   }, [sidebarEvents]);
 
+  const activeTypeColor = activeTypeFilter
+    ? (TYPE_COLORS[activeTypeFilter] ?? TYPE_COLORS.otro)
+    : null;
+
   // Filtered events for display
   const filteredEvents = useMemo(() => {
     let events = sidebarEvents;
@@ -320,7 +361,7 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               </span>{" "}
               {filteredEvents.length === 1 ? "evento" : "eventos"}
               {(searchQuery || activeTypeFilter) && (
-                <span className="text-[#14B8A6]"> filtrados</span>
+                <span style={{ color: activeTypeColor ?? "#14B8A6" }}> filtrados</span>
               )}
             </p>
           </div>
@@ -361,12 +402,25 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         {availableTypes.length > 1 && (
           <div className="mt-2.5">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <SlidersHorizontal className="h-3 w-3 text-[#94A3B8]" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8]">
+              <SlidersHorizontal
+                className="h-3 w-3"
+                style={{ color: activeTypeColor ?? "#94A3B8" }}
+              />
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wide"
+                style={{ color: activeTypeColor ?? "#94A3B8" }}
+              >
                 Filtrar por tipo
               </span>
               {activeTypeFilter && (
-                <span className="rounded-full bg-[#0D9488]/20 border border-[#0D9488]/40 px-1.5 py-0.5 text-[9px] text-[#14B8A6]">
+                <span
+                  className="rounded-full border px-1.5 py-0.5 text-[9px]"
+                  style={{
+                    backgroundColor: `${activeTypeColor ?? "#14B8A6"}20`,
+                    borderColor: `${activeTypeColor ?? "#14B8A6"}40`,
+                    color: activeTypeColor ?? "#14B8A6",
+                  }}
+                >
                   1 activo
                 </span>
               )}
@@ -397,6 +451,15 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
             </div>
           </div>
         )}
+
+        <SubscriptionCompactCta
+          className="mt-3"
+          variant="map"
+          title="Eventos cerca tuyo, también por mail"
+          description="Suscribite y recibí una curaduría semanal con planes que valen la pena en tu zona."
+          href="/suscribirse?utm_source=mapa-sidebar&utm_medium=cta&utm_campaign=newsletter"
+          ctaText="Recibir recomendaciones"
+        />
       </div>
 
       {/* Event list */}
@@ -453,7 +516,8 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
       {/* ── Sidebar (desktop only) ── */}
       <aside className="hidden lg:flex flex-col w-[340px] xl:w-[380px] shrink-0 overflow-hidden relative"
         style={{
-          background: "linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)",
+          background:
+            "radial-gradient(110% 52% at 100% 0%, rgba(79,70,229,0.22) 0%, rgba(79,70,229,0) 56%), linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)",
           borderRight: "1px solid rgba(13, 148, 136, 0.15)",
           boxShadow: "inset -1px 0 0 rgba(255,255,255,0.04), 4px 0 24px rgba(0,0,0,0.4)",
         }}
@@ -533,7 +597,10 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
         {/* Mobile list view */}
         {mobileView === "list" && (
           <div className="lg:hidden flex flex-col h-full overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)" }}
+            style={{
+              background:
+                "radial-gradient(95% 40% at 100% 0%, rgba(79,70,229,0.20) 0%, rgba(79,70,229,0) 56%), linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)",
+            }}
           >
             {/* Offset for toggle bar */}
             <div className="h-[36px] shrink-0" />
@@ -590,6 +657,15 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                   ))}
                 </div>
               )}
+
+              <SubscriptionCompactCta
+                className="mt-2.5"
+                variant="map"
+                title="No te pierdas los mejores cerca tuyo"
+                description="Te mandamos un resumen semanal por mail con eventos filtrados por tus gustos y ubicación preferida."
+                href="/suscribirse?utm_source=mapa-mobile-list&utm_medium=cta&utm_campaign=newsletter"
+                ctaText="Suscribirme"
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-none px-3 py-3 space-y-2">

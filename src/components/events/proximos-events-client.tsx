@@ -8,6 +8,7 @@ import { RotateCw, ChevronDown, Loader2 } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 import { getDateLabel, formatDateES } from "@/lib/format";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 
 interface DateGroup {
   date: string;
@@ -155,9 +156,16 @@ interface ProximosEventsClientProps {
   nextFrom?: string;
   /** Whether more data is potentially available beyond loaded groups */
   hasMore?: boolean;
+  /** Optional inline CTA rendered after the first date section */
+  subscriptionCta?: ReactNode;
 }
 
-export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore = false }: ProximosEventsClientProps) {
+export function ProximosEventsClient({
+  groups: initialGroups,
+  nextFrom,
+  hasMore = false,
+  subscriptionCta,
+}: ProximosEventsClientProps) {
   const [groups, setGroups] = useState<DateGroup[]>(() => initialGroups.map(sanitizeDateGroup));
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingMoreByDate, setLoadingMoreByDate] = useState<Record<string, boolean>>({});
@@ -317,7 +325,7 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
       )}
 
       <div className="space-y-8">
-        {groups.map(({ date, totalCount, events: dateEvents, recurringEvents: recurringDateEvents }) => {
+        {groups.map(({ date, totalCount, events: dateEvents, recurringEvents: recurringDateEvents }, index) => {
           const { label, isTomorrow } = getDateLabel(date);
 
           if (dateEvents.length === 0 && recurringDateEvents.length === 0) return null;
@@ -383,6 +391,10 @@ export function ProximosEventsClient({ groups: initialGroups, nextFrom, hasMore 
                     )}
                   </button>
                 </div>
+              )}
+
+              {index === 0 && subscriptionCta && (
+                <div className="mt-4">{subscriptionCta}</div>
               )}
             </section>
           );

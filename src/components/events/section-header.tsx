@@ -6,6 +6,7 @@ interface SectionHeaderProps {
   title: string;
   subtitle: string;
   count: number;
+  showPulseDot?: boolean;
   className?: string;
   accent: {
     iconWrap: string;
@@ -21,6 +22,7 @@ export function SectionHeader({
   title,
   subtitle,
   count,
+  showPulseDot = false,
   className,
   accent,
 }: SectionHeaderProps) {
@@ -41,7 +43,8 @@ export function SectionHeader({
         </div>
       </div>
 
-      <span className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wide", accent.badge)}>
+      <span className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wide inline-flex items-center gap-1.5", accent.badge)}>
+        {showPulseDot && <span className="live-dot shrink-0" style={{ width: 6, height: 6 }} />}
         {count} {count === 1 ? "evento" : "eventos"}
       </span>
     </div>
