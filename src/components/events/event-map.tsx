@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { RotateCw, Maximize2 } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import { formatPrice, formatTime } from "@/lib/format";
 import type { EventType } from "@/types/events";
 
@@ -514,7 +514,6 @@ export function EventMap({
                 : "bg-[rgba(6,6,17,0.85)] border border-white/[0.12] text-white/60 hover:text-white/90"
             }`}
           >
-            <RotateCw className="h-3 w-3 shrink-0" />
             {hideRecurring ? "Ocultos" : "Recurrentes"} ({recurringCount})
           </button>
         )}

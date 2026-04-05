@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Navigation, Loader2 } from "lucide-react";
 
 interface NearbyButtonProps {
   active: boolean;
@@ -24,7 +23,6 @@ export function NearbyButton({ active, loading, onClick, className }: NearbyButt
         className,
       )}
     >
-      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} /> : <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />}
       Cerca de mí
     </button>
   );

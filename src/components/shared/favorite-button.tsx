@@ -58,13 +58,6 @@ export function FavoriteButton({
           className,
         )}
       >
-        <Heart
-          className={cn(
-            "h-4 w-4 transition-all duration-200",
-            active ? "fill-current text-teal-300" : "text-[#C4D0E0]",
-          )}
-          strokeWidth={active ? 2.4 : 2.1}
-        />
         {active ? "Guardado" : "Favorito"}
       </button>
     );

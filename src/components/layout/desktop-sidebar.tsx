@@ -455,7 +455,7 @@ export async function DesktopSidebar() {
               {[
                 { value: stats.todayCount, label: "hoy" },
                 { value: stats.weekCount, label: "esta semana" },
-                { value: stats.venuesCount, label: "venues" },
+                { value: stats.venuesCount, label: "lugares" },
               ].map(({ value, label }) => (
                 <AnimatedStat key={label} value={value} label={label} />
               ))}

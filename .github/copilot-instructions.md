@@ -24,6 +24,7 @@ Leé `agent.md` antes de hacer cambios grandes. Este archivo es el resumen opera
 - Usar Tailwind v4 con utilidades existentes y clases compartidas de `src/app/globals.css`.
 - Mantener estética consistente con glassmorphism suave y alto contraste.
 - Si combinás clases, usar `cn()` desde `src/lib/utils.ts`.
+- Prestar atención a errores frecuentes de Tailwind CSS (clases inválidas, clases duplicadas, colisiones de variantes responsive/hover/focus y utilidades mal escritas).
 
 ## Pipeline / scrapers
 
@@ -37,5 +38,6 @@ Leé `agent.md` antes de hacer cambios grandes. Este archivo es el resumen opera
 ## Antes de cerrar cambios
 
 - Revisar errores de TypeScript/ESLint.
+- Ejecutar siempre `npm run build` al terminar. Si falla, corregir los errores hasta que compile correctamente.
 - Si tocaste lógica de negocio, dejarla fija también para futuros re-scrapes o re-procesados, no solo para datos ya existentes.
 - Si hace falta contexto extra del repo, usar `agent.md`, `README.md` y `sistema.md` como fuente de verdad.

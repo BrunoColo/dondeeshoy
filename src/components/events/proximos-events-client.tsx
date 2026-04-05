@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { EventList } from "./event-list";
 import { EventSkeleton } from "./event-skeleton";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { RotateCw, ChevronDown, Loader2 } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import type { Event } from "@/lib/db/schema/events";
 import { getDateLabel, formatDateES } from "@/lib/format";
 import { useSearchParams } from "next/navigation";
@@ -379,15 +379,9 @@ export function ProximosEventsClient({
                     }}
                   >
                     {!!loadingMoreByDate[date] ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Cargando más…
-                      </>
+                      "Cargando más…"
                     ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-                        Ver más de este día ({remainingCount})
-                      </>
+                      `Ver más de este día (${remainingCount})`
                     )}
                   </button>
                 </div>
@@ -414,15 +408,9 @@ export function ProximosEventsClient({
             }}
           >
             {loadingMore ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando más eventos…
-              </>
+              "Cargando más eventos…"
             ) : (
-              <>
-                <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-                Cargar más eventos
-              </>
+              "Cargar más eventos"
             )}
           </button>
         </div>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { MessageCircle, Share2, Check, Copy, ChevronUp } from "lucide-react";
+import { Share2, Check } from "lucide-react";
 
 interface ShareButtonProps {
   title: string;
@@ -88,8 +88,8 @@ export function ShareButton({
           type="button"
           onClick={handleToggle}
           className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white transition-colors hover:bg-black/65"
-          aria-label={copied ? "Link copiado" : "Compartir evento"}
-          title={copied ? "Link copiado" : "Compartir"}
+          aria-label={copied ? "Enlace copiado" : "Compartir evento"}
+          title={copied ? "Enlace copiado" : "Compartir"}
         >
           {copied ? <Check className="h-4 w-4" strokeWidth={2.8} /> : <Share2 className="h-4 w-4" strokeWidth={2.3} />}
         </button>
@@ -105,7 +105,6 @@ export function ShareButton({
               onClick={handleWhatsapp}
               className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-[12px] font-medium text-emerald-300 hover:bg-emerald-500/10 transition-colors"
             >
-              <MessageCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2.3} />
               WhatsApp
             </button>
             <div className="h-px bg-white/[0.06]" />
@@ -114,8 +113,7 @@ export function ShareButton({
               onClick={handleCopy}
               className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-[12px] font-medium text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors"
             >
-              <Copy className="h-3.5 w-3.5 shrink-0" strokeWidth={2.3} />
-              Copiar link
+              Copiar enlace
             </button>
           </div>
         )}
@@ -136,15 +134,7 @@ export function ShareButton({
             : "bg-white/[0.04] border-white/[0.1] text-foreground hover:border-white/[0.2]",
         )}
       >
-        {copied
-          ? <Check className="h-3.5 w-3.5 text-neon-green" strokeWidth={2.8} />
-          : <Share2 className="h-3.5 w-3.5" strokeWidth={2.3} />
-        }
         {copied ? "Copiado" : "Compartir"}
-        <ChevronUp
-          className={cn("h-3 w-3 opacity-50 transition-transform duration-200", !open && "rotate-180")}
-          strokeWidth={2.5}
-        />
       </button>
 
       {open && (
@@ -154,7 +144,6 @@ export function ShareButton({
             onClick={handleWhatsapp}
             className="flex w-full items-center gap-2.5 px-4 py-3 text-[13px] font-medium text-emerald-300 hover:bg-emerald-500/10 transition-colors"
           >
-            <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.3} />
             WhatsApp
           </button>
           <div className="h-px bg-white/[0.06]" />
@@ -163,8 +152,7 @@ export function ShareButton({
             onClick={handleCopy}
             className="flex w-full items-center gap-2.5 px-4 py-3 text-[13px] font-medium text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors"
           >
-            <Copy className="h-4 w-4 shrink-0" strokeWidth={2.3} />
-            Copiar link
+            Copiar enlace
           </button>
         </div>
       )}

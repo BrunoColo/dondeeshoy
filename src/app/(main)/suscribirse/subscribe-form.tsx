@@ -10,11 +10,9 @@ import {
   MapPin,
   Compass,
   Calendar,
-  Loader2,
   XCircle,
   PartyPopper,
   Heart,
-  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -395,11 +393,7 @@ export function SubscribeForm() {
                   : "bg-transparent text-[#475569] border border-[rgba(255,255,255,0.06)]",
             )}
           >
-            {step > s ? (
-              <CheckCircle className="h-3 w-3" />
-            ) : (
-              <span className="w-3 text-center">{s}</span>
-            )}
+            <span className="w-3 text-center">{s}</span>
             <span>{s === 1 ? "Email" : s === 2 ? "Intereses" : "Confirmar"}</span>
           </button>
         ))}
@@ -615,7 +609,6 @@ export function SubscribeForm() {
                         : "bg-transparent border-[rgba(255,255,255,0.08)] text-[#64748B] hover:border-[rgba(255,255,255,0.15)] hover:text-[#94A3B8]",
                     )}
                   >
-                    <MapPin className="h-3 w-3 shrink-0" />
                     {dept}
                   </button>
                 ))}
@@ -654,7 +647,6 @@ export function SubscribeForm() {
                 onClick={() => setStep(1)}
                 className="flex items-center justify-center gap-1.5 rounded-xl py-3 px-4 text-[13px] font-semibold text-[#94A3B8] border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.20)] hover:text-[#CBD5E1] transition-all duration-200"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
                 Atrás
               </button>
               <button
@@ -734,7 +726,6 @@ export function SubscribeForm() {
                 onClick={() => setStep(2)}
                 className="flex items-center justify-center gap-1.5 rounded-xl py-3 px-4 text-[13px] font-semibold text-[#94A3B8] border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.20)] hover:text-[#CBD5E1] transition-all duration-200"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
                 Atrás
               </button>
               <button
@@ -748,15 +739,9 @@ export function SubscribeForm() {
                 }}
               >
                 {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
+                  "Enviando..."
                 ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Suscribirme
-                  </>
+                  "Suscribirme"
                 )}
               </button>
             </div>

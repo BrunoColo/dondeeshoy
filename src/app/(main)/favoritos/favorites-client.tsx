@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Heart, Loader2, Mail, Sparkles, Trash2 } from "lucide-react";
+import { Heart, Loader2, Mail, Sparkles } from "lucide-react";
 import { useFavorites } from "@/hooks/use-favorites";
 import { EventList, type EventListItem } from "@/components/events/event-list";
 
@@ -153,7 +153,6 @@ export function FavoritesClient() {
           onClick={clearFavorites}
           className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-[#C4D0E0] transition hover:text-white hover:border-white/30"
         >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={2.2} />
           Limpiar
         </button>
       </header>

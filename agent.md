@@ -88,7 +88,9 @@ Frontend Next.js (App Router)
 7. **Usar Server Components por defecto**. Solo usar `"use client"` cuando sea estrictamente necesario (interactividad, hooks del browser).
 8. **Al editar queries**, tener en cuenta que los campos `priceMin` y `priceMax` son `integer` en la DB. Siempre redondear precios.
 9. **Los slugs incluyen la fecha** para evitar colisiones en eventos multi-fecha (ej: `tablado-1ero-mayo-2026-02-23`).
-10. **Testear que el código compila** (`get_errors` o `npm run build`) después de cambios significativos.
+10. **Al terminar cualquier tarea, correr siempre `npm run build`** para confirmar que todo compila.
+11. **Si el build falla, arreglar los errores antes de cerrar** (no dejar compilación rota).
+12. **Tener especial cuidado con Tailwind CSS**: revisar clases inválidas/typos, utilidades duplicadas y conflictos de variantes responsive/hover/focus, porque son una fuente frecuente de errores.
 
 ### NUNCA
 

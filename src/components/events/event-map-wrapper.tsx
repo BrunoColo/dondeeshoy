@@ -9,9 +9,6 @@ import {
   Clock,
   Ticket,
   ExternalLink,
-  List,
-  Map,
-  RotateCcw,
   Search,
   X,
   ChevronRight,
@@ -370,7 +367,6 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
               onClick={() => setSelectedEventId(null)}
               className="flex items-center gap-1 rounded-lg bg-white/[0.06] border border-white/[0.12] px-2 py-1 text-[10px] font-medium text-[#94A3B8] hover:text-white hover:border-white/20 transition-all"
             >
-              <RotateCcw className="h-3 w-3" />
               Limpiar
             </button>
           )}
@@ -431,7 +427,6 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                   onClick={() => setActiveTypeFilter(null)}
                   className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all"
                 >
-                  <X className="h-2.5 w-2.5" />
                   Todos
                 </button>
               )}
@@ -549,7 +544,6 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                 : "text-white/50 hover:text-white",
             )}
           >
-            <Map className="h-3.5 w-3.5" />
             Mapa
           </button>
           <button
@@ -563,7 +557,6 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                 : "text-white/50 hover:text-white",
             )}
           >
-            <List className="h-3.5 w-3.5" />
             Lista
             <span className="text-[9px] font-semibold opacity-60">
               {filteredEvents.length}
@@ -638,7 +631,6 @@ export function EventMapWrapper({ todayEvents, tomorrowEvents, weekendEvents }: 
                       onClick={() => setActiveTypeFilter(null)}
                       className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all"
                     >
-                      <X className="h-2.5 w-2.5" />
                       Todos
                     </button>
                   )}

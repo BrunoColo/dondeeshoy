@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Check, Copy, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MINI_ZOOM = 14.2;
@@ -212,11 +212,6 @@ export function VenueMiniMap({ lat, lng, venueName, venueAddress }: VenueMiniMap
           disabled={!hasMapToken}
           className="inline-flex min-h-9 items-center justify-center gap-1 rounded-full border border-white/20 bg-white/[0.06] px-2 py-1.5 text-[10px] font-semibold text-[#D9E4F5] whitespace-nowrap transition-colors hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed sm:min-h-10 sm:gap-1.5 sm:px-3 sm:text-[11px]"
         >
-          {isExpanded ? (
-            <Minimize2 className="h-[10px] w-[10px] sm:h-[11px] sm:w-[11px]" strokeWidth={2.2} />
-          ) : (
-            <Maximize2 className="h-[10px] w-[10px] sm:h-[11px] sm:w-[11px]" strokeWidth={2.2} />
-          )}
           <span className="sm:hidden">{isExpanded ? "Compacto" : "Ampliar"}</span>
           <span className="hidden sm:inline">{isExpanded ? "Ver compacto" : "Ampliar mapa"}</span>
         </button>
@@ -226,11 +221,6 @@ export function VenueMiniMap({ lat, lng, venueName, venueAddress }: VenueMiniMap
           onClick={handleCopyLocation}
           className="inline-flex min-h-9 items-center justify-center gap-1 rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1.5 text-[10px] font-semibold text-cyan-100 whitespace-nowrap transition-colors hover:bg-cyan-400/20 sm:min-h-10 sm:gap-1.5 sm:px-3 sm:text-[11px]"
         >
-          {copied ? (
-            <Check className="h-[10px] w-[10px] sm:h-[11px] sm:w-[11px]" strokeWidth={2.6} />
-          ) : (
-            <Copy className="h-[10px] w-[10px] sm:h-[11px] sm:w-[11px]" strokeWidth={2.3} />
-          )}
           <span className="sm:hidden">{copied ? "Copiado" : "Copiar"}</span>
           <span className="hidden sm:inline">{copied ? "Copiado" : "Copiar ubicación"}</span>
         </button>

@@ -15,7 +15,6 @@ import {
   BadgeCheck,
   ChevronDown,
   DollarSign,
-  Gift,
   Link2,
   Image,
   ArrowLeft,
@@ -474,7 +473,6 @@ export default function PublicarPage() {
                     <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <Gift className={cn("h-5 w-5", isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")} />
                 <div>
                   <p className={cn("text-[13px] font-semibold", isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")}>
                     Gratuito
@@ -499,7 +497,6 @@ export default function PublicarPage() {
                     <span className="text-[8px] text-white font-bold">✓</span>
                   </span>
                 )}
-                <DollarSign className={cn("h-5 w-5", !isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")} />
                 <div>
                   <p className={cn("text-[13px] font-semibold", !isFree ? "text-[#E2E8F0]" : "text-[#B8C5D6]")}>
                     Con costo
@@ -650,10 +647,7 @@ export default function PublicarPage() {
           }}
         >
           {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Enviando solicitud…
-            </>
+            "Enviando solicitud…"
           ) : (
             "Enviar solicitud"
           )}

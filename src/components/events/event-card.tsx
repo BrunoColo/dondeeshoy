@@ -205,7 +205,7 @@ export function EventCard({
             {isTrending && (
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 border border-orange-500/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 shrink-0">
                 <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
-                Popular
+                En tendencia
               </span>
             )}
             {/* Department badge — only shown for events outside Montevideo */}

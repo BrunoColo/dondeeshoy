@@ -306,6 +306,7 @@ function buildOrderByExpressions(
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${events.eventType}
         ORDER BY
+          ${seriesCount} ASC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
           ${events.name} ASC,
@@ -314,6 +315,7 @@ function buildOrderByExpressions(
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${normalizedSeriesVenueKey}
         ORDER BY
+          ${seriesCount} ASC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
           ${events.name} ASC,
@@ -322,11 +324,13 @@ function buildOrderByExpressions(
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${normalizedVenuePartitionKey}
         ORDER BY
+          ${seriesCount} ASC,
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
           ${events.name} ASC,
           ${events.id} ASC
       )`,
+      asc(seriesCount),
       desc(rankingScore),
       asc(events.startTime),
       asc(events.name),
@@ -452,7 +456,7 @@ export async function getEventsByDatePaged(
     );
 
   const orderByExpressions = buildOrderByExpressions(orderStrategy, {
-    deprioritizeMultiDaySeries: orderStrategy === "diverse",
+    deprioritizeMultiDaySeries: orderStrategy === "diverse" || orderStrategy === "fast-diverse",
   });
   const orderedQuery = baseQuery.orderBy(...orderByExpressions);
 
@@ -470,7 +474,7 @@ async function getEventsByDatePagedWithTotalCount(
   const safeLimit = Math.max(1, Math.min(limit, 100));
   const filterConditions = buildFilterConditions(filters);
   const orderByExpressions = buildOrderByExpressions(orderStrategy, {
-    deprioritizeMultiDaySeries: orderStrategy === "diverse",
+    deprioritizeMultiDaySeries: orderStrategy === "diverse" || orderStrategy === "fast-diverse",
   });
 
   const rows = await db
@@ -491,7 +495,10 @@ async function getEventsByDatePagedWithTotalCount(
     .offset(safeOffset);
 
   const totalCount = rows.length > 0 ? Number(rows[0].__totalCount ?? 0) : 0;
-  const pagedEvents = rows.map(({ __totalCount: _totalCount, ...event }) => event);
+  const pagedEvents = rows.map(({ __totalCount: _totalCount, ...event }) => {
+    void _totalCount;
+    return event;
+  });
 
   return {
     events: pagedEvents,
@@ -649,7 +656,7 @@ export async function getUpcomingEventsFromDate(
 ) {
   const filterConditions = buildFilterConditions(filters);
   const orderByExpressions = buildOrderByExpressions(orderStrategy, {
-    deprioritizeMultiDaySeries: orderStrategy === "diverse",
+    deprioritizeMultiDaySeries: orderStrategy === "diverse" || orderStrategy === "fast-diverse",
   });
 
   const results = await db

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Ticket, X, Check, Moon, Filter, MapPin, Shapes, ChevronDown, Navigation } from "lucide-react";
+import { X, Filter } from "lucide-react";
 import type { EventType } from "@/types/events";
 import { EVENT_TYPE_LABELS } from "@/types/events";
 
@@ -186,8 +186,6 @@ export function EventFilters({
                 : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/55",
             )}
           >
-            {activeFree && <Check className="h-3 w-3" strokeWidth={2.8} />}
-            <Ticket className="h-3 w-3" strokeWidth={2.5} />
             Gratis
           </button>
 
@@ -201,8 +199,6 @@ export function EventFilters({
                 : "bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400/55",
             )}
           >
-            {activeNight && <Check className="h-3 w-3" strokeWidth={2.8} />}
-            <Moon className="h-3 w-3" strokeWidth={2.5} />
             Noche
           </button>
 
@@ -217,9 +213,7 @@ export function EventFilters({
                 : "bg-violet-500/18 border-violet-400/45 text-violet-200 hover:bg-violet-500/28 hover:border-violet-300/65 hover:text-violet-100",
             )}
           >
-            <Shapes className="h-3 w-3" strokeWidth={2.5} />
             {activeType ? EVENT_TYPE_LABELS[activeType] : "Tipo de Evento"}
-            <ChevronDown className="h-3 w-3 opacity-80" strokeWidth={2.6} />
           </button>
         </div>
 
@@ -235,9 +229,7 @@ export function EventFilters({
                 : "bg-sky-500/14 border-sky-400/45 text-sky-200 hover:bg-sky-500/24 hover:border-sky-300/65 hover:text-sky-100",
             )}
           >
-            <MapPin className="h-3 w-3" strokeWidth={2.5} />
             {activeDepartment ?? "Departamento"}
-            <ChevronDown className="h-3 w-3 opacity-80" strokeWidth={2.6} />
           </button>
 
           <button
@@ -251,7 +243,6 @@ export function EventFilters({
                 : "bg-white/[0.08] border-white/[0.22] text-[#CBD5E1] hover:border-accent/40 hover:text-white hover:bg-white/[0.12]",
             )}
           >
-            <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />
             Cerca de mí
           </button>
         </div>
@@ -270,8 +261,6 @@ export function EventFilters({
               : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/55",
           )}
         >
-          {activeFree && <Check className="h-3 w-3" strokeWidth={2.8} />}
-          <Ticket className="h-3 w-3" strokeWidth={2.5} />
           Gratis
         </button>
 
@@ -286,8 +275,6 @@ export function EventFilters({
               : "bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400/55",
           )}
         >
-          {activeNight && <Check className="h-3 w-3" strokeWidth={2.8} />}
-          <Moon className="h-3 w-3" strokeWidth={2.5} />
           Noche
         </button>
 
@@ -313,7 +300,6 @@ export function EventFilters({
                   : cn(style.bg, style.text, "hover:brightness-125"),
               )}
             >
-              {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
               {EVENT_TYPE_LABELS[type]}
             </button>
           );
@@ -337,7 +323,6 @@ export function EventFilters({
                     : "bg-white/[0.07] border-white/[0.18] text-[#CBD5E1] hover:border-accent/35 hover:text-white hover:bg-white/[0.10]",
                 )}
               >
-                {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
                 {department}
               </button>
             );
@@ -372,7 +357,6 @@ export function EventFilters({
               onClick={clearAllFilters}
               className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/[0.20] px-2.5 py-1 text-[11px] font-medium text-[#CBD5E1] hover:text-white hover:border-white/[0.35] hover:bg-white/[0.12] transition-all duration-200 cursor-pointer"
             >
-              <X className="h-3 w-3" />
               Limpiar
             </button>
           </div>
@@ -427,7 +411,6 @@ export function EventFilters({
                   )}
                 >
                   <span>Todos los tipos</span>
-                  {!activeType && <Check className="h-4 w-4" strokeWidth={2.8} />}
                 </button>
               )}
 
@@ -450,7 +433,6 @@ export function EventFilters({
                       )}
                     >
                       <span>{EVENT_TYPE_LABELS[type]}</span>
-                      {isActive && <Check className="h-4 w-4" strokeWidth={2.8} />}
                     </button>
                   );
                 })}
@@ -470,7 +452,6 @@ export function EventFilters({
                   )}
                 >
                   <span>Todos los departamentos</span>
-                  {!activeDepartment && <Check className="h-4 w-4" strokeWidth={2.8} />}
                 </button>
               )}
 
@@ -493,7 +474,6 @@ export function EventFilters({
                       )}
                     >
                       <span>{department}</span>
-                      {isActive && <Check className="h-4 w-4" strokeWidth={2.8} />}
                     </button>
                   );
                 })}

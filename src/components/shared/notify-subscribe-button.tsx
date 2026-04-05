@@ -60,7 +60,6 @@ export function NotifySubscribeButton({
           className,
         )}
       >
-        <Bell className="h-4 w-4" strokeWidth={2.2} />
         Notificarme eventos como este
       </button>
     );

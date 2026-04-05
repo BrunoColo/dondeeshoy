@@ -224,15 +224,12 @@ export function Header() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => navigateToSuggestion(suggestion)}
                     className={cn(
-                      "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-150",
+                      "flex w-full items-start px-4 py-3 text-left transition-colors duration-150",
                       isActive
                         ? "bg-[linear-gradient(135deg,rgba(13,148,136,0.18),rgba(99,102,241,0.18))]"
                         : "hover:bg-white/[0.06]",
                     )}
                   >
-                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.05] text-[#8B5CF6]">
-                      <Search className="h-4 w-4" strokeWidth={2} />
-                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-white">{suggestion.name}</div>
                       <div className="mt-1 truncate text-xs text-[#9FB0C4]">{suggestion.venueName}</div>
@@ -262,7 +259,7 @@ export function Header() {
             className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-[#D7E3F3] transition-colors hover:bg-white/[0.06]"
           >
             <span className="truncate">Ver todos los resultados para “{searchValue.trim()}”</span>
-            <span className="shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#7DD3FC]">Enter</span>
+            <span className="shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#7DD3FC]">Intro</span>
           </button>
         </div>
       </div>
@@ -346,7 +343,6 @@ export function Header() {
               }}
               aria-label="Buscar"
             >
-              <Search className="h-4 w-4 text-accent-light" strokeWidth={2} />
               <span className="text-[12px] text-[#A8B8CC] font-medium">Buscar…</span>
             </button>
           </div>

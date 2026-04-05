@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Ticket, ExternalLink, Loader2 } from "lucide-react";
 
 interface TicketButtonProps {
   eventId?: string;
@@ -43,16 +42,9 @@ export function TicketButton({ eventId, ticketUrl }: TicketButtonProps) {
       aria-label={loading ? "Abriendo sitio de entradas…" : "Comprar entradas"}
     >
       {loading ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-          <span>Abriendo…</span>
-        </>
+        <span>Abriendo…</span>
       ) : (
-        <>
-          <Ticket className="h-4 w-4" strokeWidth={2} />
-          <span>Comprar entradas</span>
-          <ExternalLink className="h-3.5 w-3.5 opacity-60" strokeWidth={2} />
-        </>
+        <span>Comprar entradas</span>
       )}
     </button>
   );

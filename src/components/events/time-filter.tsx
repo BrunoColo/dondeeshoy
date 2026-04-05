@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Check, X } from "lucide-react";
+import { CalendarDays, X } from "lucide-react";
 
 type TimeWhen = "manana" | "finde";
 
@@ -170,7 +170,6 @@ export function TimeFilter({ className }: TimeFilterProps) {
                   : "bg-teal-500/15 border-teal-500/40 text-teal-300 hover:bg-teal-500/25 hover:border-teal-400/55",
               )}
             >
-              {isActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
               {option.label}
             </button>
           );
@@ -187,7 +186,6 @@ export function TimeFilter({ className }: TimeFilterProps) {
                 : "bg-teal-500/15 border-teal-500/40 text-teal-300 hover:bg-teal-500/25 hover:border-teal-400/55",
             )}
           >
-            {isDateActive && <Check className="mr-1 h-3 w-3" strokeWidth={2.8} />}
             {isDateActive && activeDate ? formatSelectedDate(activeDate) : "Elegir fecha"}
           </button>
           <input

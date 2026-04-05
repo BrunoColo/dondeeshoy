@@ -5,7 +5,7 @@ import { EventList } from "./event-list";
 import { SectionHeader } from "./section-header";
 import { WeekendPreview } from "./weekend-preview";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { ChevronDown, Compass, Flame, Loader2, RotateCw } from "lucide-react";
+import { Compass, Flame, RotateCw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { Event } from "@/lib/db/schema/events";
 import type { EventFilters } from "@/types/events";
@@ -198,15 +198,9 @@ export function HomeEventsClient({
                     }}
                   >
                     {loadingMoreUnique ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Cargando más…
-                      </>
+                      "Cargando más…"
                     ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-                        Ver más de hoy ({totalUniqueCount - uniqueEvents.length})
-                      </>
+                      `Ver más de hoy (${totalUniqueCount - uniqueEvents.length})`
                     )}
                   </button>
                 </div>
@@ -259,15 +253,9 @@ export function HomeEventsClient({
                   }}
                 >
                   {loadingMoreRecurring ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Cargando más…
-                    </>
+                    "Cargando más…"
                   ) : (
-                    <>
-                      <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-                      Ver más recurrentes ({totalRecurringCount - recurringEventList.length})
-                    </>
+                    `Ver más recurrentes (${totalRecurringCount - recurringEventList.length})`
                   )}
                 </button>
               </div>
