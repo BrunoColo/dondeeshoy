@@ -97,7 +97,6 @@ function SidebarEventRow({
       ref={rowRef}
       type="button"
       onClick={onClick}
-      style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
       className={cn(
         "card-animate w-full text-left rounded-xl border transition-all duration-200 group overflow-hidden",
         isSelected
