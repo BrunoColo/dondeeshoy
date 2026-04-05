@@ -84,6 +84,19 @@ function normalizedSeriesNameExpression(nameExpression: unknown) {
 }
 
 const normalizedCurrentSeriesName = normalizedSeriesNameExpression(events.name);
+const normalizedVenueName = sql`trim(lower(coalesce(${events.venueName}, '')))`;
+const normalizedVenuePartitionKey = sql`(
+  CASE
+    WHEN ${normalizedVenueName} = '' THEN ${events.id}::text
+    ELSE ${normalizedVenueName}
+  END
+)`;
+const normalizedSeriesVenueKey = sql`(
+  CASE
+    WHEN ${normalizedCurrentSeriesName} = '' OR ${normalizedVenueName} = '' THEN ${events.id}::text
+    ELSE ${normalizedCurrentSeriesName} || '::' || ${normalizedVenueName}
+  END
+)`;
 
 const sameSeriesInWindowCount = sql`(
   SELECT COUNT(*)
@@ -261,7 +274,16 @@ function buildOrderByExpressions(
           ${events.id} ASC
       )`,
       sql`row_number() OVER (
-        PARTITION BY ${events.date}, lower(trim(${events.venueName}))
+        PARTITION BY ${events.date}, ${normalizedSeriesVenueKey}
+        ORDER BY
+          ${editorialInterestingScore} DESC,
+          ${rankingScore} DESC,
+          ${events.startTime} ASC NULLS LAST,
+          ${events.name} ASC,
+          ${events.id} ASC
+      )`,
+      sql`row_number() OVER (
+        PARTITION BY ${events.date}, ${normalizedVenuePartitionKey}
         ORDER BY
           ${editorialInterestingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
@@ -283,6 +305,22 @@ function buildOrderByExpressions(
       sql`CASE WHEN ${events.eventType} = 'otro' THEN 1 ELSE 0 END`,
       sql`row_number() OVER (
         PARTITION BY ${events.date}, ${events.eventType}
+        ORDER BY
+          ${rankingScore} DESC,
+          ${events.startTime} ASC NULLS LAST,
+          ${events.name} ASC,
+          ${events.id} ASC
+      )`,
+      sql`row_number() OVER (
+        PARTITION BY ${events.date}, ${normalizedSeriesVenueKey}
+        ORDER BY
+          ${rankingScore} DESC,
+          ${events.startTime} ASC NULLS LAST,
+          ${events.name} ASC,
+          ${events.id} ASC
+      )`,
+      sql`row_number() OVER (
+        PARTITION BY ${events.date}, ${normalizedVenuePartitionKey}
         ORDER BY
           ${rankingScore} DESC,
           ${events.startTime} ASC NULLS LAST,
