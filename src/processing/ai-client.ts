@@ -50,6 +50,10 @@ export async function classifyEventWithAi(input: {
   category?: string | null;
   genre?: string | null;
 }): Promise<AiClassificationResult | null> {
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return null;
+  }
+
   try {
     const client = getOpenAIClient();
 

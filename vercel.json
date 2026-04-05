@@ -65,10 +65,6 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/scrape/reclassify-otros",
-      "schedule": "30 21 * * *"
-    },
-    {
       "path": "/api/cron/newsletter",
       "schedule": "0 12 * * *"
     }

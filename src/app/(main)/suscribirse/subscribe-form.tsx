@@ -551,7 +551,7 @@ export function SubscribeForm() {
               </div>
               <div>
                 <h2 className="text-[15px] font-bold text-[#F8FAFC]">Tus intereses</h2>
-                <p className="text-[11px] text-[#94A3B8]">
+                <p className="text-[11px] text-[#B7C6D9]">
                   Opcional — dejá vacío para recibir de todo
                 </p>
               </div>
@@ -559,7 +559,7 @@ export function SubscribeForm() {
 
             {/* Event types */}
             <div className="mb-6">
-              <label className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2.5">
+              <label className="text-[11px] font-semibold text-[#BCCBDE] uppercase tracking-wider block mb-2.5">
                 Tipos de evento
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -572,7 +572,7 @@ export function SubscribeForm() {
                       "flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-medium transition-all duration-200 border",
                       selectedTypes.includes(t.value)
                         ? "text-[#F8FAFC] border-opacity-40"
-                        : "text-[#64748B] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] hover:text-[#94A3B8]",
+                        : "text-[#A7B8CC] border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.22)] hover:text-[#D7E4F3]",
                     )}
                     style={
                       selectedTypes.includes(t.value)
@@ -593,7 +593,7 @@ export function SubscribeForm() {
 
             {/* Departments */}
             <div className="mb-6">
-              <label className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2.5">
+              <label className="text-[11px] font-semibold text-[#BCCBDE] uppercase tracking-wider block mb-2.5">
                 Departamentos
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -606,7 +606,7 @@ export function SubscribeForm() {
                       "flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-medium transition-all duration-200 border",
                       selectedDepartments.includes(dept)
                         ? "bg-[rgba(13,148,136,0.12)] border-[rgba(13,148,136,0.35)] text-[#14B8A6]"
-                        : "bg-transparent border-[rgba(255,255,255,0.08)] text-[#64748B] hover:border-[rgba(255,255,255,0.15)] hover:text-[#94A3B8]",
+                        : "bg-transparent border-[rgba(255,255,255,0.12)] text-[#A7B8CC] hover:border-[rgba(255,255,255,0.22)] hover:text-[#D7E4F3]",
                     )}
                   >
                     {dept}
@@ -624,7 +624,7 @@ export function SubscribeForm() {
                   border: "1px solid rgba(255,255,255,0.06)",
                 }}
               >
-                <p className="text-[11px] text-[#94A3B8]">
+                <p className="text-[11px] text-[#B7C6D9]">
                   Vas a recibir{" "}
                   {selectedTypes.length > 0 && (
                     <span className="text-[#14B8A6] font-semibold">

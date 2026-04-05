@@ -16,6 +16,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: getNoStoreHeaders() });
   }
 
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return NextResponse.json(
+      {
+        skipped: true,
+        reason: "OPENAI_API_KEY no configurada. Reclasificación con IA desactivada.",
+      },
+      { headers: getNoStoreHeaders() },
+    );
+  }
+
   const lock = await acquireCronLock("reclassify-otros", 300);
   if (!lock) {
     return NextResponse.json({ skipped: true, reason: "lock held" }, { headers: getNoStoreHeaders() });

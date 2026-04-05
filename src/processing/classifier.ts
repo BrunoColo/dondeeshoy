@@ -611,6 +611,9 @@ const REJECT_PATTERNS = [
   // e.g. "CERRO LARGO x THE LA PLANTA - Edición Especial"
   // These are artist/venue cross-promotion promotional posts, not standalone ticketed events
   /\bx\s+(?:the\s+)?(?:la\s+planta|music\s+box|antel\s+arena|sala\s+zitarrosa)\b.*\b(edici[oó]n\s+especial|collab|colaboraci[oó]n)\b/i,
+  // Stadium box/package listings for matches are not public event listings
+  // e.g. "Palco: Montevideo City Torque VS Gremio"
+  /(?=.*\bpalcos?\b)(?=.*\bvs\.?\b)/i,
   // Gift vouchers / experience packages (not events)
   /\bvoucher\s+de\s+(experiencia|regalo|cena|almuerzo)\b/i,
   /\btarjeta\s+de\s+regalo\b/i,

@@ -65,7 +65,11 @@ export async function runProcessingPipeline(batchSize = 50): Promise<PipelineRes
 
   const context = await createPipelineBatchContext();
 
-  const aiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "25", 10);
+  const aiConfigured = Boolean(process.env.OPENAI_API_KEY?.trim());
+  const configuredAiBudget = Number.parseInt(process.env.AI_CLASSIFICATION_MAX_PER_BATCH ?? "25", 10);
+  const aiBudget = aiConfigured
+    ? Math.max(0, Number.isFinite(configuredAiBudget) ? configuredAiBudget : 25)
+    : 0;
   let aiClassified = 0;
   const linkedRawEventIds: string[] = [];
 
@@ -203,8 +207,9 @@ export async function reprocessRawEvent(rawEventId: string): Promise<{
   );
 
   try {
+    const aiConfigured = Boolean(process.env.OPENAI_API_KEY?.trim());
     const outcome = await processRawEvent(rawEvent, {
-      aiEnabled: true,
+      aiEnabled: aiConfigured,
       context: await createPipelineBatchContext(),
     });
     return { rawEventId, outcome };
