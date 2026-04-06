@@ -55,6 +55,7 @@ const FEATURES = [
   { icon: Calendar, text: "Cada jueves: resumen del finde" },
   { icon: MapPin, text: "Filtrado por tu departamento" },
   { icon: Heart, text: "Según tus tipos de evento favoritos" },
+  { icon: Mail, text: "Por ahora, envío por email" },
   { icon: Bell, text: "Sin spam, cancelá cuando quieras" },
 ];
 
@@ -346,7 +347,7 @@ export function SubscribeForm() {
           </span>
         </h1>
         <p className="text-[15px] text-[#94A3B8] leading-relaxed max-w-lg mx-auto">
-          Elegí qué te interesa y cada jueves te llega una selección del finde.
+          Elegí qué te interesa y cada jueves te llega por email una selección del finde.
           Ejemplo: conciertos en Montevideo + planes familiares en Canelones.
         </p>
 

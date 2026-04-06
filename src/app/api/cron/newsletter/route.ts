@@ -13,6 +13,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
+const MAX_WEEKLY_EVENTS_PER_SUBSCRIBER = 30;
+const MAX_DAILY_EVENTS_PER_SUBSCRIBER = 12;
+const MAX_EVENTS_PER_DAY = 10;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
  * Boletín cron endpoint.
  * - Weekly: runs on Thursday, sends events for upcoming Fri-Sat-Sun
@@ -40,8 +46,66 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const forceFrequency = url.searchParams.get("frequency") as "weekly" | "daily" | null;
-
+    const previewEmailParam = url.searchParams.get("previewEmail");
+    const previewEmail = previewEmailParam?.trim().toLowerCase() ?? "";
+    const previewTypeParam = url.searchParams.get("previewType");
+    const previewType = previewTypeParam?.trim().toLowerCase() ?? "";
+    const dryRun = /^(1|true|yes)$/i.test(url.searchParams.get("dryRun") ?? "");
     const today = getTodayUY();
+
+    if (previewEmail) {
+      if (!EMAIL_REGEX.test(previewEmail)) {
+        return NextResponse.json(
+          { ok: false, error: "previewEmail inválido." },
+          { status: 400, headers: getNoStoreHeaders() },
+        );
+      }
+
+      const weekend = getNextWeekendDatesUY(today);
+      const allWeekendEvents = await getEventsForDateRange(weekend.start, weekend.end);
+      const matchingTypeEvents = previewType
+        ? allWeekendEvents.filter((event) => event.eventType.toLowerCase() === previewType)
+        : allWeekendEvents;
+
+      const selectedEvents = limitDigestEvents(matchingTypeEvents, {
+        maxTotal: MAX_WEEKLY_EVENTS_PER_SUBSCRIBER,
+        maxPerDay: MAX_EVENTS_PER_DAY,
+      });
+
+      const eventsByDay = groupEventsByDate(selectedEvents);
+
+      if (!dryRun && selectedEvents.length > 0) {
+        await sendDigestEmail(
+          previewEmail,
+          "preview-only-token",
+          null,
+          eventsByDay,
+          true,
+        );
+      }
+
+      return NextResponse.json(
+        {
+          ok: true,
+          preview: true,
+          frequency: "weekly",
+          email: previewEmail,
+          eventType: previewType || "all",
+          weekendMode: "next",
+          dryRun,
+          sent: !dryRun && selectedEvents.length > 0,
+          weekend,
+          totalFound: matchingTypeEvents.length,
+          totalSelected: selectedEvents.length,
+          byDate: Array.from(eventsByDay.entries()).map(([date, events]) => ({
+            date,
+            count: events.length,
+          })),
+        },
+        { headers: getNoStoreHeaders() },
+      );
+    }
+
     const dayOfWeek = new Date(today + "T12:00:00").getDay(); // 0=Sun, 4=Thu
 
     const results = {
@@ -61,13 +125,18 @@ export async function GET(request: Request) {
         try {
           const filtered = filterEventsForSubscriber(events, subscriber);
 
-          if (filtered.length === 0) {
+          const limited = limitDigestEvents(filtered, {
+            maxTotal: MAX_WEEKLY_EVENTS_PER_SUBSCRIBER,
+            maxPerDay: MAX_EVENTS_PER_DAY,
+          });
+
+          if (limited.length === 0) {
             results.weekly.skipped++;
             continue;
           }
 
           // Group events by date
-          const eventsByDay = groupEventsByDate(filtered);
+          const eventsByDay = groupEventsByDate(limited);
 
           await sendDigestEmail(
             subscriber.email,
@@ -100,12 +169,17 @@ export async function GET(request: Request) {
         try {
           const filtered = filterEventsForSubscriber(events, subscriber);
 
-          if (filtered.length === 0) {
+          const limited = limitDigestEvents(filtered, {
+            maxTotal: MAX_DAILY_EVENTS_PER_SUBSCRIBER,
+            maxPerDay: MAX_EVENTS_PER_DAY,
+          });
+
+          if (limited.length === 0) {
             results.daily.skipped++;
             continue;
           }
 
-          const eventsByDay = groupEventsByDate(filtered);
+          const eventsByDay = groupEventsByDate(limited);
 
           await sendDigestEmail(
             subscriber.email,
@@ -172,6 +246,61 @@ function groupEventsByDate(
   }
 
   return grouped;
+}
+
+function limitDigestEvents(
+  events: QueryEvent[],
+  options: { maxTotal: number; maxPerDay: number },
+): QueryEvent[] {
+  if (events.length <= options.maxTotal) {
+    return events;
+  }
+
+  const limited: QueryEvent[] = [];
+  const perDayCounts = new Map<string, number>();
+
+  for (const event of events) {
+    if (limited.length >= options.maxTotal) {
+      break;
+    }
+
+    const currentDayCount = perDayCounts.get(event.date) ?? 0;
+    if (currentDayCount >= options.maxPerDay) {
+      continue;
+    }
+
+    limited.push(event);
+    perDayCounts.set(event.date, currentDayCount + 1);
+  }
+
+  return limited;
+}
+
+function getNextWeekendDatesUY(today: string): { start: string; end: string } {
+  const [year, month, day] = today.split("-").map(Number);
+  const todayDate = new Date(year, month - 1, day, 12, 0, 0);
+  const dayOfWeek = todayDate.getDay(); // 0=Sun, 5=Fri
+
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+  const offsetToStart = daysUntilFriday === 0 ? 7 : daysUntilFriday;
+
+  const start = new Date(todayDate);
+  start.setDate(start.getDate() + offsetToStart);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2);
+
+  return {
+    start: formatDateForQuery(start),
+    end: formatDateForQuery(end),
+  };
+}
+
+function formatDateForQuery(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function sleep(ms: number): Promise<void> {

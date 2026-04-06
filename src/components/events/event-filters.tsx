@@ -231,7 +231,9 @@ export function EventFilters({
           >
             {activeDepartment ?? "Departamento"}
           </button>
+        </div>
 
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={toggleNear}
@@ -329,6 +331,23 @@ export function EventFilters({
           })}
         </div>
       )}
+
+      {/* Nearby row */}
+      <div className="hidden sm:flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <button
+          type="button"
+          onClick={toggleNear}
+          aria-pressed={activeNear}
+          className={cn(
+            "shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer",
+            activeNear
+              ? "bg-accent/25 border-accent/55 text-accent-light shadow-[0_0_12px_rgba(13,148,136,0.25)] ring-1 ring-accent/30"
+              : "bg-white/[0.08] border-white/[0.22] text-[#CBD5E1] hover:border-accent/40 hover:text-white hover:bg-white/[0.12]",
+          )}
+        >
+          Cerca de mí
+        </button>
+      </div>
 
       {/* Active filter indicator + clear */}
       {hasActiveFilters && (

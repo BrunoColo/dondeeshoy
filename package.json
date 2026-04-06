@@ -13,7 +13,7 @@
     "fix:same-day-duplicates": "node scripts/fix-same-day-duplicates.mjs",
     "fix:familiar": "node scripts/fix-familiar-misclassified.mjs",
     "fix:fiesta-non-nightlife": "node scripts/fix-non-nightlife-fiesta.mjs",
-    "fix:misclassified-free-mar-2026": "node scripts/fix-mar-2026-misclassified-free-events.mjs",
+    "newsletter:preview:fiestas": "node scripts/send-weekend-fiestas-preview.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

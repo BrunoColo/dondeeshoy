@@ -275,10 +275,10 @@ export async function sendDigestEmail(
   const greeting = subscriberName ? `¡Hola ${subscriberName}!` : "¡Hola!";
   const subject = isWeekly
     ? `🎉 Tu fin de semana — lo mejor que viene`
-    : `☀️ Buenos días — eventos de hoy`;
+    : `☀️ Buenos días — eventos de mañana`;
   const preheader = isWeekly
     ? "Tu selección del finde ya está lista: abrí para ver los eventos recomendados."
-    : "Tu resumen del día está listo: abrí para ver los eventos de hoy.";
+    : "Tu resumen está listo: abrí para ver los eventos de mañana.";
 
   // Build day sections
   let daysSections = "";
@@ -358,8 +358,8 @@ export async function sendDigestEmail(
       </h1>
       <p style="${emailStyles.subheading} text-align: center;">
         ${isWeekly
-          ? `Encontramos <strong style="color: #14B8A6;">${totalEvents} eventos</strong> para este fin de semana.`
-          : `Hay <strong style="color: #14B8A6;">${totalEvents} eventos</strong> para hoy.`
+          ? `Preparamos una selección de <strong style="color: #14B8A6;">${totalEvents} eventos</strong> para este fin de semana.`
+          : `Preparamos una selección de <strong style="color: #14B8A6;">${totalEvents} eventos</strong> para mañana.`
         }
       </p>
 
