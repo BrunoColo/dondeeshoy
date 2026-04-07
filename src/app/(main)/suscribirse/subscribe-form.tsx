@@ -55,7 +55,6 @@ const FEATURES = [
   { icon: Calendar, text: "Cada jueves: resumen del finde" },
   { icon: MapPin, text: "Filtrado por tu departamento" },
   { icon: Heart, text: "Según tus tipos de evento favoritos" },
-  { icon: Mail, text: "Por ahora, envío por email" },
   { icon: Bell, text: "Sin spam, cancelá cuando quieras" },
 ];
 

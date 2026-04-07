@@ -231,9 +231,7 @@ export function EventFilters({
           >
             {activeDepartment ?? "Departamento"}
           </button>
-        </div>
 
-        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={toggleNear}
